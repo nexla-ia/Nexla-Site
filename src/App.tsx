@@ -1143,8 +1143,8 @@ export default function App() {
             whileHover={{ scale:1.01 }}>
             <div className="absolute top-4 left-8 font-display font-bold text-8xl leading-none select-none opacity-10 text-white">"</div>
             <p className="font-display font-bold text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto text-white relative z-10">
-              Colocar inteligência artificial a serviço do dia a dia das empresas brasileiras —
-              de forma acessível, prática e com resultados que aparecem na operação, não só no papel.
+              Transformar inteligência artificial em vantagem competitiva real para empresas brasileiras —
+              com tecnologia de ponta, execução sob medida e resultados que aparecem no caixa, não só na apresentação.
             </p>
           </motion.div>
         </div>
