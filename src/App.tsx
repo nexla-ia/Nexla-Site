@@ -1175,12 +1175,6 @@ export default function App() {
                   alt="Equipe Nexla — Vencedora do NASA Space Apps Challenge"
                   className="w-full h-auto object-cover block"
                 />
-                {/* Badge overlay */}
-                <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full font-mono text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5"
-                  style={{ background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(10px)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <span style={{ color: '#FBBF24' }}>★</span>
-                  1º Lugar Regional · NASA Space Apps
-                </div>
               </div>
               {/* Caption */}
               <p className="mt-3 text-xs font-mono text-center" style={{ color: C.muted }}>
