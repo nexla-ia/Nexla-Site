@@ -597,16 +597,6 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
 
             {/* Text */}
             <div>
-              <motion.span
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-[11px] md:text-xs font-bold mb-4 md:mb-5"
-                style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: C.indigo }}
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Sparkles size={12} /> {slide.tag}
-              </motion.span>
-
               <h3 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl mb-3 md:mb-4 leading-[1.15]"
                 style={{ color: C.text }}>
                 {slide.title}
@@ -615,6 +605,16 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
               <p className="text-[15px] md:text-lg leading-relaxed mb-5 md:mb-6" style={{ color: C.muted }}>
                 {slide.desc}
               </p>
+
+              <motion.span
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-[11px] md:text-xs font-bold mb-4"
+                style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: C.indigo }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Sparkles size={12} /> {slide.tag}
+              </motion.span>
 
               <ul className="space-y-2.5 md:space-y-3 mb-6 md:mb-8">
                 {slide.bullets.map((b, i) => (
