@@ -1171,7 +1171,7 @@ export default function App() {
                   boxShadow: '0 30px 80px -20px rgba(79,70,229,0.25), 0 8px 24px rgba(15,23,42,0.08)',
                 }}>
                 <img
-                  src="/nasa-team.jpg"
+                  src="/nexla.jpg"
                   alt="Equipe Nexla — Vencedora do NASA Space Apps Challenge"
                   className="w-full h-auto object-cover block"
                 />
