@@ -174,16 +174,33 @@ const AGENTS = [
 ] as const;
 type Agent = typeof AGENTS[number];
 
-function newSession() {
+function newId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-async function callAgent(url: string, message: string, sessionId: string): Promise<string> {
+function getUserId(): string {
+  if (typeof window === 'undefined') return newId();
+  try {
+    const k = 'nexla_demo_user_id';
+    let id = localStorage.getItem(k);
+    if (!id) { id = newId(); localStorage.setItem(k, id); }
+    return id;
+  } catch {
+    return newId();
+  }
+}
+
+async function callAgent(url: string, message: string, sessionId: string, userId: string): Promise<string> {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chatInput: message, message, sessionId, source: 'site-demo' }),
+    body: JSON.stringify({
+      userId,
+      message,
+      timestamp: new Date().toISOString(),
+      sessionId,
+    }),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -765,14 +782,15 @@ function DemoChat() {
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
-  const [sessionId, setSessionId] = useState<string>(() => newSession());
+  const [sessionId, setSessionId] = useState<string>(() => newId());
+  const userIdRef = useRef<string>(getUserId());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
 
   /* Reset when agent changes */
   useEffect(() => {
     setMessages([{ role: 'bot', text: selected.welcome }]);
-    setSessionId(newSession());
+    setSessionId(newId());
     setInput('');
   }, [selected]);
 
@@ -790,7 +808,7 @@ function DemoChat() {
     setInput('');
     setLoading(true);
     try {
-      const reply = await callAgent(selected.url, text, sessionId);
+      const reply = await callAgent(selected.url, text, sessionId, userIdRef.current);
       setMessages(m => [...m, { role: 'bot', text: reply }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'erro desconhecido';
@@ -803,7 +821,7 @@ function DemoChat() {
 
   const reset = () => {
     setMessages([{ role: 'bot', text: selected.welcome }]);
-    setSessionId(newSession());
+    setSessionId(newId());
     setInput('');
   };
 
