@@ -608,7 +608,7 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
 
               <ul className="space-y-2.5 md:space-y-3 mb-6 md:mb-8">
                 <motion.li
-                  className="flex items-start gap-2.5 md:gap-3 text-[14px] md:text-base leading-snug font-semibold"
+                  className="flex items-start gap-2.5 md:gap-3 text-[14px] md:text-base leading-snug"
                   style={{ color: C.text }}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
