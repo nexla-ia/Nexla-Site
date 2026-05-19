@@ -73,6 +73,8 @@ const SHOWCASE = [
       'Distribuição automática de conversas por setor da clínica',
       'Relatórios em tempo real e IA respondendo na hora',
     ],
+    href: 'https://www.clinisac.com.br/',
+    ctaLabel: 'Conhecer o CliniSac',
   },
   {
     image: '/ChatGPT Image 18 de mai. de 2026, 16_55_19.png',
@@ -84,6 +86,8 @@ const SHOWCASE = [
       'Distribuição automática de casos por área e advogado',
       'IA integrada e acompanhamento em tempo real do funil',
     ],
+    href: 'https://nexla-adv.vercel.app/',
+    ctaLabel: 'Conhecer o AdvoSac',
   },
   {
     image: '/ChatGPT Image 19 de mai. de 2026, 07_57_51.png',
@@ -627,11 +631,13 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
                 ))}
               </ul>
 
-              <MagneticBtn onClick={onCta}
+              <MagneticBtn
+                onClick={slide.href ? undefined : onCta}
+                href={slide.href}
                 className="px-5 md:px-6 py-3 rounded-full font-semibold text-sm w-full sm:w-auto justify-center"
                 style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff',
                   boxShadow: '0 8px 24px rgba(79,70,229,0.28)' }}>
-                Quero esta solução <ArrowRight size={16} />
+                {slide.ctaLabel || 'Quero esta solução'} <ArrowRight size={16} />
               </MagneticBtn>
             </div>
           </motion.div>
