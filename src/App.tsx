@@ -9,7 +9,7 @@ import {
   Bot, Zap, Package, Headphones, Send, BookOpen,
   Clock, Sliders, Link2, TrendingUp, Server, LifeBuoy,
   MapPin, Building2, Calendar, Tag,
-  MessageCircle, ArrowRight, CheckCircle2, Menu, X,
+  MessageCircle, ArrowRight, CheckCircle2,
   Search, Settings, BarChart3, Activity, Users, FileText,
   ChevronDown, ChevronLeft, ChevronRight, Sparkles,
 } from 'lucide-react';
@@ -580,7 +580,7 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: dir * -40 }}
             transition={{ duration: 0.5, ease }}
-            className="relative grid md:grid-cols-2 gap-8 md:gap-12 items-center p-8 md:p-12"
+            className="relative grid md:grid-cols-2 gap-6 md:gap-12 items-center p-5 sm:p-7 md:p-12"
           >
             {/* Image */}
             <div className="relative flex justify-center md:justify-start">
@@ -591,14 +591,14 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
               <img
                 src={slide.image}
                 alt={slide.title}
-                className="relative w-full max-w-[440px] h-auto object-contain drop-shadow-2xl"
+                className="relative w-full max-w-[260px] sm:max-w-[340px] md:max-w-[440px] h-auto object-contain drop-shadow-2xl"
               />
             </div>
 
             {/* Text */}
             <div>
               <motion.span
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-xs font-bold mb-5"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-[11px] md:text-xs font-bold mb-4 md:mb-5"
                 style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: C.indigo }}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -607,32 +607,32 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
                 <Sparkles size={12} /> {slide.tag}
               </motion.span>
 
-              <h3 className="font-display font-bold text-3xl md:text-4xl mb-4 leading-tight"
+              <h3 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl mb-3 md:mb-4 leading-[1.15]"
                 style={{ color: C.text }}>
                 {slide.title}
               </h3>
 
-              <p className="text-base md:text-lg leading-relaxed mb-6" style={{ color: C.muted }}>
+              <p className="text-[15px] md:text-lg leading-relaxed mb-5 md:mb-6" style={{ color: C.muted }}>
                 {slide.desc}
               </p>
 
-              <ul className="space-y-2.5 mb-8">
+              <ul className="space-y-2.5 md:space-y-3 mb-6 md:mb-8">
                 {slide.bullets.map((b, i) => (
                   <motion.li key={b}
-                    className="flex items-start gap-3 text-sm md:text-base"
+                    className="flex items-start gap-2.5 md:gap-3 text-[14px] md:text-base leading-snug"
                     style={{ color: C.text }}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 + i * 0.08 }}
                   >
-                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: C.green }} />
+                    <CheckCircle2 size={17} className="shrink-0 mt-0.5" style={{ color: C.green }} />
                     <span>{b}</span>
                   </motion.li>
                 ))}
               </ul>
 
               <MagneticBtn onClick={onCta}
-                className="px-6 py-3 rounded-full font-semibold text-sm"
+                className="px-5 md:px-6 py-3 rounded-full font-semibold text-sm w-full sm:w-auto justify-center"
                 style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff',
                   boxShadow: '0 8px 24px rgba(79,70,229,0.28)' }}>
                 Quero esta solução <ArrowRight size={16} />
@@ -645,10 +645,11 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
       {/* Controls (hidden when there's only 1 slide) */}
       {total > 1 && (
         <>
+          {/* Arrows — only on tablet/desktop; mobile uses swipe + dots */}
           <button
             onClick={prev}
             aria-label="Slide anterior"
-            className="absolute top-1/2 -translate-y-1/2 -left-2 md:-left-5 w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
+            className="hidden md:flex absolute top-1/2 -translate-y-1/2 -left-5 w-11 h-11 rounded-full items-center justify-center shadow-lg transition-transform hover:scale-110"
             style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo }}
           >
             <ChevronLeft size={20} />
@@ -656,13 +657,39 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
           <button
             onClick={next}
             aria-label="Próximo slide"
-            className="absolute top-1/2 -translate-y-1/2 -right-2 md:-right-5 w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
+            className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-5 w-11 h-11 rounded-full items-center justify-center shadow-lg transition-transform hover:scale-110"
             style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo }}
           >
             <ChevronRight size={20} />
           </button>
 
-          <div className="flex justify-center gap-2 mt-6">
+          {/* Mobile arrows below the card */}
+          <div className="flex md:hidden items-center justify-center gap-3 mt-5">
+            <button
+              onClick={prev}
+              aria-label="Slide anterior"
+              className="w-11 h-11 rounded-full flex items-center justify-center shadow"
+              style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="font-mono text-xs font-bold px-2" style={{ color: C.muted }}>
+              <span style={{ color: C.indigo }}>{String(index + 1).padStart(2, '0')}</span>
+              <span className="opacity-40"> / </span>
+              <span>{String(total).padStart(2, '0')}</span>
+            </span>
+            <button
+              onClick={next}
+              aria-label="Próximo slide"
+              className="w-11 h-11 rounded-full flex items-center justify-center shadow"
+              style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {/* Dots */}
+          <div className="flex justify-center flex-wrap gap-2 mt-4 md:mt-6 px-2">
             {SHOWCASE.map((_, i) => (
               <button
                 key={i}
@@ -686,7 +713,6 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
 export default function App() {
   const [navScrolled,   setNavScrolled]   = useState(false);
   const [activeSection, setActiveSection] = useState('inicio');
-  const [mobileOpen,    setMobileOpen]    = useState(false);
 
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 600], [0, -60]);
@@ -707,12 +733,6 @@ export default function App() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  /* Body lock */
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileOpen]);
-
   /* Active section */
   useEffect(() => {
     const ids = ['inicio','servicos','como-funciona','cases','diferenciais','sobre','contato'];
@@ -732,7 +752,6 @@ export default function App() {
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
     setActiveSection(id);
-    setMobileOpen(false);
   };
 
   const navLinks = [
@@ -749,42 +768,6 @@ export default function App() {
     <div className="min-h-screen overflow-x-hidden" style={{ background:C.bg }}>
       <ScrollProgress />
       <MouseSpotlight />
-
-      {/* ── Mobile Menu ─────────────────────────────────────────── */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 md:hidden flex flex-col items-center justify-center gap-8"
-            initial={{ opacity:0, x:'100%' }}
-            animate={{ opacity:1, x:0 }}
-            exit={{ opacity:0, x:'100%' }}
-            transition={{ type:'spring', stiffness:300, damping:30 }}
-            style={{ background:C.dark }}
-          >
-            <button onClick={() => setMobileOpen(false)}
-              className="absolute top-6 right-6 p-2" style={{ color:C.darkMuted }}>
-              <X size={24} />
-            </button>
-            {navLinks.map((l,i) => (
-              <motion.button key={l.id} onClick={() => scrollTo(l.id)}
-                className="font-display font-bold text-4xl"
-                style={{ color: activeSection === l.id ? '#A78BFA' : C.darkText }}
-                initial={{ opacity:0, x:40 }}
-                animate={{ opacity:1, x:0 }}
-                transition={{ delay: i*0.07+0.1, ease }}>
-                {l.label}
-              </motion.button>
-            ))}
-            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.45 }}>
-              <MagneticBtn onClick={() => scrollTo('contato')}
-                className="mt-2 px-8 py-4 rounded-full font-semibold text-lg"
-                style={{ background:`linear-gradient(135deg,${C.indigo},${C.violet})`, color:'#fff' }}>
-                Falar com a Nexla
-              </MagneticBtn>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
       <motion.nav
@@ -816,13 +799,11 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             <MagneticBtn onClick={() => scrollTo('contato')}
-              className="hidden md:flex px-5 py-2.5 rounded-full font-semibold text-sm"
+              className="px-4 md:px-5 py-2 md:py-2.5 rounded-full font-semibold text-xs md:text-sm"
               style={{ background:`linear-gradient(135deg,${C.indigo},${C.violet})`, color:'#fff', boxShadow:`0 4px 16px rgba(79,70,229,0.28)` }}>
-              Falar com a Nexla
+              <span className="hidden sm:inline">Falar com a Nexla</span>
+              <span className="sm:hidden">Falar</span>
             </MagneticBtn>
-            <button onClick={() => setMobileOpen(true)} className="md:hidden p-2" style={{ color:C.muted }}>
-              <Menu size={22} />
-            </button>
           </div>
         </div>
       </motion.nav>
@@ -978,13 +959,13 @@ export default function App() {
       </section>
 
       {/* ── Soluções em Destaque (Carrossel) ────────────────────── */}
-      <section id="solucoes" className="py-28 px-6" style={{ background: C.bg }}>
+      <section id="solucoes" className="py-16 md:py-28 px-4 md:px-6" style={{ background: C.bg }}>
         <div className="max-w-6xl mx-auto">
-          <motion.div className="text-center mb-14"
+          <motion.div className="text-center mb-10 md:mb-14"
             variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
             <Eyebrow>Soluções em Destaque</Eyebrow>
             <AnimatedHeading text="Veja a Nexla em ação"
-              className="font-display font-bold text-4xl md:text-5xl mb-4"
+              className="font-display font-bold text-3xl md:text-5xl mb-4"
               style={{ color: C.text }} />
             <motion.p variants={fadeUp}
               className="text-base max-w-xl mx-auto leading-relaxed" style={{ color: C.muted }}>
