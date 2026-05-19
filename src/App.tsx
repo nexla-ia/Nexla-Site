@@ -11,7 +11,7 @@ import {
   MapPin, Building2, Calendar, Tag,
   MessageCircle, ArrowRight, CheckCircle2, Menu, X,
   Search, Settings, BarChart3, Activity, Users, FileText,
-  ChevronDown, Sparkles,
+  ChevronDown, ChevronLeft, ChevronRight, Sparkles,
 } from 'lucide-react';
 
 /* ─── Palette ────────────────────────────────────────────────── */
@@ -50,6 +50,85 @@ const SERVICES = [
   { n:'04', icon:Headphones, title:'Implantação e Suporte',      desc:'Briefing estruturado, entrega sob medida e acompanhamento contínuo do resultado.' },
   { n:'05', icon:Send,       title:'Disparo Inteligente',        desc:'Réguas de cobrança, campanhas segmentadas e comunicação em massa via WhatsApp.' },
   { n:'06', icon:BookOpen,   title:'Base de Conhecimento',       desc:'Indexação de documentos e FAQs para alimentar o agente com informações da sua empresa.' },
+];
+const SHOWCASE = [
+  {
+    image: '/ChatGPT Image 18 de mai. de 2026, 16_28_48.png',
+    tag: 'Atendimento 24/7 com IA',
+    title: 'Atenda 10x mais clientes no WhatsApp — sem contratar ninguém',
+    desc: 'Cada mensagem sem resposta é um cliente que foi para o concorrente. Nossa IA atende, qualifica, agenda e cobra automaticamente — com a personalidade da sua marca e o conhecimento do seu negócio.',
+    bullets: [
+      'Resposta em segundos, 24 horas por dia, todos os dias',
+      'Agendamentos, cobranças e triagem 100% automáticos',
+      'Reduz drasticamente o custo de atendimento já no 1º mês',
+    ],
+  },
+  {
+    image: '/ChatGPT Image 18 de mai. de 2026, 16_44_07.png',
+    tag: 'Plataforma para Clínicas e Consultórios',
+    title: 'CliniSac — Sua clínica inteira organizada num painel só',
+    desc: 'Acabou a confusão de WhatsApp pessoal, agenda em papel e paciente esquecido. O CliniSac centraliza todos os canais, distribui o atendimento por setor e mostra em tempo real o que a sua equipe está fazendo.',
+    bullets: [
+      'WhatsApp e Instagram unificados em um só painel',
+      'Distribuição automática de conversas por setor da clínica',
+      'Relatórios em tempo real e IA respondendo na hora',
+    ],
+  },
+  {
+    image: '/ChatGPT Image 18 de mai. de 2026, 16_55_19.png',
+    tag: 'Plataforma para Escritórios de Advocacia',
+    title: 'AdvoSac — O escritório que responde primeiro fecha o caso',
+    desc: 'No mercado jurídico, a primeira resposta define quem o cliente vai contratar. Centralize todos os canais de atendimento, distribua casos por advogado e responda com a agilidade que o cliente espera de um escritório sério.',
+    bullets: [
+      'Atendimento centralizado de clientes e prospects',
+      'Distribuição automática de casos por área e advogado',
+      'IA integrada e acompanhamento em tempo real do funil',
+    ],
+  },
+  {
+    image: '/ChatGPT Image 19 de mai. de 2026, 07_57_51.png',
+    tag: 'Software Sob Medida',
+    title: 'Seu próprio sistema, feito do jeito do seu negócio',
+    desc: 'Saia do refém de planilhas confusas, sistemas genéricos e mensalidades caras. Construímos plataformas SaaS e sistemas internos sob medida — pensados para o seu fluxo e prontos para escalar junto com a operação.',
+    bullets: [
+      'Arquitetura escalável pronta para crescer com sua empresa',
+      'Design e usabilidade no padrão das maiores SaaS do mercado',
+      'Tecnologia de ponta com segurança e performance enterprise',
+    ],
+  },
+  {
+    image: '/ChatGPT Image 19 de mai. de 2026, 08_24_01.png',
+    tag: 'Sites e Landing Pages',
+    title: 'Sites que vendem — não só cartão de visita digital',
+    desc: 'Site bonito é o mínimo. O nosso é projetado para converter: design que impressiona, performance que o Google ama e estrutura pensada para transformar visitante em cliente todos os dias.',
+    bullets: [
+      'Sites institucionais e landing pages otimizadas para conversão',
+      'Lojas virtuais completas integradas a meios de pagamento',
+      'SEO técnico, performance e design responsivo de alto padrão',
+    ],
+  },
+  {
+    image: '/ChatGPT Image 19 de mai. de 2026, 08_36_53.png',
+    tag: 'Apps Android e iOS',
+    title: 'Seu app na tela inicial do seu cliente — todos os dias',
+    desc: 'Ter um aplicativo é colocar sua marca a um toque de distância do seu cliente. Desenvolvemos apps Android e iOS com design impecável, performance superior e cuidado em cada detalhe da experiência.',
+    bullets: [
+      'Apps nativos para Android e iOS com identidade própria',
+      'Publicação acompanhada na Google Play e App Store',
+      'Suporte, atualizações e evolução contínua do produto',
+    ],
+  },
+  {
+    image: '/ChatGPT Image 19 de mai. de 2026, 09_10_02.png',
+    tag: 'Automação & Integrações',
+    title: 'Pare de fazer no manual o que o sistema deveria fazer sozinho',
+    desc: 'Tarefa repetitiva é dinheiro indo embora todo dia. Conectamos seus sistemas e automatizamos fluxos inteiros — para que a sua equipe pare de copiar e colar dado e comece a fechar negócio.',
+    bullets: [
+      'Integrações com WhatsApp, CRM, ERP, APIs e Google Workspace',
+      'Fluxos automáticos entre planilhas, e-mails e sistemas internos',
+      'Redução drástica de retrabalho, erros e custos operacionais',
+    ],
+  },
 ];
 const STEPS = [
   { n:'01', icon:Search,    title:'Diagnóstico', desc:'Entendemos seu processo em uma conversa sem compromisso. Mapeamos gargalos e oportunidades reais.' },
@@ -439,6 +518,170 @@ function DashboardMockup() {
   );
 }
 
+/* ─── Showcase Carousel ─────────────────────────────────────── */
+function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
+  const [index, setIndex] = useState(0);
+  const [dir, setDir]     = useState(0);
+  const total = SHOWCASE.length;
+
+  const go = (next: number) => {
+    setDir(next > index ? 1 : -1);
+    setIndex((next + total) % total);
+  };
+  const prev = () => go(index - 1);
+  const next = () => go(index + 1);
+
+  /* Auto-advance (paused on hover) */
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused || total <= 1) return;
+    const id = setTimeout(() => go(index + 1), 6500);
+    return () => clearTimeout(id);
+  }, [index, paused, total]);
+
+  /* Touch swipe */
+  const touchX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => { touchX.current = e.touches[0].clientX; };
+  const onTouchEnd   = (e: React.TouchEvent) => {
+    if (touchX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    if (Math.abs(dx) > 50) (dx < 0 ? next : prev)();
+    touchX.current = null;
+  };
+
+  const slide = SHOWCASE[index];
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="relative overflow-hidden rounded-3xl"
+        style={{
+          background: `linear-gradient(135deg, ${C.surface} 0%, ${C.soft} 100%)`,
+          border: `1px solid ${C.border}`,
+          boxShadow: '0 24px 80px rgba(79,70,229,0.10)',
+        }}
+      >
+        {/* Soft aurora glow inside the card */}
+        <div className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full opacity-30 blur-[80px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
+        <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full opacity-20 blur-[80px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${C.violet}, transparent)` }} />
+
+        <AnimatePresence mode="wait" custom={dir}>
+          <motion.div
+            key={index}
+            custom={dir}
+            initial={{ opacity: 0, x: dir * 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: dir * -40 }}
+            transition={{ duration: 0.5, ease }}
+            className="relative grid md:grid-cols-2 gap-8 md:gap-12 items-center p-8 md:p-12"
+          >
+            {/* Image */}
+            <div className="relative flex justify-center md:justify-start">
+              <div
+                className="absolute inset-0 rounded-full blur-3xl opacity-40 pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${C.violet}, transparent 60%)` }}
+              />
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="relative w-full max-w-[440px] h-auto object-contain drop-shadow-2xl"
+              />
+            </div>
+
+            {/* Text */}
+            <div>
+              <motion.span
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-xs font-bold mb-5"
+                style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: C.indigo }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Sparkles size={12} /> {slide.tag}
+              </motion.span>
+
+              <h3 className="font-display font-bold text-3xl md:text-4xl mb-4 leading-tight"
+                style={{ color: C.text }}>
+                {slide.title}
+              </h3>
+
+              <p className="text-base md:text-lg leading-relaxed mb-6" style={{ color: C.muted }}>
+                {slide.desc}
+              </p>
+
+              <ul className="space-y-2.5 mb-8">
+                {slide.bullets.map((b, i) => (
+                  <motion.li key={b}
+                    className="flex items-start gap-3 text-sm md:text-base"
+                    style={{ color: C.text }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.08 }}
+                  >
+                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: C.green }} />
+                    <span>{b}</span>
+                  </motion.li>
+                ))}
+              </ul>
+
+              <MagneticBtn onClick={onCta}
+                className="px-6 py-3 rounded-full font-semibold text-sm"
+                style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff',
+                  boxShadow: '0 8px 24px rgba(79,70,229,0.28)' }}>
+                Quero esta solução <ArrowRight size={16} />
+              </MagneticBtn>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Controls (hidden when there's only 1 slide) */}
+      {total > 1 && (
+        <>
+          <button
+            onClick={prev}
+            aria-label="Slide anterior"
+            className="absolute top-1/2 -translate-y-1/2 -left-2 md:-left-5 w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
+            style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={next}
+            aria-label="Próximo slide"
+            className="absolute top-1/2 -translate-y-1/2 -right-2 md:-right-5 w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
+            style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo }}
+          >
+            <ChevronRight size={20} />
+          </button>
+
+          <div className="flex justify-center gap-2 mt-6">
+            {SHOWCASE.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => go(i)}
+                aria-label={`Ir para slide ${i + 1}`}
+                className="h-2 rounded-full transition-all"
+                style={{
+                  width: i === index ? 28 : 8,
+                  background: i === index ? C.indigo : 'rgba(79,70,229,0.25)',
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── App ────────────────────────────────────────────────────── */
 export default function App() {
   const [navScrolled,   setNavScrolled]   = useState(false);
@@ -734,6 +977,32 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── Soluções em Destaque (Carrossel) ────────────────────── */}
+      <section id="solucoes" className="py-28 px-6" style={{ background: C.bg }}>
+        <div className="max-w-6xl mx-auto">
+          <motion.div className="text-center mb-14"
+            variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+            <Eyebrow>Soluções em Destaque</Eyebrow>
+            <AnimatedHeading text="Veja a Nexla em ação"
+              className="font-display font-bold text-4xl md:text-5xl mb-4"
+              style={{ color: C.text }} />
+            <motion.p variants={fadeUp}
+              className="text-base max-w-xl mx-auto leading-relaxed" style={{ color: C.muted }}>
+              Conheça as soluções que já estão transformando o atendimento e a operação de empresas brasileiras.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={vp}
+            transition={{ duration: 0.7, ease }}
+          >
+            <ShowcaseCarousel onCta={() => scrollTo('contato')} />
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── Como Funciona ───────────────────────────────────────── */}
       <section id="como-funciona" className="py-28 px-6 relative overflow-hidden" style={{ background:C.dark }}>
         <div className="absolute inset-0 pointer-events-none">
@@ -979,7 +1248,7 @@ export default function App() {
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
-              <MagneticBtn href="https://wa.me/5569999999999"
+              <MagneticBtn href="https://wa.me/556999300101?text=Ol%C3%A1%20Nexla%2C%20quero%20automatizar%20minha%20empresa"
                 className="px-8 py-4 rounded-full font-semibold text-base"
                 style={{ background:C.green, color:'#fff', boxShadow:`0 8px 28px rgba(34,197,94,0.32)` }}>
                 <MessageCircle size={20} /> Falar pelo WhatsApp
