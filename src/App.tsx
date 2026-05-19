@@ -1260,48 +1260,12 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram @nexla_ia"
-              className="group/ig relative inline-flex items-center gap-2.5 pl-1 pr-3.5 py-[3px] rounded-full overflow-hidden"
-              style={{
-                background: 'rgba(237,233,254,0.035)',
-                border: '1px solid rgba(237,233,254,0.12)',
-                backdropFilter: 'blur(8px)',
-              }}
-              whileHover={{ scale: 1.03 }}
-              transition={{ type:'spring', stiffness:400, damping:25 }}
+              className="text-sm font-medium"
+              style={{ color: C.darkMuted }}
+              whileHover={{ color: C.darkText, y: -1 }}
+              transition={{ duration: 0.2 }}
             >
-              {/* Subtle brand gradient sweep on hover */}
-              <span aria-hidden
-                className="absolute inset-0 opacity-0 group-hover/ig:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(252,176,69,0.08) 0%, rgba(253,29,29,0.08) 35%, rgba(193,53,132,0.10) 65%, rgba(131,58,180,0.10) 100%)',
-                }}
-              />
-
-              {/* Brand-color icon tile */}
-              <span
-                aria-hidden
-                className="relative flex items-center justify-center w-7 h-7 rounded-full shrink-0 transition-transform duration-500 group-hover/ig:rotate-[8deg]"
-                style={{
-                  background: 'linear-gradient(135deg, #FCB045 0%, #FD1D1D 30%, #C13584 60%, #833AB4 100%)',
-                  boxShadow: '0 4px 14px -3px rgba(193,53,132,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
-                </svg>
-              </span>
-
-              {/* Handle + external-link arrow */}
-              <span className="relative font-mono text-[12.5px] tracking-wide flex items-center gap-1.5"
-                style={{ color: C.darkText }}>
-                <span>@nexla_ia</span>
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
-                  className="opacity-50 transition-all duration-300 group-hover/ig:opacity-100 group-hover/ig:translate-x-0.5 group-hover/ig:-translate-y-0.5">
-                  <path d="M3 9L9 3M9 3H4M9 3V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
+              Instagram
             </motion.a>
           </div>
 
