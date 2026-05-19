@@ -1010,13 +1010,19 @@ function DemoChat() {
             </div>
 
             <motion.button onClick={reset}
-              whileHover={{ rotate: -90, scale: 1.05 }}
-              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.04, y: -1 }}
+              whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-              title="Reiniciar conversa"
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ color: C.muted, background: 'rgba(15,23,42,0.04)', border: `1px solid ${C.border}` }}>
-              <RefreshCw size={14} />
+              title="Limpa a conversa e reseta a memória da IA"
+              className="group inline-flex items-center gap-2 shrink-0 px-3 md:px-3.5 py-1.5 md:py-2 rounded-full text-[12px] md:text-[12.5px] font-semibold"
+              style={{
+                color: C.indigo,
+                background: `${C.indigo}0A`,
+                border: `1px solid ${C.indigo}30`,
+              }}>
+              <RefreshCw size={13} className="transition-transform duration-500 group-hover:-rotate-180" />
+              <span className="hidden sm:inline">Reiniciar conversa</span>
+              <span className="sm:hidden">Reiniciar</span>
             </motion.button>
           </div>
 
