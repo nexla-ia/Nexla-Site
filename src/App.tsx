@@ -1137,7 +1137,15 @@ export default function App() {
               className="font-display font-bold text-3xl md:text-5xl mb-4"
               style={{ color:C.text }} />
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed mb-4" style={{ color:C.muted }}>
-              A Nexla é uma empresa brasileira de tecnologia que coloca inteligência artificial para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em <strong style={{ color: C.text }}>resultado mensurável</strong> e estrutura preparada para escalar com a sua operação.
+              A Nexla é uma empresa brasileira de tecnologia que coloca{' '}
+              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                inteligência artificial
+              </span>{' '}
+              para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em{' '}
+              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                resultado mensurável
+              </span>{' '}
+              e estrutura preparada para escalar com a sua operação.
             </motion.p>
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
               Nascida em Vilhena, Rondônia, a Nexla levou tecnologia brasileira ao{' '}
