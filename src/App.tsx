@@ -1445,29 +1445,26 @@ export default function App() {
 
         <div className="relative max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-14">
-            {/* Live indicator pill above title */}
+            {/* Refined eyebrow with decorative lines */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, ease }}
-              className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full font-mono text-[10px] font-bold tracking-[0.22em] uppercase"
-              style={{ background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 4px 12px -4px rgba(15,23,42,0.06)' }}>
-              <span className="relative flex w-2 h-2">
-                <span className="absolute inset-0 rounded-full animate-ping" style={{ background: C.green, opacity: 0.6 }} />
-                <span className="relative w-2 h-2 rounded-full" style={{ background: C.green }} />
+              className="inline-flex items-center gap-3 mb-6">
+              <div className="h-px w-10" style={{ background: `linear-gradient(90deg, transparent, ${C.indigo}80)` }} />
+              <span className="font-mono text-[11px] font-bold tracking-[0.28em] uppercase" style={{ color: C.indigo }}>
+                Demo Interativa
               </span>
-              <span style={{ color: C.text }}>11 endpoints live</span>
-              <span className="opacity-30">·</span>
-              <span style={{ color: C.muted }}>Sem cadastro</span>
+              <div className="h-px w-10" style={{ background: `linear-gradient(-90deg, transparent, ${C.indigo}80)` }} />
             </motion.div>
 
-            <AnimatedHeading text="Converse com nossa IA agora"
+            <AnimatedHeading text="Experimente um agente da Nexla agora"
               className="font-display font-bold text-3xl md:text-5xl mb-5 tracking-tight"
               style={{ color: C.text, letterSpacing: '-0.02em' }} />
-            <p className="text-[15px] md:text-base max-w-xl mx-auto leading-relaxed" style={{ color: C.muted }}>
-              11 agentes reais, em produção, prontos para você testar.
-              Escolha um setor e converse como se fosse um cliente — veja a IA da Nexla em ação.
+            <p className="text-[15px] md:text-[17px] max-w-2xl mx-auto leading-relaxed" style={{ color: C.muted }}>
+              Converse como se fosse um cliente. Escolha um setor abaixo, mande sua pergunta
+              e veja a IA da Nexla respondendo em tempo real — sem cadastro, sem instalação.
             </p>
           </div>
 
