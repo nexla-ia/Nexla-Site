@@ -1495,17 +1495,27 @@ export default function App() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  /* Active section */
+  /* Active section — detecta a seção no centro do viewport */
   useEffect(() => {
     const ids = ['inicio','servicos','experimente','como-funciona','cases','depoimentos','diferenciais','sobre','contato'];
     const sections = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (!sections.length || typeof IntersectionObserver === 'undefined') return;
+
     const obs = new IntersectionObserver(
       entries => {
-        const top = entries.filter(e => e.isIntersecting).sort((a,b) => b.intersectionRatio - a.intersectionRatio);
-        if (top.length) setActiveSection((top[0].target as HTMLElement).id);
+        const intersecting = entries.filter(e => e.isIntersecting);
+        if (!intersecting.length) return;
+        // Pega a seção mais próxima do topo do viewport (a "ativa" visualmente)
+        const closest = intersecting.reduce((a, b) =>
+          Math.abs(a.boundingClientRect.top) < Math.abs(b.boundingClientRect.top) ? a : b
+        );
+        setActiveSection((closest.target as HTMLElement).id);
       },
-      { threshold:[0.2,0.5] }
+      {
+        // Zona ativa = 30% a 60% de baixo (deixa região central do viewport como "ativa")
+        rootMargin: '-25% 0px -55% 0px',
+        threshold: 0,
+      }
     );
     sections.forEach(s => obs.observe(s));
     return () => obs.disconnect();
