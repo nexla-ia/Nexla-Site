@@ -1131,7 +1131,7 @@ export default function App() {
               className="font-display font-bold text-3xl md:text-5xl mb-4"
               style={{ color:C.text }} />
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
-              A Nexla é uma empresa brasileira de tecnologia <strong style={{ color: C.text }}>B2B</strong>, especializada em automação inteligente, inteligência artificial e desenvolvimento de software sob medida. Fundada em <strong style={{ color: C.text }}>Vilhena, Rondônia</strong>, conquistou reconhecimento internacional ao se tornar <strong style={{ color: C.text }}>vencedora do NASA Space Apps Challenge</strong> — o maior hackathon do mundo, organizado pela NASA.
+              A Nexla é uma empresa brasileira de tecnologia <strong style={{ color: C.text }}>B2B</strong>, especializada em automação inteligente, inteligência artificial e desenvolvimento de software sob medida. Fundada em <strong style={{ color: C.text }}>Vilhena, Rondônia</strong>, conquistou a <strong style={{ color: C.text }}>etapa regional do NASA Space Apps Challenge</strong> — o maior hackathon do mundo, organizado pela NASA — e disputou no <strong style={{ color: C.text }}>Top 10 mundial</strong>, ao lado dos melhores times do planeta.
             </motion.p>
           </motion.div>
 
