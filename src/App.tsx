@@ -8,7 +8,7 @@ import Lenis from 'lenis';
 import {
   Bot, Zap, Package, Headphones, Send, BookOpen,
   Clock, Sliders, Link2, TrendingUp, Server, LifeBuoy,
-  Calendar, Award, MapPin, Handshake,
+  Calendar,
   MessageCircle, ArrowRight, CheckCircle2,
   Search, Settings, BarChart3, Activity, Users, FileText,
   ChevronDown, ChevronLeft, ChevronRight, Sparkles,
@@ -1135,25 +1135,6 @@ export default function App() {
             </motion.p>
           </motion.div>
 
-          <motion.div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 md:mb-12"
-            variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
-            {[
-              { icon: Award,     title: 'Vencedores NASA',    desc: 'Reconhecidos no NASA Space Apps Challenge, o maior hackathon do mundo.' },
-              { icon: Handshake, title: 'Modelo B2B',         desc: 'Tecnologia construída entre empresas — soluções pensadas para resultados de negócio.' },
-              { icon: MapPin,    title: 'Vilhena · Rondônia', desc: 'Origem brasileira com entrega para empresas em todo o Brasil.' },
-            ].map(({ icon: Icon, title, desc }) => (
-              <motion.div key={title} variants={fadeUp}>
-                <TiltCard className="p-6 h-full" style={{ background:C.surface, border:`1px solid ${C.border}` }}>
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                    style={{ background:`linear-gradient(135deg,rgba(79,70,229,0.14),rgba(124,58,237,0.08))`, border:'1px solid rgba(79,70,229,0.2)' }}>
-                    <Icon size={20} style={{ color: C.indigo }} />
-                  </div>
-                  <p className="font-display font-bold text-lg mb-1.5" style={{ color: C.text }}>{title}</p>
-                  <p className="text-sm leading-relaxed" style={{ color: C.muted }}>{desc}</p>
-                </TiltCard>
-              </motion.div>
-            ))}
-          </motion.div>
 
           <motion.div className="relative p-8 md:p-12 rounded-2xl text-center overflow-hidden"
             style={{ background:`linear-gradient(135deg,${C.indigo},${C.violet})` }}
