@@ -1260,16 +1260,17 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram da Nexla"
-              className="flex items-center justify-center w-9 h-9 rounded-full"
-              style={{ border:`1px solid ${C.darkBorder}`, color:C.darkMuted }}
-              whileHover={{ scale:1.1, color:C.darkText, borderColor:'rgba(237,233,254,0.4)' }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+              style={{ border:`1px solid ${C.darkBorder}`, color:C.darkMuted, background:'rgba(237,233,254,0.04)' }}
+              whileHover={{ scale:1.05, color:C.darkText, borderColor:'rgba(237,233,254,0.4)', background:'rgba(237,233,254,0.08)' }}
               transition={{ type:'spring', stiffness:400, damping:25 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
                 <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
                 <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
               </svg>
+              @nexla_ia
             </motion.a>
           </div>
 
