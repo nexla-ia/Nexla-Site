@@ -776,7 +776,9 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
   );
 }
 
-/* ─── Demo Chat ─────────────────────────────────────────────── */
+/* ─── Demo Chat — Product OS aesthetic ──────────────────────── */
+const SUGGESTIONS = ['Como funciona?', 'Quais os preços?', 'Quero saber mais'];
+
 function DemoChat() {
   const [selected, setSelected] = useState<Agent>(AGENTS[0]);
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([]);
@@ -800,9 +802,7 @@ function DemoChat() {
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, loading]);
 
-  const send = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const text = input.trim();
+  const sendText = async (text: string) => {
     if (!text || loading) return;
     setMessages(m => [...m, { role: 'user', text }]);
     setInput('');
@@ -812,11 +812,16 @@ function DemoChat() {
       setMessages(m => [...m, { role: 'bot', text: reply }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'erro desconhecido';
-      setMessages(m => [...m, { role: 'bot', text: `Ops! Não consegui responder agora (${msg}). Tente novamente em alguns segundos.` }]);
+      setMessages(m => [...m, { role: 'bot', text: `⚠ Não consegui responder agora (${msg}). Tente novamente em alguns segundos.` }]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
+  };
+
+  const send = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    sendText(input.trim());
   };
 
   const reset = () => {
@@ -826,164 +831,326 @@ function DemoChat() {
   };
 
   const ActiveIcon = selected.icon;
+  const endpoint = selected.url.replace('https://n8n.nexladesenvolvimento.com.br', '');
+  const showSuggestions = messages.length <= 1 && !loading;
 
   return (
-    <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
-      {/* ── Agent picker ─────────────────────────────────────── */}
-      <aside>
-        <p className="font-mono text-[10px] tracking-[0.22em] uppercase mb-3 hidden lg:block" style={{ color: C.muted }}>
-          ↳ Setores disponíveis
-        </p>
-        <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[560px] lg:overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          {AGENTS.map(a => {
-            const Icon = a.icon;
-            const active = selected.id === a.id;
-            return (
-              <button key={a.id}
-                onClick={() => setSelected(a)}
-                className="shrink-0 lg:w-full flex items-center gap-3 p-2.5 lg:p-3 rounded-xl text-left transition-all"
-                style={{
-                  background: active ? `${C.indigo}10` : C.surface,
-                  border: `1px solid ${active ? `${C.indigo}55` : C.border}`,
-                  boxShadow: active ? `0 4px 18px -6px ${C.indigo}40` : 'none',
-                }}
-              >
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+    <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6 items-start">
+
+      {/* ══════ Agent Launcher (sidebar) ══════ */}
+      <aside className="relative">
+        {/* Section label with line decoration */}
+        <div className="hidden lg:flex items-center gap-3 mb-4">
+          <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${C.indigo}40, transparent)` }} />
+          <p className="font-mono text-[10px] tracking-[0.22em] uppercase whitespace-nowrap" style={{ color: C.indigo }}>
+            11 setores
+          </p>
+          <div className="h-px flex-1" style={{ background: `linear-gradient(-90deg, ${C.indigo}40, transparent)` }} />
+        </div>
+
+        <div className="relative">
+          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[600px] lg:overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            {AGENTS.map((a, i) => {
+              const Icon = a.icon;
+              const active = selected.id === a.id;
+              return (
+                <motion.button key={a.id}
+                  onClick={() => setSelected(a)}
+                  whileHover={{ x: active ? 0 : 3 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  className="group/agent relative shrink-0 lg:w-full flex items-center gap-3 pl-3 pr-3 lg:pr-4 py-2.5 lg:py-3 rounded-xl text-left transition-all"
                   style={{
-                    background: active ? `linear-gradient(135deg, ${C.indigo}, ${C.violet})` : `${C.indigo}12`,
-                    color: active ? '#fff' : C.indigo,
-                  }}>
-                  <Icon size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold whitespace-nowrap lg:whitespace-normal" style={{ color: C.text }}>{a.name}</p>
-                  <p className="text-[11px] truncate hidden lg:block" style={{ color: C.muted }}>{a.desc}</p>
-                </div>
-              </button>
-            );
-          })}
+                    background: active ? `${C.indigo}0F` : C.surface,
+                    border: `1px solid ${active ? `${C.indigo}55` : C.border}`,
+                    boxShadow: active
+                      ? `0 8px 24px -10px ${C.indigo}55, inset 1px 0 0 ${C.indigo}`
+                      : '0 1px 0 rgba(15,23,42,0.03)',
+                  }}
+                >
+                  {/* Numbered tag */}
+                  <span className="hidden lg:block font-mono text-[9px] font-bold tracking-wider"
+                    style={{ color: active ? C.indigo : 'rgba(100,116,139,0.5)' }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+
+                  {/* Icon tile */}
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all"
+                    style={{
+                      background: active
+                        ? `linear-gradient(135deg, ${C.indigo}, ${C.violet})`
+                        : `${C.indigo}10`,
+                      color: active ? '#fff' : C.indigo,
+                      boxShadow: active ? `0 6px 16px -4px ${C.indigo}66, inset 0 1px 0 rgba(255,255,255,0.2)` : 'none',
+                    }}>
+                    <Icon size={16} strokeWidth={active ? 2.2 : 2} />
+                  </div>
+
+                  {/* Name + description */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold whitespace-nowrap lg:whitespace-normal leading-tight"
+                      style={{ color: active ? C.text : C.text, fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+                      {a.name}
+                    </p>
+                    <p className="text-[11px] truncate hidden lg:block mt-0.5" style={{ color: C.muted }}>{a.desc}</p>
+                  </div>
+
+                  {/* Active indicator */}
+                  {active && (
+                    <motion.div
+                      layoutId="agentActive"
+                      className="hidden lg:block w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: C.indigo, boxShadow: `0 0 0 3px ${C.indigo}25` }}
+                    />
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Footer label */}
+          <div className="hidden lg:flex items-center gap-1.5 mt-4 px-3 py-2 rounded-lg font-mono text-[10px]"
+            style={{ background: 'rgba(15,23,42,0.03)', color: C.muted }}>
+            <span style={{ color: C.green }}>●</span>
+            <span>Todos os agentes online</span>
+          </div>
         </div>
       </aside>
 
-      {/* ── Chat window ──────────────────────────────────────── */}
-      <div className="flex flex-col rounded-2xl overflow-hidden relative"
-        style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          boxShadow: '0 24px 60px -20px rgba(79,70,229,0.18), 0 8px 20px -8px rgba(15,23,42,0.08)',
-          height: 'clamp(520px, 70vh, 640px)',
-        }}>
+      {/* ══════ Chat Window (product mockup) ══════ */}
+      <div className="relative">
+        {/* Floating ambient glow behind window */}
+        <div aria-hidden className="absolute -inset-2 rounded-3xl opacity-50 pointer-events-none"
+          style={{ background: `radial-gradient(circle at 50% 50%, ${C.indigo}15, transparent 60%)` }} />
 
-        {/* Header */}
-        <div className="relative px-5 py-3.5 flex items-center gap-3"
-          style={{ borderBottom: `1px solid ${C.border}`, background: `linear-gradient(135deg, ${C.indigo}08, transparent 60%)` }}>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff', boxShadow: `0 6px 18px -4px ${C.indigo}66` }}>
-            <ActiveIcon size={17} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-tight" style={{ color: C.text }}>Agente {selected.name}</p>
-            <p className="text-[11px] flex items-center gap-1.5 mt-0.5" style={{ color: C.green }}>
-              <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.green }} />
-              <span style={{ color: C.muted }}>Online · IA da Nexla</span>
-            </p>
-          </div>
-          <button onClick={reset}
-            title="Reiniciar conversa"
-            className="p-2 rounded-full transition-colors"
-            style={{ color: C.muted, background: 'transparent' }}>
-            <RefreshCw size={15} />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 md:px-6 py-5 space-y-3"
+        <div className="relative flex flex-col rounded-2xl overflow-hidden"
           style={{
-            background: `radial-gradient(circle at 50% 0%, ${C.indigo}06, transparent 60%), ${C.bg}`,
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            boxShadow: '0 40px 100px -30px rgba(15,23,42,0.25), 0 16px 40px -16px rgba(79,70,229,0.18), inset 0 1px 0 rgba(255,255,255,0.8)',
+            height: 'clamp(560px, 72vh, 680px)',
           }}>
-          <AnimatePresence initial={false}>
-            {messages.map((m, i) => (
-              <motion.div key={`${sessionId}-${i}`}
-                initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.3, ease }}
-                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {m.role === 'bot' && (
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
-                    style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}>
-                    <ActiveIcon size={12} />
-                  </div>
-                )}
-                <div className="max-w-[78%] px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap"
-                  style={m.role === 'user'
-                    ? {
+
+          {/* ─── Browser chrome: traffic lights + URL bar ─── */}
+          <div className="flex items-center gap-3 px-4 py-2.5"
+            style={{
+              background: `linear-gradient(180deg, #F5F2EC, ${C.soft})`,
+              borderBottom: `1px solid ${C.border}`,
+            }}>
+            <div className="flex gap-1.5 shrink-0">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#FF5F57' }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#FEBC2E' }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#28C840' }} />
+            </div>
+            <div className="flex-1 flex items-center gap-2 px-3 py-1 rounded-md mx-2 min-w-0"
+              style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot" style={{ background: C.green }} />
+              <span className="font-mono text-[10.5px] tracking-tight truncate" style={{ color: C.muted }}>
+                <span style={{ color: 'rgba(100,116,139,0.55)' }}>https://</span>
+                <span style={{ color: C.text }}>n8n.nexladesenvolvimento.com.br</span>
+                <span style={{ color: C.indigo }}>{endpoint}</span>
+              </span>
+            </div>
+            <span className="hidden sm:inline font-mono text-[9px] font-bold tracking-widest uppercase shrink-0"
+              style={{ color: C.muted }}>
+              LIVE
+            </span>
+          </div>
+
+          {/* ─── Agent header ─── */}
+          <div className="relative px-5 py-4 flex items-center gap-3"
+            style={{
+              borderBottom: `1px solid ${C.border}`,
+              background: `linear-gradient(135deg, ${C.indigo}08 0%, transparent 50%, ${C.violet}06 100%)`,
+            }}>
+            <motion.div
+              key={selected.id}
+              initial={{ scale: 0.6, rotate: -20, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
+                color: '#fff',
+                boxShadow: `0 10px 24px -6px ${C.indigo}66, inset 0 1px 0 rgba(255,255,255,0.25)`,
+              }}>
+              <ActiveIcon size={19} strokeWidth={2.2} />
+            </motion.div>
+
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-[15px] leading-tight tracking-tight" style={{ color: C.text }}>
+                Agente {selected.name}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="font-mono text-[10px] flex items-center gap-1.5" style={{ color: C.green }}>
+                  <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.green }} />
+                  ONLINE
+                </span>
+                <span className="opacity-30">·</span>
+                <span className="font-mono text-[10px]" style={{ color: C.muted }}>IA Nexla</span>
+                <span className="opacity-30">·</span>
+                <span className="font-mono text-[10px]" style={{ color: C.muted }}>resposta &lt; 3s</span>
+              </div>
+            </div>
+
+            <motion.button onClick={reset}
+              whileHover={{ rotate: -90, scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+              title="Reiniciar conversa"
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ color: C.muted, background: 'rgba(15,23,42,0.04)', border: `1px solid ${C.border}` }}>
+              <RefreshCw size={14} />
+            </motion.button>
+          </div>
+
+          {/* ─── Messages ─── */}
+          <div ref={scrollRef}
+            className="flex-1 overflow-y-auto px-4 md:px-6 py-5 space-y-3 relative"
+            style={{
+              background: `radial-gradient(ellipse at 50% 0%, ${C.indigo}08, transparent 50%), linear-gradient(180deg, ${C.bg}, ${C.surface})`,
+            }}>
+            {/* Subtle dot grid pattern */}
+            <div aria-hidden className="absolute inset-0 opacity-[0.025] pointer-events-none"
+              style={{
+                backgroundImage: `radial-gradient(${C.text} 1px, transparent 1px)`,
+                backgroundSize: '20px 20px',
+              }} />
+
+            <AnimatePresence initial={false}>
+              {messages.map((m, i) => (
+                <motion.div key={`${sessionId}-${i}`}
+                  initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.35, ease }}
+                  className={`relative flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  {m.role === 'bot' && (
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
+                      style={{
                         background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
                         color: '#fff',
-                        borderRadius: '18px 18px 4px 18px',
-                        boxShadow: `0 6px 16px -6px ${C.indigo}55`,
-                      }
-                    : {
-                        background: C.surface,
-                        color: C.text,
-                        border: `1px solid ${C.border}`,
-                        borderRadius: '18px 18px 18px 4px',
+                        boxShadow: `0 4px 10px -3px ${C.indigo}66`,
                       }}>
-                  {m.text}
+                      <ActiveIcon size={12} strokeWidth={2.3} />
+                    </div>
+                  )}
+                  <div className="max-w-[78%] px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap"
+                    style={m.role === 'user'
+                      ? {
+                          background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
+                          color: '#fff',
+                          borderRadius: '18px 18px 4px 18px',
+                          boxShadow: `0 8px 20px -8px ${C.indigo}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                        }
+                      : {
+                          background: C.surface,
+                          color: C.text,
+                          border: `1px solid ${C.border}`,
+                          borderRadius: '18px 18px 18px 4px',
+                          boxShadow: '0 2px 8px -2px rgba(15,23,42,0.06)',
+                        }}>
+                    {m.text}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className="relative flex justify-start">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
+                  style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}>
+                  <ActiveIcon size={12} />
+                </div>
+                <div className="px-4 py-3 flex items-center gap-1.5"
+                  style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px', boxShadow: '0 2px 8px -2px rgba(15,23,42,0.06)' }}>
+                  {[0, 1, 2].map(i => (
+                    <motion.span key={i}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ background: C.indigo }}
+                      animate={{ y: [0, -4, 0], opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
+                    />
+                  ))}
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
+            )}
 
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              className="flex justify-start">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
-                style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}>
-                <ActiveIcon size={12} />
-              </div>
-              <div className="px-4 py-3 flex items-center gap-1.5"
-                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px' }}>
-                {[0, 1, 2].map(i => (
-                  <motion.span key={i}
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: C.indigo }}
-                    animate={{ y: [0, -4, 0], opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
-                  />
+            {/* Quick suggestion chips */}
+            {showSuggestions && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="relative flex flex-wrap gap-2 pt-2 pl-9">
+                {SUGGESTIONS.map((s, i) => (
+                  <motion.button key={s}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 + i * 0.08 }}
+                    whileHover={{ scale: 1.03, background: `${C.indigo}10`, borderColor: `${C.indigo}40` }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => sendText(s)}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors"
+                    style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+                    ↳ {s}
+                  </motion.button>
                 ))}
-              </div>
-            </motion.div>
-          )}
-        </div>
+              </motion.div>
+            )}
+          </div>
 
-        {/* Input */}
-        <form onSubmit={send}
-          className="px-3 md:px-4 py-3 flex items-center gap-2"
-          style={{ borderTop: `1px solid ${C.border}`, background: C.surface }}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={`Pergunte algo ao agente ${selected.name}...`}
-            disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-full text-sm outline-none focus:outline-none disabled:opacity-50"
-            style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.text }}
-          />
-          <motion.button
-            type="submit"
-            disabled={!input.trim() || loading}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.05 }}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff', boxShadow: `0 6px 16px -4px ${C.indigo}66` }}
-            aria-label="Enviar mensagem">
-            <Send size={15} />
-          </motion.button>
-        </form>
+          {/* ─── Input bar ─── */}
+          <form onSubmit={send}
+            className="px-3 md:px-4 py-3 flex items-center gap-2"
+            style={{ borderTop: `1px solid ${C.border}`, background: C.surface }}>
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder={`Pergunte algo ao agente ${selected.name}...`}
+                disabled={loading}
+                className="w-full pl-4 pr-4 py-2.5 rounded-full text-[14px] outline-none focus:outline-none disabled:opacity-50 transition-all focus:border-indigo-300"
+                style={{
+                  background: C.bg,
+                  border: `1px solid ${C.border}`,
+                  color: C.text,
+                }}
+              />
+            </div>
+            <motion.button
+              type="submit"
+              disabled={!input.trim() || loading}
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05, rotate: -8 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
+                color: '#fff',
+                boxShadow: `0 8px 20px -4px ${C.indigo}66, inset 0 1px 0 rgba(255,255,255,0.25)`,
+              }}
+              aria-label="Enviar mensagem">
+              <Send size={15} />
+            </motion.button>
+          </form>
+
+          {/* ─── Status bar ─── */}
+          <div className="hidden sm:flex items-center justify-between gap-3 px-4 py-2 font-mono text-[10px]"
+            style={{ borderTop: `1px solid ${C.border}`, background: 'rgba(15,23,42,0.025)', color: C.muted }}>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.green }} />
+              <span>POST</span>
+              <span style={{ color: C.indigo }}>{endpoint}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Sparkles size={10} />
+              powered by <span style={{ color: C.text, fontWeight: 600 }}>Nexla</span>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1136,6 +1303,12 @@ export default function App() {
                   Quero automatizar minha empresa <ArrowRight size={17} />
                 </MagneticBtn>
 
+                <MagneticBtn onClick={() => scrollTo('experimente')}
+                  className="px-7 py-3.5 rounded-full font-semibold text-base relative overflow-hidden"
+                  style={{ border:`1.5px solid ${C.indigo}`, color:C.indigo, background: 'rgba(79,70,229,0.04)' }}>
+                  <Sparkles size={16} /> Testar IA agora
+                </MagneticBtn>
+
                 <MagneticBtn onClick={() => scrollTo('servicos')}
                   className="px-7 py-3.5 rounded-full font-medium text-base"
                   style={{ border:`1.5px solid rgba(79,70,229,0.3)`, color:C.indigo }}>
@@ -1247,18 +1420,30 @@ export default function App() {
 
         <div className="relative max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-14">
-            <Eyebrow>Demo Interativa</Eyebrow>
+            {/* Live indicator pill above title */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, ease }}
+              className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full font-mono text-[10px] font-bold tracking-[0.22em] uppercase"
+              style={{ background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 4px 12px -4px rgba(15,23,42,0.06)' }}>
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inset-0 rounded-full animate-ping" style={{ background: C.green, opacity: 0.6 }} />
+                <span className="relative w-2 h-2 rounded-full" style={{ background: C.green }} />
+              </span>
+              <span style={{ color: C.text }}>11 endpoints live</span>
+              <span className="opacity-30">·</span>
+              <span style={{ color: C.muted }}>Sem cadastro</span>
+            </motion.div>
+
             <AnimatedHeading text="Converse com nossa IA agora"
-              className="font-display font-bold text-3xl md:text-5xl mb-4"
-              style={{ color: C.text }} />
-            <p className="text-[15px] md:text-base max-w-2xl mx-auto leading-relaxed" style={{ color: C.muted }}>
-              11 agentes prontos para você testar em tempo real. Escolha um setor e veja como a Nexla atende, qualifica e converte — sem você precisar fazer nada.
+              className="font-display font-bold text-3xl md:text-5xl mb-5 tracking-tight"
+              style={{ color: C.text, letterSpacing: '-0.02em' }} />
+            <p className="text-[15px] md:text-base max-w-xl mx-auto leading-relaxed" style={{ color: C.muted }}>
+              11 agentes reais, em produção, prontos para você testar.
+              Escolha um setor e converse como se fosse um cliente — veja a IA da Nexla em ação.
             </p>
-            <div className="inline-flex items-center gap-2 mt-6 px-3 py-1.5 rounded-full font-mono text-[11px] font-bold"
-              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: C.green }}>
-              <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.green }} />
-              Agentes 100% funcionais · Sem cadastro
-            </div>
           </div>
 
           <DemoChat />
