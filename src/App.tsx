@@ -1497,7 +1497,7 @@ export default function App() {
 
   /* Active section */
   useEffect(() => {
-    const ids = ['inicio','servicos','experimente','como-funciona','cases','diferenciais','sobre','contato'];
+    const ids = ['inicio','servicos','experimente','como-funciona','cases','depoimentos','diferenciais','sobre','contato'];
     const sections = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (!sections.length || typeof IntersectionObserver === 'undefined') return;
     const obs = new IntersectionObserver(
@@ -1521,6 +1521,7 @@ export default function App() {
     { id:'experimente',   label:'Experimente' },
     { id:'como-funciona', label:'Como Funciona' },
     { id:'cases',         label:'Cases' },
+    { id:'depoimentos',   label:'Depoimentos' },
     { id:'diferenciais',  label:'Diferenciais' },
     { id:'sobre',         label:'Sobre' },
   ];
@@ -1550,14 +1551,31 @@ export default function App() {
             <span className="font-display font-bold text-xl" style={{ color:C.text }}>Nexla</span>
           </motion.button>
 
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map(l => (
-              <button key={l.id} onClick={() => scrollTo(l.id)}
-                className={`nav-link text-sm font-medium transition-colors ${activeSection===l.id?'active':''}`}
-                style={{ color: activeSection===l.id ? C.indigo : C.muted }}>
-                {l.label}
-              </button>
-            ))}
+          <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
+            {navLinks.map(l => {
+              const isActive = activeSection === l.id;
+              return (
+                <button key={l.id} onClick={() => scrollTo(l.id)}
+                  className="relative px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-sm font-medium rounded-full transition-colors group"
+                  style={{ color: isActive ? C.indigo : C.muted }}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="navActivePill"
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: `${C.indigo}10`,
+                        border: `1px solid ${C.indigo}26`,
+                      }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 34 }}
+                    />
+                  )}
+                  <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{ background: !isActive ? 'rgba(15,23,42,0.04)' : 'transparent' }} />
+                  <span className="relative z-10">{l.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-3">
