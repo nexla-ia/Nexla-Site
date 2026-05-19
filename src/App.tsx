@@ -1130,8 +1130,11 @@ export default function App() {
             <AnimatedHeading text="Quem é a Nexla"
               className="font-display font-bold text-3xl md:text-5xl mb-4"
               style={{ color:C.text }} />
+            <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed mb-4" style={{ color:C.muted }}>
+              A Nexla coloca inteligência artificial para trabalhar pelo seu negócio. Construímos <strong style={{ color: C.text }}>automações</strong>, <strong style={{ color: C.text }}>plataformas SaaS</strong>, <strong style={{ color: C.text }}>aplicativos</strong> e <strong style={{ color: C.text }}>sistemas sob medida</strong> para empresas que querem escalar a operação — sem inflar a folha de pagamento.
+            </motion.p>
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
-              A Nexla é uma empresa brasileira de tecnologia <strong style={{ color: C.text }}>B2B</strong>, especializada em automação inteligente, inteligência artificial e desenvolvimento de software sob medida. Fundada em <strong style={{ color: C.text }}>Vilhena, Rondônia</strong>, conquistou a <strong style={{ color: C.text }}>etapa regional do NASA Space Apps Challenge</strong> — o maior hackathon do mundo, organizado pela NASA — e disputou no <strong style={{ color: C.text }}>Top 10 mundial</strong>, ao lado dos melhores times do planeta.
+              Nascida em <strong style={{ color: C.text }}>Vilhena, Rondônia</strong>, a Nexla levou tecnologia brasileira ao <strong style={{ color: C.text }}>Top 10 mundial do NASA Space Apps Challenge</strong> — o maior hackathon do planeta — depois de conquistar a <strong style={{ color: C.text }}>etapa regional</strong>. Hoje, atende empresas em todo o Brasil no modelo <strong style={{ color: C.text }}>B2B</strong>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
             </motion.p>
           </motion.div>
 
