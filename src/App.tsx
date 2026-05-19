@@ -14,7 +14,7 @@ import {
   ChevronDown, ChevronLeft, ChevronRight, Sparkles,
   Dumbbell, HardHat, Store, Stethoscope, Plane,
   UtensilsCrossed, Scissors, Scale, Calculator, Wand2,
-  RefreshCw,
+  RefreshCw, Play, X, Volume2, VolumeX,
 } from 'lucide-react';
 
 /* ─── Palette ────────────────────────────────────────────────── */
@@ -158,6 +158,21 @@ const DIFFERENTIALS = [
   { icon:LifeBuoy,   title:'Suporte Contínuo',       desc:'Não entregamos e sumimos — acompanhamos a evolução da solução.' },
 ];
 const STACK = ['n8n','Evolution API','Claude (Anthropic)','Supabase','React / Next.js','Easypanel VPS','Azure OpenAI','Stripe'];
+
+const DEPOIMENTOS: Array<{
+  id: number;
+  type: 'image' | 'video';
+  src: string;
+  name: string;
+  role: string;
+  sector: string;
+}> = [
+  { id: 1, type: 'image', src: '/depoimentos/depoimento1.jpg', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Saúde' },
+  { id: 2, type: 'video', src: '/depoimentos/depoimento2.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Atendimento' },
+  { id: 3, type: 'video', src: '/depoimentos/depoimento3.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Operação' },
+  { id: 4, type: 'video', src: '/depoimentos/depoimento4.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Automação' },
+  { id: 5, type: 'video', src: '/depoimentos/depoimento5.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Resultados' },
+];
 
 const AGENTS = [
   { id:'academia',     name:'Academia',         icon:Dumbbell,        desc:'Atende alunos, vende planos e tira dúvidas',          url:'https://n8n.nexladesenvolvimento.com.br/webhook/academia',       welcome:'Olá! Sou o agente da academia. Como posso te ajudar hoje?' },
@@ -773,6 +788,267 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
         </>
       )}
     </div>
+  );
+}
+
+/* ─── Testimonials (Reels-style) ────────────────────────────── */
+function TestimonialCard({ t, onClick }: {
+  t: typeof DEPOIMENTOS[number];
+  onClick: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Auto-play when in view, pause when out
+  useEffect(() => {
+    if (t.type !== 'video' || !videoRef.current) return;
+    const el = videoRef.current;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) el.play().catch(() => {});
+      else el.pause();
+    }, { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [t.type]);
+
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ scale: 1.04, y: -6 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+      className="group relative shrink-0 w-[180px] sm:w-[210px] md:w-[230px] aspect-[9/16] rounded-2xl overflow-hidden"
+      style={{
+        background: '#000',
+        border: `1px solid ${C.border}`,
+        boxShadow: '0 12px 30px -10px rgba(15,23,42,0.20), 0 4px 10px -4px rgba(79,70,229,0.18)',
+      }}
+    >
+      {t.type === 'image' ? (
+        <img src={t.src} alt={t.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <video
+          ref={videoRef}
+          src={t.src}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+
+      {/* Gradient overlay for legibility */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.35) 100%)' }} />
+
+      {/* Play icon (only on hover) */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center backdrop-blur"
+          style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <Play size={20} className="ml-1" fill={C.indigo} style={{ color: C.indigo }} />
+        </div>
+      </div>
+
+      {/* Top badge */}
+      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full font-mono text-[9px] font-bold tracking-widest uppercase flex items-center gap-1.5"
+        style={{ background: 'rgba(255,255,255,0.92)', color: C.indigo, backdropFilter: 'blur(8px)' }}>
+        <span>★</span>
+        Real
+      </div>
+
+      {/* Bottom caption */}
+      <div className="absolute bottom-0 left-0 right-0 p-3">
+        <p className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-white/70 mb-1">{t.sector}</p>
+        <p className="text-[13px] font-display font-bold text-white leading-tight">{t.name}</p>
+      </div>
+    </motion.button>
+  );
+}
+
+function TestimonialModal({ items, openIndex, onClose, onIndexChange }: {
+  items: typeof DEPOIMENTOS;
+  openIndex: number;
+  onClose: () => void;
+  onIndexChange: (i: number) => void;
+}) {
+  const [muted, setMuted] = useState(false);
+  const active = items[openIndex];
+
+  // Keyboard nav
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft' && openIndex > 0) onIndexChange(openIndex - 1);
+      if (e.key === 'ArrowRight' && openIndex < items.length - 1) onIndexChange(openIndex + 1);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [openIndex, items.length, onClose, onIndexChange]);
+
+  // Body scroll lock
+  useEffect(() => {
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = orig; };
+  }, []);
+
+  const prev = () => openIndex > 0 && onIndexChange(openIndex - 1);
+  const next = () => openIndex < items.length - 1 && onIndexChange(openIndex + 1);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ background: 'rgba(8,7,28,0.94)', backdropFilter: 'blur(24px)' }}
+      onClick={onClose}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        aria-label="Fechar"
+        className="absolute top-4 right-4 md:top-6 md:right-6 w-11 h-11 rounded-full flex items-center justify-center text-white transition-colors"
+        style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+      >
+        <X size={20} />
+      </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-4 md:top-6 md:left-6 px-3 py-1.5 rounded-full font-mono text-[10px] font-bold tracking-widest uppercase text-white/80"
+        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+        {String(openIndex + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
+      </div>
+
+      {/* Prev / Next arrows */}
+      {openIndex > 0 && (
+        <motion.button
+          onClick={(e) => { e.stopPropagation(); prev(); }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.92 }}
+          aria-label="Anterior"
+          className="hidden md:flex absolute left-4 lg:left-10 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full items-center justify-center text-white"
+          style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+        >
+          <ChevronLeft size={22} />
+        </motion.button>
+      )}
+      {openIndex < items.length - 1 && (
+        <motion.button
+          onClick={(e) => { e.stopPropagation(); next(); }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.92 }}
+          aria-label="Próximo"
+          className="hidden md:flex absolute right-4 lg:right-10 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full items-center justify-center text-white"
+          style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+        >
+          <ChevronRight size={22} />
+        </motion.button>
+      )}
+
+      {/* Player */}
+      <motion.div
+        key={active.id}
+        initial={{ opacity: 0, scale: 0.93 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3, ease }}
+        className="relative aspect-[9/16] max-h-[85vh] w-auto rounded-2xl overflow-hidden"
+        style={{
+          background: '#000',
+          boxShadow: '0 40px 100px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {active.type === 'image' ? (
+          <img src={active.src} alt={active.name} className="w-full h-full object-cover" />
+        ) : (
+          <video
+            key={active.src}
+            src={active.src}
+            autoPlay
+            loop
+            playsInline
+            muted={muted}
+            className="w-full h-full object-cover"
+          />
+        )}
+
+        {/* Mute toggle */}
+        {active.type === 'video' && (
+          <motion.button
+            onClick={() => setMuted(m => !m)}
+            whileTap={{ scale: 0.92 }}
+            aria-label={muted ? 'Ativar som' : 'Silenciar'}
+            className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center text-white backdrop-blur"
+            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.18)' }}
+          >
+            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </motion.button>
+        )}
+
+        {/* Caption */}
+        <div className="absolute bottom-0 left-0 right-0 p-5"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), transparent)' }}>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/60 mb-1.5">
+            ★ Cliente Nexla · {active.sector}
+          </p>
+          <p className="text-[18px] md:text-[20px] font-display font-bold text-white leading-tight">{active.name}</p>
+          <p className="text-[13px] text-white/70 mt-0.5">{active.role}</p>
+        </div>
+      </motion.div>
+
+      {/* Mobile prev/next bottom */}
+      <div className="md:hidden absolute bottom-6 left-0 right-0 flex items-center justify-center gap-3">
+        <motion.button
+          onClick={(e) => { e.stopPropagation(); prev(); }}
+          disabled={openIndex === 0}
+          whileTap={{ scale: 0.92 }}
+          className="w-11 h-11 rounded-full flex items-center justify-center text-white disabled:opacity-30"
+          style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+        >
+          <ChevronLeft size={18} />
+        </motion.button>
+        <motion.button
+          onClick={(e) => { e.stopPropagation(); next(); }}
+          disabled={openIndex >= items.length - 1}
+          whileTap={{ scale: 0.92 }}
+          className="w-11 h-11 rounded-full flex items-center justify-center text-white disabled:opacity-30"
+          style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+        >
+          <ChevronRight size={18} />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
+function TestimonialsSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  return (
+    <>
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        data-lenis-prevent>
+        <div className="flex gap-3 md:gap-4 md:justify-center">
+          {DEPOIMENTOS.map((t, i) => (
+            <TestimonialCard key={t.id} t={t} onClick={() => setOpenIndex(i)} />
+          ))}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {openIndex !== null && (
+          <TestimonialModal
+            items={DEPOIMENTOS}
+            openIndex={openIndex}
+            onClose={() => setOpenIndex(null)}
+            onIndexChange={setOpenIndex}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -1581,6 +1857,41 @@ export default function App() {
               </motion.div>
             ))}
           </motion.div>
+        </div>
+      </section>
+
+      {/* ── Depoimentos (Reels) ─────────────────────────────────── */}
+      <section id="depoimentos" className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden" style={{ background: C.bg }}>
+        <div className="absolute top-[10%] left-[5%] w-[400px] h-[400px] rounded-full opacity-[0.08] blur-[100px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
+        <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] rounded-full opacity-[0.06] blur-[80px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${C.violet}, transparent)` }} />
+
+        <div className="relative max-w-6xl mx-auto">
+          <div className="text-center mb-10 md:mb-14">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, ease }}
+              className="inline-flex items-center gap-3 mb-6">
+              <div className="h-px w-10" style={{ background: `linear-gradient(90deg, transparent, ${C.indigo}80)` }} />
+              <span className="font-mono text-[11px] font-bold tracking-[0.28em] uppercase" style={{ color: C.indigo }}>
+                Depoimentos Reais
+              </span>
+              <div className="h-px w-10" style={{ background: `linear-gradient(-90deg, transparent, ${C.indigo}80)` }} />
+            </motion.div>
+
+            <AnimatedHeading text="O que dizem nossos clientes"
+              className="font-display font-bold text-3xl md:text-5xl mb-5 tracking-tight"
+              style={{ color: C.text, letterSpacing: '-0.02em' }} />
+            <p className="text-[15px] md:text-[17px] max-w-2xl mx-auto leading-relaxed" style={{ color: C.muted }}>
+              Donos de empresas falando sobre os resultados que tiveram com a Nexla.
+              Sem ator, sem roteiro — só clientes reais.
+            </p>
+          </div>
+
+          <TestimonialsSection />
         </div>
       </section>
 
