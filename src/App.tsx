@@ -949,15 +949,19 @@ function DemoChat() {
               style={{ background: C.surface, border: `1px solid ${C.border}` }}>
               <span className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot" style={{ background: C.green }} />
               <span className="font-mono text-[10.5px] tracking-tight truncate min-w-0" style={{ color: C.muted }}>
-                <span style={{ color: 'rgba(100,116,139,0.55)' }}>nexla.ai/</span>
-                <span style={{ color: C.text }}>demo/</span>
-                <span style={{ color: C.indigo }}>{selected.id}</span>
+                <span style={{ color: 'rgba(100,116,139,0.55)' }}>nexla.ai</span>
+                <span style={{ color: C.text }}>/voce/esta/testando/nossos/</span>
+                <span style={{ color: C.indigo }}>agentes</span>
               </span>
             </div>
-            <span className="hidden sm:inline font-mono text-[9px] font-bold tracking-widest uppercase shrink-0"
-              style={{ color: C.muted }}>
+            <motion.span
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              className="hidden sm:inline-flex items-center gap-1 font-mono text-[9px] font-bold tracking-widest uppercase shrink-0"
+              style={{ color: C.green }}>
+              <span className="w-1 h-1 rounded-full" style={{ background: C.green }} />
               LIVE
-            </span>
+            </motion.span>
           </div>
 
           {/* ─── Agent header ─── */}
