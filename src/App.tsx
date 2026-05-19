@@ -1131,35 +1131,66 @@ export default function App() {
       {/* ── Sobre ───────────────────────────────────────────────── */}
       <section id="sobre" className="py-16 md:py-28 px-4 md:px-6" style={{ background:C.soft }}>
         <div className="max-w-6xl mx-auto">
-          <motion.div className="mb-10 md:mb-14" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
-            <Eyebrow>Sobre a Empresa</Eyebrow>
-            <AnimatedHeading text="Quem é a Nexla"
-              className="font-display font-bold text-3xl md:text-5xl mb-4"
-              style={{ color:C.text }} />
-            <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed mb-4" style={{ color:C.muted }}>
-              A Nexla é uma empresa brasileira de tecnologia que coloca{' '}
-              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
-                inteligência artificial
-              </span>{' '}
-              para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em{' '}
-              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
-                resultado mensurável
-              </span>{' '}
-              e estrutura preparada para escalar com a sua operação.
-            </motion.p>
-            <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
-              Nascida em Vilhena, Rondônia, a Nexla levou tecnologia brasileira ao{' '}
-              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
-                Top 10 mundial do NASA Space Apps Challenge
-              </span>{' '}
-              — o maior hackathon do planeta — depois de conquistar a{' '}
-              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
-                etapa regional
-              </span>. Hoje, atende empresas em todo o Brasil no modelo{' '}
-              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
-                B2B
-              </span>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
-            </motion.p>
+          <motion.div className="mb-10 md:mb-14 grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-center"
+            variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+            <div>
+              <Eyebrow>Sobre a Empresa</Eyebrow>
+              <AnimatedHeading text="Quem é a Nexla"
+                className="font-display font-bold text-3xl md:text-5xl mb-4"
+                style={{ color:C.text }} />
+              <motion.p variants={fadeUp} className="text-[15px] md:text-base leading-relaxed mb-4" style={{ color:C.muted }}>
+                A Nexla é uma empresa brasileira de tecnologia que coloca{' '}
+                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                  inteligência artificial
+                </span>{' '}
+                para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em{' '}
+                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                  resultado mensurável
+                </span>{' '}
+                e estrutura preparada para escalar com a sua operação.
+              </motion.p>
+              <motion.p variants={fadeUp} className="text-[15px] md:text-base leading-relaxed" style={{ color:C.muted }}>
+                Nascida em Vilhena, Rondônia, a Nexla levou tecnologia brasileira ao{' '}
+                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                  Top 10 mundial do NASA Space Apps Challenge
+                </span>{' '}
+                — o maior hackathon do planeta — depois de conquistar a{' '}
+                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                  etapa regional
+                </span>. Hoje, atende empresas em todo o Brasil no modelo{' '}
+                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                  B2B
+                </span>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
+              </motion.p>
+            </div>
+
+            {/* Team photo — desktop only */}
+            <motion.div
+              variants={fadeUp}
+              className="hidden lg:block relative"
+            >
+              <div className="relative rounded-2xl overflow-hidden"
+                style={{
+                  border: `1px solid ${C.border}`,
+                  boxShadow: '0 30px 80px -20px rgba(79,70,229,0.25), 0 8px 24px rgba(15,23,42,0.08)',
+                }}>
+                <img
+                  src="/nasa-team.jpg"
+                  alt="Equipe Nexla — Vencedora do NASA Space Apps Challenge"
+                  className="w-full h-auto object-cover block"
+                />
+                {/* Badge overlay */}
+                <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full font-mono text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5"
+                  style={{ background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(10px)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <span style={{ color: '#FBBF24' }}>★</span>
+                  1º Lugar Regional · NASA Space Apps
+                </div>
+              </div>
+              {/* Caption */}
+              <p className="mt-3 text-xs font-mono text-center" style={{ color: C.muted }}>
+                Equipe Nexla · Vilhena, RO — NASA Space Apps Challenge
+              </p>
+            </motion.div>
           </motion.div>
 
 
