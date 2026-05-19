@@ -1163,8 +1163,8 @@ export default function App() {
               </p>
             </div>
 
-            {/* Team photo — desktop only */}
-            <div className="hidden lg:block relative">
+            {/* Team photo — abaixo do texto no mobile, ao lado no desktop */}
+            <div className="relative">
               <div className="relative rounded-2xl overflow-hidden"
                 style={{
                   border: `1px solid ${C.border}`,
