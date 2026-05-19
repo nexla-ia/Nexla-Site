@@ -606,17 +606,17 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
                 {slide.desc}
               </p>
 
-              <motion.span
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-[11px] md:text-xs font-bold mb-4"
-                style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: C.indigo }}
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Sparkles size={12} /> {slide.tag}
-              </motion.span>
-
               <ul className="space-y-2.5 md:space-y-3 mb-6 md:mb-8">
+                <motion.li
+                  className="flex items-start gap-2.5 md:gap-3 text-[14px] md:text-base leading-snug font-semibold"
+                  style={{ color: C.text }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <CheckCircle2 size={17} className="shrink-0 mt-0.5" style={{ color: C.green }} />
+                  <span>{slide.tag}</span>
+                </motion.li>
                 {slide.bullets.map((b, i) => (
                   <motion.li key={b}
                     className="flex items-start gap-2.5 md:gap-3 text-[14px] md:text-base leading-snug"
