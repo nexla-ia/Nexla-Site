@@ -167,7 +167,6 @@ const DEPOIMENTOS: Array<{
   role: string;
   sector: string;
 }> = [
-  { id: 1, type: 'image', src: '/depoimentos/depoimento1.jpg', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Saúde' },
   { id: 2, type: 'video', src: '/depoimentos/depoimento2.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Atendimento' },
   { id: 3, type: 'video', src: '/depoimentos/depoimento3.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Operação' },
   { id: 4, type: 'video', src: '/depoimentos/depoimento4.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Automação' },
