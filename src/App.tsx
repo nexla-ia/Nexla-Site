@@ -8,7 +8,7 @@ import Lenis from 'lenis';
 import {
   Bot, Zap, Package, Headphones, Send, BookOpen,
   Clock, Sliders, Link2, TrendingUp, Server, LifeBuoy,
-  Calendar,
+  Calendar, Award, MapPin, Handshake,
   MessageCircle, ArrowRight, CheckCircle2,
   Search, Settings, BarChart3, Activity, Users, FileText,
   ChevronDown, ChevronLeft, ChevronRight, Sparkles,
@@ -151,10 +151,6 @@ const DIFFERENTIALS = [
   { icon:LifeBuoy,   title:'Suporte Contínuo',       desc:'Não entregamos e sumimos — acompanhamos a evolução da solução.' },
 ];
 const STACK = ['n8n','Evolution API','Claude (Anthropic)','Supabase','React / Next.js','Easypanel VPS','Azure OpenAI','Stripe'];
-const TEAM  = [
-  { name:'Alisson', role:'Diretor Executivo · Arquiteto de Automações IA' },
-  { name:'Allan',   role:'Frontend & Infraestrutura de Domínios' },
-];
 
 
 /* ─── StarField ──────────────────────────────────────────────── */
@@ -1127,32 +1123,33 @@ export default function App() {
       </section>
 
       {/* ── Sobre ───────────────────────────────────────────────── */}
-      <section id="sobre" className="py-28 px-6" style={{ background:C.soft }}>
+      <section id="sobre" className="py-16 md:py-28 px-4 md:px-6" style={{ background:C.soft }}>
         <div className="max-w-6xl mx-auto">
-          <motion.div className="mb-14" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          <motion.div className="mb-10 md:mb-14" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
             <Eyebrow>Sobre a Empresa</Eyebrow>
             <AnimatedHeading text="Quem é a Nexla"
-              className="font-display font-bold text-4xl md:text-5xl mb-4"
+              className="font-display font-bold text-3xl md:text-5xl mb-4"
               style={{ color:C.text }} />
-            <motion.p variants={fadeUp} className="text-base max-w-xl leading-relaxed" style={{ color:C.muted }}>
-              Empresa brasileira de automação e inteligência artificial — 1 ano de mercado,
-              crescimento orgânico e carteira ativa de clientes recorrentes.
+            <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
+              A Nexla é uma empresa brasileira de tecnologia <strong style={{ color: C.text }}>B2B</strong>, especializada em automação inteligente, inteligência artificial e desenvolvimento de software sob medida. Fundada em <strong style={{ color: C.text }}>Vilhena, Rondônia</strong>, conquistou reconhecimento internacional ao se tornar <strong style={{ color: C.text }}>vencedora do NASA Space Apps Challenge</strong> — o maior hackathon do mundo, organizado pela NASA.
             </motion.p>
           </motion.div>
 
-          <motion.div className="grid md:grid-cols-2 gap-4 mb-12"
+          <motion.div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 md:mb-12"
             variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
-            {TEAM.map(p => (
-              <motion.div key={p.name} variants={fadeUp}>
-                <TiltCard className="flex items-center gap-5 p-6" style={{ background:C.surface, border:`1px solid ${C.border}` }}>
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
-                    style={{ background:`linear-gradient(135deg,rgba(79,70,229,0.15),rgba(124,58,237,0.08))`, border:'1px solid rgba(79,70,229,0.18)' }}>
-                    <span className="font-display font-bold text-xl" style={{ color:C.indigo }}>{p.name.slice(0,2).toUpperCase()}</span>
+            {[
+              { icon: Award,     title: 'Vencedores NASA',    desc: 'Reconhecidos no NASA Space Apps Challenge, o maior hackathon do mundo.' },
+              { icon: Handshake, title: 'Modelo B2B',         desc: 'Tecnologia construída entre empresas — soluções pensadas para resultados de negócio.' },
+              { icon: MapPin,    title: 'Vilhena · Rondônia', desc: 'Origem brasileira com entrega para empresas em todo o Brasil.' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <motion.div key={title} variants={fadeUp}>
+                <TiltCard className="p-6 h-full" style={{ background:C.surface, border:`1px solid ${C.border}` }}>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background:`linear-gradient(135deg,rgba(79,70,229,0.14),rgba(124,58,237,0.08))`, border:'1px solid rgba(79,70,229,0.2)' }}>
+                    <Icon size={20} style={{ color: C.indigo }} />
                   </div>
-                  <div>
-                    <p className="font-display font-bold text-xl" style={{ color:C.text }}>{p.name}</p>
-                    <p className="text-sm" style={{ color:C.muted }}>{p.role}</p>
-                  </div>
+                  <p className="font-display font-bold text-lg mb-1.5" style={{ color: C.text }}>{title}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: C.muted }}>{desc}</p>
                 </TiltCard>
               </motion.div>
             ))}
