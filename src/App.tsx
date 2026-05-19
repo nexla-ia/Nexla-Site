@@ -1815,7 +1815,8 @@ export default function App() {
       </section>
 
       {/* ── Cases ───────────────────────────────────────────────── */}
-      <section id="cases" className="py-28 px-6" style={{ background:C.bg }}>
+      <section id="cases" className="py-28 px-6 relative overflow-hidden"
+        style={{ background: `radial-gradient(ellipse 90% 55% at 50% 0%, #FFF5EC 0%, ${C.bg} 65%)` }}>
         <div className="max-w-6xl mx-auto">
           <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={vp}
             className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
@@ -1860,7 +1861,8 @@ export default function App() {
       </section>
 
       {/* ── Depoimentos (Reels) ─────────────────────────────────── */}
-      <section id="depoimentos" className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden" style={{ background: C.bg }}>
+      <section id="depoimentos" className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden"
+        style={{ background: `radial-gradient(ellipse 95% 70% at 50% 35%, #F1EEFE 0%, ${C.bg} 70%)` }}>
         <div className="absolute top-[10%] left-[5%] w-[400px] h-[400px] rounded-full opacity-[0.08] blur-[100px] pointer-events-none"
           style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
         <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] rounded-full opacity-[0.06] blur-[80px] pointer-events-none"
