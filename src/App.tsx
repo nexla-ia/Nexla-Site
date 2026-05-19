@@ -1171,18 +1171,6 @@ function DemoChat() {
             </motion.button>
           </form>
 
-          {/* ─── Status bar ─── */}
-          <div className="flex items-center justify-between gap-3 px-3 md:px-4 py-2 font-mono text-[10px]"
-            style={{ borderTop: `1px solid ${C.border}`, background: 'rgba(15,23,42,0.025)', color: C.muted }}>
-            <span className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot" style={{ background: C.green }} />
-              <span className="truncate">Modo demonstração · sem cadastro</span>
-            </span>
-            <span className="hidden sm:flex items-center gap-1.5 shrink-0">
-              <Sparkles size={10} />
-              powered by <span style={{ color: C.text, fontWeight: 600 }}>Nexla</span>
-            </span>
-          </div>
         </div>
       </div>
     </div>
