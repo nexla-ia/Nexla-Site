@@ -12,6 +12,9 @@ import {
   MessageCircle, ArrowRight, CheckCircle2,
   Search, Settings, BarChart3, Activity, Users, FileText,
   ChevronDown, ChevronLeft, ChevronRight, Sparkles,
+  Dumbbell, HardHat, Store, Stethoscope, Plane,
+  UtensilsCrossed, Scissors, Scale, Calculator, Wand2,
+  RefreshCw,
 } from 'lucide-react';
 
 /* ─── Palette ────────────────────────────────────────────────── */
@@ -155,6 +158,51 @@ const DIFFERENTIALS = [
   { icon:LifeBuoy,   title:'Suporte Contínuo',       desc:'Não entregamos e sumimos — acompanhamos a evolução da solução.' },
 ];
 const STACK = ['n8n','Evolution API','Claude (Anthropic)','Supabase','React / Next.js','Easypanel VPS','Azure OpenAI','Stripe'];
+
+const AGENTS = [
+  { id:'academia',     name:'Academia',         icon:Dumbbell,        desc:'Atende alunos, vende planos e tira dúvidas',          url:'https://n8n.nexladesenvolvimento.com.br/webhook/academia',       welcome:'Olá! Sou o agente da academia. Como posso te ajudar hoje?' },
+  { id:'construcao',   name:'Construção',       icon:HardHat,         desc:'Orçamentos, materiais e dúvidas técnicas',            url:'https://n8n.nexladesenvolvimento.com.br/webhook/construcao',     welcome:'Oi! Posso ajudar com orçamentos, materiais ou prazos. O que precisa?' },
+  { id:'loja',         name:'Loja',             icon:Store,           desc:'Atendimento, produtos e pedidos',                     url:'https://n8n.nexladesenvolvimento.com.br/webhook/entrada',        welcome:'Olá! Bem-vindo à nossa loja. Está procurando algo específico?' },
+  { id:'clinica',      name:'Clínica',          icon:Stethoscope,     desc:'Agendamento, triagem e dúvidas',                      url:'https://n8n.nexladesenvolvimento.com.br/webhook/clinica',        welcome:'Oi! Sou o agente da clínica. Quer agendar uma consulta ou tirar uma dúvida?' },
+  { id:'manicure',     name:'Manicure',         icon:Sparkles,        desc:'Agendamento e dúvidas sobre serviços',                url:'https://n8n.nexladesenvolvimento.com.br/webhook/manicure',       welcome:'Oi! Quer agendar um horário ou conhecer os serviços?' },
+  { id:'turismo',      name:'Turismo',          icon:Plane,           desc:'Pacotes, destinos e reservas',                        url:'https://n8n.nexladesenvolvimento.com.br/webhook/turismo',        welcome:'Olá! Pra onde você quer viajar?' },
+  { id:'restaurante',  name:'Restaurante',      icon:UtensilsCrossed, desc:'Cardápio, pedidos e reservas',                        url:'https://n8n.nexladesenvolvimento.com.br/webhook/comida',         welcome:'Olá! Quer ver o cardápio ou fazer um pedido?' },
+  { id:'barbearia',    name:'Barbearia',        icon:Scissors,        desc:'Agendamento de cortes e serviços',                    url:'https://n8n.nexladesenvolvimento.com.br/webhook/barbearia',      welcome:'Fala, chefe! Bora marcar um corte?' },
+  { id:'advocacia',    name:'Advocacia',        icon:Scale,           desc:'Triagem jurídica e agendamento',                      url:'https://n8n.nexladesenvolvimento.com.br/webhook/advocacia',      welcome:'Olá! Em que posso te ajudar juridicamente?' },
+  { id:'contabilidade',name:'Contabilidade',    icon:Calculator,      desc:'Dúvidas fiscais e atendimento',                       url:'https://n8n.nexladesenvolvimento.com.br/webhook/contabilidade',  welcome:'Olá! Posso ajudar com dúvidas fiscais, impostos ou abertura de empresa.' },
+  { id:'custom',       name:'Crie seu agente',  icon:Wand2,           desc:'Monte um agente do zero — diga o que ele faz',        url:'https://n8n.nexladesenvolvimento.com.br/webhook/CriaAgenteTeste',welcome:'Vamos criar um agente do zero! Me conte: qual o nome do seu negócio e o que ele faz?' },
+] as const;
+type Agent = typeof AGENTS[number];
+
+function newSession() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function callAgent(url: string, message: string, sessionId: string): Promise<string> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chatInput: message, message, sessionId, source: 'site-demo' }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  try {
+    const data = JSON.parse(text);
+    if (Array.isArray(data) && data[0]) {
+      const first = data[0];
+      return first.output || first.reply || first.message || first.text || JSON.stringify(first);
+    }
+    if (data?.output) return data.output;
+    if (data?.reply)  return data.reply;
+    if (data?.message)return data.message;
+    if (data?.text)   return data.text;
+    if (typeof data === 'string') return data;
+    return JSON.stringify(data);
+  } catch {
+    return text || 'Sem resposta.';
+  }
+}
 
 
 /* ─── StarField ──────────────────────────────────────────────── */
@@ -711,6 +759,218 @@ function ShowcaseCarousel({ onCta }: { onCta: () => void }) {
   );
 }
 
+/* ─── Demo Chat ─────────────────────────────────────────────── */
+function DemoChat() {
+  const [selected, setSelected] = useState<Agent>(AGENTS[0]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([]);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [sessionId, setSessionId] = useState<string>(() => newSession());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+
+  /* Reset when agent changes */
+  useEffect(() => {
+    setMessages([{ role: 'bot', text: selected.welcome }]);
+    setSessionId(newSession());
+    setInput('');
+  }, [selected]);
+
+  /* Auto-scroll to bottom */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const send = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const text = input.trim();
+    if (!text || loading) return;
+    setMessages(m => [...m, { role: 'user', text }]);
+    setInput('');
+    setLoading(true);
+    try {
+      const reply = await callAgent(selected.url, text, sessionId);
+      setMessages(m => [...m, { role: 'bot', text: reply }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'erro desconhecido';
+      setMessages(m => [...m, { role: 'bot', text: `Ops! Não consegui responder agora (${msg}). Tente novamente em alguns segundos.` }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  };
+
+  const reset = () => {
+    setMessages([{ role: 'bot', text: selected.welcome }]);
+    setSessionId(newSession());
+    setInput('');
+  };
+
+  const ActiveIcon = selected.icon;
+
+  return (
+    <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
+      {/* ── Agent picker ─────────────────────────────────────── */}
+      <aside>
+        <p className="font-mono text-[10px] tracking-[0.22em] uppercase mb-3 hidden lg:block" style={{ color: C.muted }}>
+          ↳ Setores disponíveis
+        </p>
+        <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[560px] lg:overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {AGENTS.map(a => {
+            const Icon = a.icon;
+            const active = selected.id === a.id;
+            return (
+              <button key={a.id}
+                onClick={() => setSelected(a)}
+                className="shrink-0 lg:w-full flex items-center gap-3 p-2.5 lg:p-3 rounded-xl text-left transition-all"
+                style={{
+                  background: active ? `${C.indigo}10` : C.surface,
+                  border: `1px solid ${active ? `${C.indigo}55` : C.border}`,
+                  boxShadow: active ? `0 4px 18px -6px ${C.indigo}40` : 'none',
+                }}
+              >
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                  style={{
+                    background: active ? `linear-gradient(135deg, ${C.indigo}, ${C.violet})` : `${C.indigo}12`,
+                    color: active ? '#fff' : C.indigo,
+                  }}>
+                  <Icon size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold whitespace-nowrap lg:whitespace-normal" style={{ color: C.text }}>{a.name}</p>
+                  <p className="text-[11px] truncate hidden lg:block" style={{ color: C.muted }}>{a.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* ── Chat window ──────────────────────────────────────── */}
+      <div className="flex flex-col rounded-2xl overflow-hidden relative"
+        style={{
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          boxShadow: '0 24px 60px -20px rgba(79,70,229,0.18), 0 8px 20px -8px rgba(15,23,42,0.08)',
+          height: 'clamp(520px, 70vh, 640px)',
+        }}>
+
+        {/* Header */}
+        <div className="relative px-5 py-3.5 flex items-center gap-3"
+          style={{ borderBottom: `1px solid ${C.border}`, background: `linear-gradient(135deg, ${C.indigo}08, transparent 60%)` }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff', boxShadow: `0 6px 18px -4px ${C.indigo}66` }}>
+            <ActiveIcon size={17} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight" style={{ color: C.text }}>Agente {selected.name}</p>
+            <p className="text-[11px] flex items-center gap-1.5 mt-0.5" style={{ color: C.green }}>
+              <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.green }} />
+              <span style={{ color: C.muted }}>Online · IA da Nexla</span>
+            </p>
+          </div>
+          <button onClick={reset}
+            title="Reiniciar conversa"
+            className="p-2 rounded-full transition-colors"
+            style={{ color: C.muted, background: 'transparent' }}>
+            <RefreshCw size={15} />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 md:px-6 py-5 space-y-3"
+          style={{
+            background: `radial-gradient(circle at 50% 0%, ${C.indigo}06, transparent 60%), ${C.bg}`,
+          }}>
+          <AnimatePresence initial={false}>
+            {messages.map((m, i) => (
+              <motion.div key={`${sessionId}-${i}`}
+                initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.3, ease }}
+                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {m.role === 'bot' && (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
+                    style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}>
+                    <ActiveIcon size={12} />
+                  </div>
+                )}
+                <div className="max-w-[78%] px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap"
+                  style={m.role === 'user'
+                    ? {
+                        background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
+                        color: '#fff',
+                        borderRadius: '18px 18px 4px 18px',
+                        boxShadow: `0 6px 16px -6px ${C.indigo}55`,
+                      }
+                    : {
+                        background: C.surface,
+                        color: C.text,
+                        border: `1px solid ${C.border}`,
+                        borderRadius: '18px 18px 18px 4px',
+                      }}>
+                  {m.text}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
+                style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}>
+                <ActiveIcon size={12} />
+              </div>
+              <div className="px-4 py-3 flex items-center gap-1.5"
+                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px' }}>
+                {[0, 1, 2].map(i => (
+                  <motion.span key={i}
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: C.indigo }}
+                    animate={{ y: [0, -4, 0], opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Input */}
+        <form onSubmit={send}
+          className="px-3 md:px-4 py-3 flex items-center gap-2"
+          style={{ borderTop: `1px solid ${C.border}`, background: C.surface }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder={`Pergunte algo ao agente ${selected.name}...`}
+            disabled={loading}
+            className="flex-1 px-4 py-2.5 rounded-full text-sm outline-none focus:outline-none disabled:opacity-50"
+            style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.text }}
+          />
+          <motion.button
+            type="submit"
+            disabled={!input.trim() || loading}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.05 }}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff', boxShadow: `0 6px 16px -4px ${C.indigo}66` }}
+            aria-label="Enviar mensagem">
+            <Send size={15} />
+          </motion.button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ─── App ────────────────────────────────────────────────────── */
 export default function App() {
   const [navScrolled,   setNavScrolled]   = useState(false);
@@ -737,7 +997,7 @@ export default function App() {
 
   /* Active section */
   useEffect(() => {
-    const ids = ['inicio','servicos','como-funciona','cases','diferenciais','sobre','contato'];
+    const ids = ['inicio','servicos','experimente','como-funciona','cases','diferenciais','sobre','contato'];
     const sections = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     if (!sections.length || typeof IntersectionObserver === 'undefined') return;
     const obs = new IntersectionObserver(
@@ -758,6 +1018,7 @@ export default function App() {
 
   const navLinks = [
     { id:'servicos',      label:'Serviços' },
+    { id:'experimente',   label:'Experimente' },
     { id:'como-funciona', label:'Como Funciona' },
     { id:'cases',         label:'Cases' },
     { id:'diferenciais',  label:'Diferenciais' },
@@ -955,6 +1216,34 @@ export default function App() {
           >
             <ShowcaseCarousel onCta={() => scrollTo('contato')} />
           </motion.div>
+        </div>
+      </section>
+
+      {/* ── Experimente (Demo Chat) ─────────────────────────────── */}
+      <section id="experimente" className="py-16 md:py-28 px-4 md:px-6 relative overflow-hidden" style={{ background: C.soft }}>
+        {/* Soft aurora */}
+        <div className="absolute top-[-10%] right-[10%] w-[500px] h-[500px] rounded-full opacity-[0.10] blur-[100px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
+        <div className="absolute bottom-[-10%] left-[5%] w-[400px] h-[400px] rounded-full opacity-[0.08] blur-[80px] pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${C.violet}, transparent)` }} />
+
+        <div className="relative max-w-6xl mx-auto">
+          <div className="text-center mb-10 md:mb-14">
+            <Eyebrow>Demo Interativa</Eyebrow>
+            <AnimatedHeading text="Converse com nossa IA agora"
+              className="font-display font-bold text-3xl md:text-5xl mb-4"
+              style={{ color: C.text }} />
+            <p className="text-[15px] md:text-base max-w-2xl mx-auto leading-relaxed" style={{ color: C.muted }}>
+              11 agentes prontos para você testar em tempo real. Escolha um setor e veja como a Nexla atende, qualifica e converte — sem você precisar fazer nada.
+            </p>
+            <div className="inline-flex items-center gap-2 mt-6 px-3 py-1.5 rounded-full font-mono text-[11px] font-bold"
+              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: C.green }}>
+              <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.green }} />
+              Agentes 100% funcionais · Sem cadastro
+            </div>
+          </div>
+
+          <DemoChat />
         </div>
       </section>
 
