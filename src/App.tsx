@@ -1131,10 +1131,10 @@ export default function App() {
               className="font-display font-bold text-3xl md:text-5xl mb-4"
               style={{ color:C.text }} />
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed mb-4" style={{ color:C.muted }}>
-              A Nexla coloca inteligência artificial para trabalhar pelo seu negócio. Construímos <strong style={{ color: C.text }}>automações</strong>, <strong style={{ color: C.text }}>plataformas SaaS</strong>, <strong style={{ color: C.text }}>aplicativos</strong> e <strong style={{ color: C.text }}>sistemas sob medida</strong> para empresas que querem escalar a operação — sem inflar a folha de pagamento.
+              A Nexla é uma empresa brasileira de tecnologia que coloca inteligência artificial para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em <strong style={{ color: C.text }}>resultado mensurável</strong> e estrutura preparada para escalar com a sua operação.
             </motion.p>
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
-              Nascida em <strong style={{ color: C.text }}>Vilhena, Rondônia</strong>, a Nexla levou tecnologia brasileira ao <strong style={{ color: C.text }}>Top 10 mundial do NASA Space Apps Challenge</strong> — o maior hackathon do planeta — depois de conquistar a <strong style={{ color: C.text }}>etapa regional</strong>. Hoje, atende empresas em todo o Brasil no modelo <strong style={{ color: C.text }}>B2B</strong>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
+              Fundada em Vilhena, Rondônia, a Nexla nasceu com a convicção de que excelência em tecnologia não tem CEP. Levamos engenharia brasileira ao <strong style={{ color: C.text }}>Top 10 mundial do NASA Space Apps Challenge</strong> — o maior hackathon do planeta, organizado pela NASA — depois de conquistar a etapa regional e competir de igual para igual com times de mais de 150 países. Hoje, no modelo B2B, atendemos empresas em todo o Brasil com a mesma exigência técnica e dedicação que nos levaram até lá.
             </motion.p>
           </motion.div>
 
