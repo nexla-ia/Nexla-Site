@@ -119,6 +119,32 @@ html, body {
   100%{ transform: translateY(0px) scale(1);    opacity: 0.15; }
 }
 
+/* ── Agent picker scrollbar (desktop) ───────────────────────── */
+.agent-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+@media (min-width: 1024px) {
+  .agent-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(79,70,229,0.25) transparent;
+  }
+  .agent-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .agent-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .agent-scroll::-webkit-scrollbar-thumb {
+    background: rgba(79,70,229,0.25);
+    border-radius: 999px;
+  }
+  .agent-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(79,70,229,0.45);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora-1,.aurora-2,.aurora-3,.float-main,.float-badge,.bar-fill,.pulse-dot {
     animation: none !important;

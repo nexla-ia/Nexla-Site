@@ -831,14 +831,13 @@ function DemoChat() {
   };
 
   const ActiveIcon = selected.icon;
-  const endpoint = selected.url.replace('https://n8n.nexladesenvolvimento.com.br', '');
   const showSuggestions = messages.length <= 1 && !loading;
 
   return (
-    <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6 items-start">
+    <div className="grid lg:grid-cols-[300px_minmax(0,1fr)] gap-4 lg:gap-6 items-start min-w-0">
 
       {/* ══════ Agent Launcher (sidebar) ══════ */}
-      <aside className="relative">
+      <aside className="relative min-w-0">
         {/* Section label with line decoration */}
         <div className="hidden lg:flex items-center gap-3 mb-4">
           <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${C.indigo}40, transparent)` }} />
@@ -849,7 +848,12 @@ function DemoChat() {
         </div>
 
         <div className="relative">
-          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[600px] lg:overflow-y-auto pr-1 pb-1 lg:pb-0 -mx-1 px-1 lg:mx-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {/* Fade-out gradient indicating scrollable content (desktop only) */}
+          <div className="hidden lg:block absolute bottom-0 left-0 right-3 h-12 pointer-events-none z-10 rounded-b-xl"
+            style={{ background: `linear-gradient(to bottom, transparent, ${C.soft})` }} />
+          <div
+            data-lenis-prevent
+            className="agent-scroll flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[560px] lg:overflow-y-auto pb-1 lg:pb-12 lg:pr-2 -mx-1 px-1 lg:mx-0">
             {AGENTS.map((a, i) => {
               const Icon = a.icon;
               const active = selected.id === a.id;
@@ -917,7 +921,7 @@ function DemoChat() {
       </aside>
 
       {/* ══════ Chat Window (product mockup) ══════ */}
-      <div className="relative">
+      <div className="relative min-w-0">
         {/* Floating ambient glow behind window */}
         <div aria-hidden className="absolute -inset-2 rounded-3xl opacity-50 pointer-events-none"
           style={{ background: `radial-gradient(circle at 50% 50%, ${C.indigo}15, transparent 60%)` }} />
@@ -945,9 +949,9 @@ function DemoChat() {
               style={{ background: C.surface, border: `1px solid ${C.border}` }}>
               <span className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot" style={{ background: C.green }} />
               <span className="font-mono text-[10.5px] tracking-tight truncate min-w-0" style={{ color: C.muted }}>
-                <span className="hidden md:inline" style={{ color: 'rgba(100,116,139,0.55)' }}>https://</span>
-                <span className="hidden md:inline" style={{ color: C.text }}>n8n.nexladesenvolvimento.com.br</span>
-                <span style={{ color: C.indigo }}>{endpoint}</span>
+                <span style={{ color: 'rgba(100,116,139,0.55)' }}>nexla.ai/</span>
+                <span style={{ color: C.text }}>demo/</span>
+                <span style={{ color: C.indigo }}>{selected.id}</span>
               </span>
             </div>
             <span className="hidden sm:inline font-mono text-[9px] font-bold tracking-widest uppercase shrink-0"
@@ -1005,66 +1009,88 @@ function DemoChat() {
 
           {/* ─── Messages ─── */}
           <div ref={scrollRef}
-            className="flex-1 overflow-y-auto px-4 md:px-6 py-5 space-y-3 relative"
+            data-lenis-prevent
+            className="agent-scroll flex-1 overflow-y-auto overflow-x-hidden px-3 md:px-5 py-5 space-y-4 relative min-w-0"
             style={{
-              background: `radial-gradient(ellipse at 50% 0%, ${C.indigo}08, transparent 50%), linear-gradient(180deg, ${C.bg}, ${C.surface})`,
+              background: `radial-gradient(ellipse at 50% 0%, ${C.indigo}08, transparent 55%), linear-gradient(180deg, ${C.bg}, ${C.surface})`,
             }}>
             {/* Subtle dot grid pattern */}
             <div aria-hidden className="absolute inset-0 opacity-[0.025] pointer-events-none"
               style={{
                 backgroundImage: `radial-gradient(${C.text} 1px, transparent 1px)`,
-                backgroundSize: '20px 20px',
+                backgroundSize: '22px 22px',
               }} />
 
             <AnimatePresence initial={false}>
-              {messages.map((m, i) => (
-                <motion.div key={`${sessionId}-${i}`}
-                  initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.35, ease }}
-                  className={`relative flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {m.role === 'bot' && (
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
-                      style={{
-                        background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
-                        color: '#fff',
-                        boxShadow: `0 4px 10px -3px ${C.indigo}66`,
-                      }}>
-                      <ActiveIcon size={12} strokeWidth={2.3} />
-                    </div>
-                  )}
-                  <div className="max-w-[78%] px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap"
-                    style={m.role === 'user'
-                      ? {
+              {messages.map((m, i) => {
+                const isUser = m.role === 'user';
+                const prev = messages[i - 1];
+                const isFirstInGroup = !prev || prev.role !== m.role;
+                return (
+                  <motion.div key={`${sessionId}-${i}`}
+                    initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.35, ease }}
+                    className={`relative flex items-end gap-2 ${isUser ? 'justify-end pl-9' : 'justify-start pr-9'} ${!isFirstInGroup ? 'mt-1' : ''}`}
+                  >
+                    {!isUser && (
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-opacity ${isFirstInGroup ? 'opacity-100' : 'opacity-0'}`}
+                        style={isFirstInGroup ? {
                           background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
                           color: '#fff',
-                          borderRadius: '18px 18px 4px 18px',
-                          boxShadow: `0 8px 20px -8px ${C.indigo}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
-                        }
-                      : {
-                          background: C.surface,
-                          color: C.text,
-                          border: `1px solid ${C.border}`,
-                          borderRadius: '18px 18px 18px 4px',
-                          boxShadow: '0 2px 8px -2px rgba(15,23,42,0.06)',
-                        }}>
-                    {m.text}
-                  </div>
-                </motion.div>
-              ))}
+                          boxShadow: `0 4px 10px -3px ${C.indigo}55`,
+                        } : undefined}>
+                        {isFirstInGroup && <ActiveIcon size={12} strokeWidth={2.3} />}
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0 max-w-[82%]" style={{ alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                      {isFirstInGroup && (
+                        <span className="font-mono text-[10px] mb-1 px-1" style={{ color: C.muted }}>
+                          {isUser ? 'Você' : `Agente ${selected.name}`}
+                        </span>
+                      )}
+                      <div className="px-4 py-2.5 text-[14px] leading-[1.55] whitespace-pre-wrap break-words"
+                        style={isUser
+                          ? {
+                              background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
+                              color: '#fff',
+                              borderRadius: isFirstInGroup ? '18px 18px 6px 18px' : '18px 6px 6px 18px',
+                              boxShadow: `0 8px 20px -10px ${C.indigo}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                            }
+                          : {
+                              background: C.surface,
+                              color: C.text,
+                              border: `1px solid ${C.border}`,
+                              borderRadius: isFirstInGroup ? '18px 18px 18px 6px' : '6px 18px 18px 6px',
+                              boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+                            }}>
+                        {m.text}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
 
             {loading && (
               <motion.div
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className="relative flex justify-start">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-2 mt-auto"
-                  style={{ background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`, color: '#fff' }}>
+                className="relative flex items-end gap-2 justify-start pr-9">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${C.indigo}, ${C.violet})`,
+                    color: '#fff',
+                    boxShadow: `0 4px 10px -3px ${C.indigo}55`,
+                  }}>
                   <ActiveIcon size={12} />
                 </div>
                 <div className="px-4 py-3 flex items-center gap-1.5"
-                  style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px', boxShadow: '0 2px 8px -2px rgba(15,23,42,0.06)' }}>
+                  style={{
+                    background: C.surface,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: '18px 18px 18px 6px',
+                    boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+                  }}>
                   {[0, 1, 2].map(i => (
                     <motion.span key={i}
                       className="w-1.5 h-1.5 rounded-full"
@@ -1082,20 +1108,30 @@ function DemoChat() {
               <motion.div
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="relative flex flex-wrap gap-2 pt-2 pl-9">
-                {SUGGESTIONS.map((s, i) => (
-                  <motion.button key={s}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.4 + i * 0.08 }}
-                    whileHover={{ scale: 1.03, background: `${C.indigo}10`, borderColor: `${C.indigo}40` }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => sendText(s)}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors"
-                    style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
-                    ↳ {s}
-                  </motion.button>
-                ))}
+                className="relative pl-9">
+                <p className="font-mono text-[10px] tracking-[0.18em] uppercase mb-2" style={{ color: C.muted }}>
+                  ↳ Sugestões para começar
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTIONS.map((s, i) => (
+                    <motion.button key={s}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.4 + i * 0.08 }}
+                      whileHover={{ scale: 1.04, y: -1 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => sendText(s)}
+                      className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium transition-all"
+                      style={{
+                        background: `linear-gradient(135deg, ${C.surface}, ${C.bg})`,
+                        border: `1px solid ${C.indigo}25`,
+                        color: C.indigo,
+                        boxShadow: `0 2px 8px -3px ${C.indigo}25`,
+                      }}>
+                      {s}
+                    </motion.button>
+                  ))}
+                </div>
               </motion.div>
             )}
           </div>
@@ -1139,9 +1175,8 @@ function DemoChat() {
           <div className="flex items-center justify-between gap-3 px-3 md:px-4 py-2 font-mono text-[10px]"
             style={{ borderTop: `1px solid ${C.border}`, background: 'rgba(15,23,42,0.025)', color: C.muted }}>
             <span className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: C.green }} />
-              <span className="shrink-0">POST</span>
-              <span className="truncate" style={{ color: C.indigo }}>{endpoint}</span>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot" style={{ background: C.green }} />
+              <span className="truncate">Modo demonstração · sem cadastro</span>
             </span>
             <span className="hidden sm:flex items-center gap-1.5 shrink-0">
               <Sparkles size={10} />
