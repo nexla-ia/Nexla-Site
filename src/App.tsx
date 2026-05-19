@@ -1212,12 +1212,6 @@ export default function App() {
         </div>
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={stagger}>
-            <motion.div variants={fadeUp}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs font-bold mb-10"
-              style={{ background:'rgba(237,233,254,0.1)', border:'1px solid rgba(237,233,254,0.2)', color:C.darkText }}>
-              <CheckCircle2 size={12} />Conversa inicial sem compromisso
-            </motion.div>
-
             <AnimatedHeading text="Pronto para automatizar sua operação?"
               className="font-display font-bold leading-tight mb-6"
               style={{ fontSize:'clamp(34px,7vw,76px)', color:'#FFFFFF' }} />
