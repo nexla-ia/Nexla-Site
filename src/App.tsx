@@ -828,6 +828,15 @@ function DemoChat() {
     setMessages([{ role: 'bot', text: selected.welcome }]);
     setSessionId(newId());
     setInput('');
+    // Limpa a memória de todas as IAs (fire-and-forget)
+    fetch('https://n8n.nexladesenvolvimento.com.br/webhook/memoraria', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: userIdRef.current,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch(() => { /* silently ignore */ });
   };
 
   const ActiveIcon = selected.icon;
