@@ -1134,7 +1134,17 @@ export default function App() {
               A Nexla é uma empresa brasileira de tecnologia que coloca inteligência artificial para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em <strong style={{ color: C.text }}>resultado mensurável</strong> e estrutura preparada para escalar com a sua operação.
             </motion.p>
             <motion.p variants={fadeUp} className="text-[15px] md:text-base max-w-2xl leading-relaxed" style={{ color:C.muted }}>
-              Fundada em Vilhena, Rondônia, a Nexla nasceu com a convicção de que excelência em tecnologia não tem CEP. Levamos engenharia brasileira ao <strong style={{ color: C.text }}>Top 10 mundial do NASA Space Apps Challenge</strong> — o maior hackathon do planeta, organizado pela NASA — depois de conquistar a etapa regional e competir de igual para igual com times de mais de 150 países. Hoje, no modelo B2B, atendemos empresas em todo o Brasil com a mesma exigência técnica e dedicação que nos levaram até lá.
+              Nascida em Vilhena, Rondônia, a Nexla levou tecnologia brasileira ao{' '}
+              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                Top 10 mundial do NASA Space Apps Challenge
+              </span>{' '}
+              — o maior hackathon do planeta — depois de conquistar a{' '}
+              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                etapa regional
+              </span>. Hoje, atende empresas em todo o Brasil no modelo{' '}
+              <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                B2B
+              </span>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
             </motion.p>
           </motion.div>
 
