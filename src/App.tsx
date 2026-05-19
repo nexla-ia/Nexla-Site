@@ -1028,8 +1028,7 @@ function TestimonialsSection() {
 
   return (
     <>
-      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-        data-lenis-prevent>
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         <div className="flex gap-3 md:gap-4 md:justify-center">
           {DEPOIMENTOS.map((t, i) => (
             <TestimonialCard key={t.id} t={t} onClick={() => setOpenIndex(i)} />
@@ -1118,7 +1117,7 @@ function DemoChat() {
   const showSuggestions = messages.length <= 1 && !loading;
 
   return (
-    <div className="grid lg:grid-cols-[300px_minmax(0,1fr)] gap-4 lg:gap-6 items-start min-w-0">
+    <div className="grid lg:grid-cols-[340px_minmax(0,1fr)] gap-4 lg:gap-6 items-start min-w-0">
 
       {/* ══════ Agent Launcher (sidebar) ══════ */}
       <aside className="relative min-w-0">
@@ -1132,21 +1131,17 @@ function DemoChat() {
         </div>
 
         <div className="relative">
-          {/* Fade-out gradient indicating scrollable content (desktop only) */}
-          <div className="hidden lg:block absolute bottom-0 left-0 right-3 h-12 pointer-events-none z-10 rounded-b-xl"
-            style={{ background: `linear-gradient(to bottom, transparent, ${C.soft})` }} />
-          <div
-            data-lenis-prevent
-            className="agent-scroll flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[560px] lg:overflow-y-auto pb-1 lg:pb-12 lg:pr-2 -mx-1 px-1 lg:mx-0">
-            {AGENTS.map((a, i) => {
+          <div className="flex lg:grid lg:grid-cols-2 gap-2 overflow-x-auto lg:overflow-x-visible pb-1 -mx-1 px-1 lg:mx-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            {AGENTS.map((a) => {
               const Icon = a.icon;
               const active = selected.id === a.id;
               return (
                 <motion.button key={a.id}
                   onClick={() => setSelected(a)}
-                  whileHover={{ x: active ? 0 : 3 }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                  className="group/agent relative shrink-0 lg:w-full flex items-center gap-3 pl-3 pr-3 lg:pr-4 py-2.5 lg:py-3 rounded-xl text-left transition-all"
+                  className="group/agent relative shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
                   style={{
                     background: active ? `${C.indigo}0F` : C.surface,
                     border: `1px solid ${active ? `${C.indigo}55` : C.border}`,
@@ -1155,12 +1150,6 @@ function DemoChat() {
                       : '0 1px 0 rgba(15,23,42,0.03)',
                   }}
                 >
-                  {/* Numbered tag */}
-                  <span className="hidden lg:block font-mono text-[9px] font-bold tracking-wider"
-                    style={{ color: active ? C.indigo : 'rgba(100,116,139,0.5)' }}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-
                   {/* Icon tile */}
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all"
                     style={{
@@ -1173,20 +1162,17 @@ function DemoChat() {
                     <Icon size={16} strokeWidth={active ? 2.2 : 2} />
                   </div>
 
-                  {/* Name + description */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold whitespace-nowrap lg:whitespace-normal leading-tight"
-                      style={{ color: active ? C.text : C.text, fontFamily: "'Bricolage Grotesque', sans-serif" }}>
-                      {a.name}
-                    </p>
-                    <p className="text-[11px] truncate hidden lg:block mt-0.5" style={{ color: C.muted }}>{a.desc}</p>
-                  </div>
+                  {/* Name */}
+                  <span className="text-[13px] font-semibold whitespace-nowrap leading-tight"
+                    style={{ color: C.text, fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+                    {a.name}
+                  </span>
 
                   {/* Active indicator */}
                   {active && (
                     <motion.div
                       layoutId="agentActive"
-                      className="hidden lg:block w-1.5 h-1.5 rounded-full shrink-0"
+                      className="hidden lg:block w-1.5 h-1.5 rounded-full shrink-0 ml-auto"
                       style={{ background: C.indigo, boxShadow: `0 0 0 3px ${C.indigo}25` }}
                     />
                   )}
