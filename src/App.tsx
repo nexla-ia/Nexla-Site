@@ -849,7 +849,7 @@ function DemoChat() {
         </div>
 
         <div className="relative">
-          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[600px] lg:overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[600px] lg:overflow-y-auto pr-1 pb-1 lg:pb-0 -mx-1 px-1 lg:mx-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
             {AGENTS.map((a, i) => {
               const Icon = a.icon;
               const active = selected.id === a.id;
@@ -927,11 +927,11 @@ function DemoChat() {
             background: C.surface,
             border: `1px solid ${C.border}`,
             boxShadow: '0 40px 100px -30px rgba(15,23,42,0.25), 0 16px 40px -16px rgba(79,70,229,0.18), inset 0 1px 0 rgba(255,255,255,0.8)',
-            height: 'clamp(560px, 72vh, 680px)',
+            height: 'clamp(460px, 70vh, 680px)',
           }}>
 
           {/* ─── Browser chrome: traffic lights + URL bar ─── */}
-          <div className="flex items-center gap-3 px-4 py-2.5"
+          <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5"
             style={{
               background: `linear-gradient(180deg, #F5F2EC, ${C.soft})`,
               borderBottom: `1px solid ${C.border}`,
@@ -941,12 +941,12 @@ function DemoChat() {
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#FEBC2E' }} />
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#28C840' }} />
             </div>
-            <div className="flex-1 flex items-center gap-2 px-3 py-1 rounded-md mx-2 min-w-0"
+            <div className="flex-1 flex items-center gap-2 px-2.5 md:px-3 py-1 rounded-md mx-1 md:mx-2 min-w-0 overflow-hidden"
               style={{ background: C.surface, border: `1px solid ${C.border}` }}>
               <span className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot" style={{ background: C.green }} />
-              <span className="font-mono text-[10.5px] tracking-tight truncate" style={{ color: C.muted }}>
-                <span style={{ color: 'rgba(100,116,139,0.55)' }}>https://</span>
-                <span style={{ color: C.text }}>n8n.nexladesenvolvimento.com.br</span>
+              <span className="font-mono text-[10.5px] tracking-tight truncate min-w-0" style={{ color: C.muted }}>
+                <span className="hidden md:inline" style={{ color: 'rgba(100,116,139,0.55)' }}>https://</span>
+                <span className="hidden md:inline" style={{ color: C.text }}>n8n.nexladesenvolvimento.com.br</span>
                 <span style={{ color: C.indigo }}>{endpoint}</span>
               </span>
             </div>
@@ -980,15 +980,15 @@ function DemoChat() {
               <p className="font-display font-bold text-[15px] leading-tight tracking-tight" style={{ color: C.text }}>
                 Agente {selected.name}
               </p>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className="font-mono text-[10px] flex items-center gap-1.5" style={{ color: C.green }}>
                   <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.green }} />
                   ONLINE
                 </span>
-                <span className="opacity-30">·</span>
-                <span className="font-mono text-[10px]" style={{ color: C.muted }}>IA Nexla</span>
-                <span className="opacity-30">·</span>
-                <span className="font-mono text-[10px]" style={{ color: C.muted }}>resposta &lt; 3s</span>
+                <span className="opacity-30 hidden sm:inline">·</span>
+                <span className="font-mono text-[10px] hidden sm:inline" style={{ color: C.muted }}>IA Nexla</span>
+                <span className="opacity-30 hidden md:inline">·</span>
+                <span className="font-mono text-[10px] hidden md:inline" style={{ color: C.muted }}>resposta &lt; 3s</span>
               </div>
             </div>
 
@@ -1102,24 +1102,22 @@ function DemoChat() {
 
           {/* ─── Input bar ─── */}
           <form onSubmit={send}
-            className="px-3 md:px-4 py-3 flex items-center gap-2"
+            className="flex items-center gap-2 px-3 md:px-4 py-3"
             style={{ borderTop: `1px solid ${C.border}`, background: C.surface }}>
-            <div className="flex-1 relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder={`Pergunte algo ao agente ${selected.name}...`}
-                disabled={loading}
-                className="w-full pl-4 pr-4 py-2.5 rounded-full text-[14px] outline-none focus:outline-none disabled:opacity-50 transition-all focus:border-indigo-300"
-                style={{
-                  background: C.bg,
-                  border: `1px solid ${C.border}`,
-                  color: C.text,
-                }}
-              />
-            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Pergunte algo..."
+              disabled={loading}
+              className="flex-1 min-w-0 px-4 py-2.5 rounded-full text-[14px] outline-none disabled:opacity-50"
+              style={{
+                background: C.bg,
+                border: `1px solid ${C.border}`,
+                color: C.text,
+              }}
+            />
             <motion.button
               type="submit"
               disabled={!input.trim() || loading}
@@ -1138,14 +1136,14 @@ function DemoChat() {
           </form>
 
           {/* ─── Status bar ─── */}
-          <div className="hidden sm:flex items-center justify-between gap-3 px-4 py-2 font-mono text-[10px]"
+          <div className="flex items-center justify-between gap-3 px-3 md:px-4 py-2 font-mono text-[10px]"
             style={{ borderTop: `1px solid ${C.border}`, background: 'rgba(15,23,42,0.025)', color: C.muted }}>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.green }} />
-              <span>POST</span>
-              <span style={{ color: C.indigo }}>{endpoint}</span>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: C.green }} />
+              <span className="shrink-0">POST</span>
+              <span className="truncate" style={{ color: C.indigo }}>{endpoint}</span>
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="hidden sm:flex items-center gap-1.5 shrink-0">
               <Sparkles size={10} />
               powered by <span style={{ color: C.text, fontWeight: 600 }}>Nexla</span>
             </span>
