@@ -1131,14 +1131,13 @@ export default function App() {
       {/* ── Sobre ───────────────────────────────────────────────── */}
       <section id="sobre" className="py-16 md:py-28 px-4 md:px-6" style={{ background:C.soft }}>
         <div className="max-w-6xl mx-auto">
-          <motion.div className="mb-10 md:mb-14 grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-center"
-            variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+          <div className="mb-10 md:mb-14 grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-center">
             <div>
               <Eyebrow>Sobre a Empresa</Eyebrow>
               <AnimatedHeading text="Quem é a Nexla"
                 className="font-display font-bold text-3xl md:text-5xl mb-4"
                 style={{ color:C.text }} />
-              <motion.p variants={fadeUp} className="text-[15px] md:text-base leading-relaxed mb-4" style={{ color:C.muted }}>
+              <p className="text-[15px] md:text-base leading-relaxed mb-4" style={{ color:C.muted }}>
                 A Nexla é uma empresa brasileira de tecnologia que coloca{' '}
                 <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
                   inteligência artificial
@@ -1148,8 +1147,8 @@ export default function App() {
                   resultado mensurável
                 </span>{' '}
                 e estrutura preparada para escalar com a sua operação.
-              </motion.p>
-              <motion.p variants={fadeUp} className="text-[15px] md:text-base leading-relaxed" style={{ color:C.muted }}>
+              </p>
+              <p className="text-[15px] md:text-base leading-relaxed" style={{ color:C.muted }}>
                 Nascida em Vilhena, Rondônia, a Nexla levou tecnologia brasileira ao{' '}
                 <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
                   Top 10 mundial do NASA Space Apps Challenge
@@ -1161,14 +1160,11 @@ export default function App() {
                 <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
                   B2B
                 </span>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
-              </motion.p>
+              </p>
             </div>
 
             {/* Team photo — desktop only */}
-            <motion.div
-              variants={fadeUp}
-              className="hidden lg:block relative"
-            >
+            <div className="hidden lg:block relative">
               <div className="relative rounded-2xl overflow-hidden"
                 style={{
                   border: `1px solid ${C.border}`,
@@ -1190,8 +1186,8 @@ export default function App() {
               <p className="mt-3 text-xs font-mono text-center" style={{ color: C.muted }}>
                 Equipe Nexla · Vilhena, RO — NASA Space Apps Challenge
               </p>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
 
           <motion.div className="relative p-8 md:p-12 rounded-2xl text-center overflow-hidden"
