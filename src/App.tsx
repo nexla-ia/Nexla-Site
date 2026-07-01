@@ -26,6 +26,12 @@ const C = {
   darkText: '#EDE9FE', darkMuted: 'rgba(237,233,254,0.6)', darkBorder: 'rgba(237,233,254,0.1)',
 } as const;
 
+/* ── Alternância de seções — 2 cores (clara ↔ escura) ─────────── */
+const LIGHT = { bg:'#F1F5F9', text:'#0F172A', muted:'#475569', surface:'#FFFFFF', border:'rgba(15,23,42,0.08)' } as const;
+const DARK  = { bg:'#0F172A', text:'#F1F5F9', muted:'rgba(241,245,249,0.68)', surface:'#1E293B', border:'rgba(241,245,249,0.10)' } as const;
+/* Ids das seções com fundo escuro (usado para adaptar a cor do texto do menu) */
+const DARK_SECTION_IDS = ['servicos','como-funciona','cases','setores','sobre'];
+
 /* ─── Motion config ──────────────────────────────────────────── */
 const ease = [0.16, 1, 0.3, 1] as const;
 const vp   = { once: true, margin: '-70px' } as const;
@@ -159,19 +165,43 @@ const DIFFERENTIALS = [
 ];
 const STACK = ['n8n','Evolution API','Claude (Anthropic)','Supabase','React / Next.js','Easypanel VPS','Azure OpenAI','Stripe'];
 
-const DEPOIMENTOS: Array<{
+type Depoimento = {
   id: number;
   type: 'image' | 'video';
   src: string;
   name: string;
   role: string;
   sector: string;
-}> = [
-  { id: 2, type: 'video', src: '/depoimentos/depoimento2.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Atendimento' },
-  { id: 3, type: 'video', src: '/depoimentos/depoimento3.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Operação' },
-  { id: 4, type: 'video', src: '/depoimentos/depoimento4.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Automação' },
-  { id: 5, type: 'video', src: '/depoimentos/depoimento5.mp4', name: 'Cliente Nexla',  role: 'Depoimento real',          sector: 'Resultados' },
-];
+};
+
+/*
+ * Depoimentos automáticos.
+ * Basta jogar um novo arquivo (.mp4/.webm/.mov ou .jpg/.png) na pasta
+ * `src/depoimentos/` — ele é detectado e adicionado sozinho, na ordem
+ * numérica do nome. Não precisa mexer no código.
+ */
+const SETORES_DEPOIMENTO = ['Atendimento', 'Operação', 'Automação', 'Resultados', 'Experiência', 'Vendas', 'Suporte', 'Crescimento'];
+
+const _depoimentoFiles = import.meta.glob(
+  './depoimentos/*.{mp4,webm,mov,jpg,jpeg,png}',
+  { eager: true, query: '?url', import: 'default' }
+) as Record<string, string>;
+
+const _numOf = (p: string) => {
+  const m = p.match(/(\d+)/g);
+  return m ? parseInt(m[m.length - 1], 10) : 0;
+};
+
+const DEPOIMENTOS: Depoimento[] = Object.entries(_depoimentoFiles)
+  .sort(([a], [b]) => _numOf(a) - _numOf(b) || a.localeCompare(b))
+  .map(([path, url], i) => ({
+    id: _numOf(path) || i + 1,
+    type: /\.(mp4|webm|mov)$/i.test(path) ? 'video' : 'image',
+    src: url,
+    name: 'Cliente Nexla',
+    role: 'Depoimento real',
+    sector: SETORES_DEPOIMENTO[i % SETORES_DEPOIMENTO.length],
+  }));
 
 const AGENTS = [
   { id:'academia',     name:'Academia',         icon:Dumbbell,        desc:'Atende alunos, vende planos e tira dúvidas',          url:'https://n8n.nexladesenvolvimento.com.br/webhook/academia',       welcome:'Olá! Sou o agente da academia. Como posso te ajudar hoje?' },
@@ -1023,13 +1053,83 @@ function TestimonialModal({ items, openIndex, onClose, onIndexChange }: {
   );
 }
 
+const PER_PAGE = 3;
+
 function TestimonialsSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+
+  const pageCount = Math.ceil(DEPOIMENTOS.length / PER_PAGE);
+  const go = (p: number) => setPage(Math.max(0, Math.min(pageCount - 1, p)));
 
   return (
     <>
-      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-        <div className="flex gap-3 md:gap-4 md:justify-center">
+      {/* ── Desktop: carrossel paginado (3 por vez) ── */}
+      <div className="hidden md:block relative px-2 lg:px-0">
+        {/* Seta anterior */}
+        <motion.button
+          onClick={() => go(page - 1)}
+          disabled={page === 0}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          aria-label="Anterior"
+          className="absolute -left-2 lg:-left-6 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
+          style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo, boxShadow: '0 8px 24px -8px rgba(15,23,42,0.25)' }}
+        >
+          <ChevronLeft size={22} />
+        </motion.button>
+
+        {/* Seta próxima */}
+        <motion.button
+          onClick={() => go(page + 1)}
+          disabled={page >= pageCount - 1}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          aria-label="Próximo"
+          className="absolute -right-2 lg:-right-6 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
+          style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.indigo, boxShadow: '0 8px 24px -8px rgba(15,23,42,0.25)' }}
+        >
+          <ChevronRight size={22} />
+        </motion.button>
+
+        <div className="overflow-hidden">
+          <motion.div
+            className="flex"
+            animate={{ x: `-${page * 100}%` }}
+            transition={{ type: 'spring', stiffness: 260, damping: 32 }}
+          >
+            {Array.from({ length: pageCount }).map((_, p) => (
+              <div key={p} className="w-full shrink-0 flex gap-4 justify-center">
+                {DEPOIMENTOS.slice(p * PER_PAGE, p * PER_PAGE + PER_PAGE).map((t, j) => (
+                  <TestimonialCard key={t.id} t={t} onClick={() => setOpenIndex(p * PER_PAGE + j)} />
+                ))}
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Indicadores */}
+        {pageCount > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            {Array.from({ length: pageCount }).map((_, p) => (
+              <button
+                key={p}
+                onClick={() => go(p)}
+                aria-label={`Página ${p + 1}`}
+                className="h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: p === page ? 26 : 8,
+                  background: p === page ? C.indigo : 'rgba(15,23,42,0.18)',
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Mobile: scroll horizontal ── */}
+      <div className="md:hidden overflow-x-auto -mx-4 px-4 pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        <div className="flex gap-3">
           {DEPOIMENTOS.map((t, i) => (
             <TestimonialCard key={t.id} t={t} onClick={() => setOpenIndex(i)} />
           ))}
@@ -1461,6 +1561,7 @@ function DemoChat() {
 export default function App() {
   const [navScrolled,   setNavScrolled]   = useState(false);
   const [activeSection, setActiveSection] = useState('inicio');
+  const [navDark,       setNavDark]       = useState(false);
 
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 600], [0, -60]);
@@ -1474,10 +1575,23 @@ export default function App() {
     return () => { lenis.destroy(); cancelAnimationFrame(id); };
   }, []);
 
-  /* Nav scroll */
+  /* Nav scroll + detecção de fundo escuro sob o menu (para adaptar a cor do texto) */
   useEffect(() => {
-    const fn = () => setNavScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', fn);
+    const darkEls = DARK_SECTION_IDS
+      .map(id => document.getElementById(id))
+      .filter(Boolean) as HTMLElement[];
+    const fn = () => {
+      setNavScrolled(window.scrollY > 50);
+      const probe = 40; // ponto logo abaixo do topo, dentro da barra do menu
+      let dark = false;
+      for (const el of darkEls) {
+        const r = el.getBoundingClientRect();
+        if (r.top <= probe && r.bottom >= probe) { dark = true; break; }
+      }
+      setNavDark(dark);
+    };
+    fn();
+    window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
@@ -1514,8 +1628,8 @@ export default function App() {
 
   const navLinks = [
     { id:'servicos',      label:'Serviços' },
-    { id:'experimente',   label:'Experimente' },
     { id:'como-funciona', label:'Como Funciona' },
+    { id:'experimente',   label:'Experimente' },
     { id:'cases',         label:'Cases' },
     { id:'depoimentos',   label:'Depoimentos' },
     { id:'diferenciais',  label:'Diferenciais' },
@@ -1523,6 +1637,14 @@ export default function App() {
   ];
 
   const iconBg = { background:'rgba(79,70,229,0.08)', border:'1px solid rgba(79,70,229,0.15)' };
+  const iconBgDark = { background:'rgba(129,140,248,0.14)', border:'1px solid rgba(129,140,248,0.28)' };
+
+  /* Cores do menu transparente — adaptam ao fundo da seção atual */
+  const navText  = navDark ? '#F1F5F9' : '#0F172A';
+  const navMuted = navDark ? 'rgba(241,245,249,0.72)' : '#475569';
+  const navPillBg = navDark ? 'rgba(241,245,249,0.14)' : 'rgba(15,23,42,0.06)';
+  const navPillBd = navDark ? 'rgba(241,245,249,0.24)' : 'rgba(15,23,42,0.12)';
+  const navHover  = navDark ? 'rgba(241,245,249,0.08)' : 'rgba(15,23,42,0.05)';
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background:C.bg }}>
@@ -1533,18 +1655,23 @@ export default function App() {
       <motion.nav
         className="fixed top-0 left-0 right-0 z-40"
         animate={{
-          background: navScrolled ? 'rgba(250,250,248,0.92)' : 'rgba(250,250,248,0)',
-          borderBottom: navScrolled ? `1px solid ${C.border}` : '1px solid transparent',
+          background: navDark
+            ? (navScrolled ? 'rgba(15,23,42,0.72)' : 'rgba(15,23,42,0.42)')
+            : (navScrolled ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.5)'),
+          borderBottom: `1px solid ${navDark ? 'rgba(241,245,249,0.14)' : 'rgba(15,23,42,0.08)'}`,
+          boxShadow: navScrolled
+            ? (navDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 8px 30px rgba(15,23,42,0.10)')
+            : '0 1px 0 rgba(0,0,0,0)',
         }}
-        style={{ backdropFilter: navScrolled ? 'blur(22px)' : 'none' }}
+        style={{ backdropFilter: 'blur(18px) saturate(140%)' }}
         transition={{ duration:0.3 }}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <motion.button onClick={() => scrollTo('inicio')}
             className="flex items-center gap-2.5"
             whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}>
-            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="Nexla" className="w-8 h-8 object-contain" />
-            <span className="font-display font-bold text-xl" style={{ color:C.text }}>Nexla</span>
+            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="Nexla" className="w-14 h-14 object-contain" />
+            <span className="font-display font-bold text-xl transition-colors duration-300" style={{ color:navText }}>Nexla</span>
           </motion.button>
 
           <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
@@ -1552,22 +1679,22 @@ export default function App() {
               const isActive = activeSection === l.id;
               return (
                 <button key={l.id} onClick={() => scrollTo(l.id)}
-                  className="relative px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-sm font-medium rounded-full transition-colors group"
-                  style={{ color: isActive ? C.indigo : C.muted }}
+                  className="relative px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-sm font-medium rounded-full transition-colors duration-300 group"
+                  style={{ color: isActive ? navText : navMuted }}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="navActivePill"
                       className="absolute inset-0 rounded-full"
                       style={{
-                        background: `${C.indigo}10`,
-                        border: `1px solid ${C.indigo}26`,
+                        background: navPillBg,
+                        border: `1px solid ${navPillBd}`,
                       }}
                       transition={{ type: 'spring', stiffness: 500, damping: 34 }}
                     />
                   )}
                   <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    style={{ background: !isActive ? 'rgba(15,23,42,0.04)' : 'transparent' }} />
+                    style={{ background: !isActive ? navHover : 'transparent' }} />
                   <span className="relative z-10">{l.label}</span>
                 </button>
               );
@@ -1587,7 +1714,7 @@ export default function App() {
 
       {/* ── Hero ────────────────────────────────────────────────── */}
       <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden pt-20"
-        style={{ background:C.bg }}>
+        style={{ background:LIGHT.bg }}>
 
         {/* Aurora blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1678,17 +1805,17 @@ export default function App() {
       </section>
 
       {/* ── Serviços ────────────────────────────────────────────── */}
-      <section id="servicos" className="py-28 px-6" style={{ background:C.soft }}>
+      <section id="servicos" className="py-28 px-6" style={{ background:DARK.bg }}>
         <div className="max-w-6xl mx-auto">
           <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={vp}
             className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
             <div>
-              <Eyebrow>Serviços</Eyebrow>
+              <Eyebrow dark>Serviços</Eyebrow>
               <AnimatedHeading text="O que a Nexla entrega"
                 className="font-display font-bold text-4xl md:text-5xl"
-                style={{ color:C.text }} />
+                style={{ color:DARK.text }} />
             </div>
-            <motion.p variants={fadeUp} className="text-base max-w-sm leading-relaxed" style={{ color:C.muted }}>
+            <motion.p variants={fadeUp} className="text-base max-w-sm leading-relaxed" style={{ color:DARK.muted }}>
               Transformamos processos manuais e repetitivos em fluxos automatizados com inteligência artificial.
             </motion.p>
           </motion.div>
@@ -1697,15 +1824,15 @@ export default function App() {
             variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
             {SERVICES.map(({ n, icon:Icon, title, desc }) => (
               <motion.div key={n} variants={fadeUp}>
-                <TiltCard className="p-6" style={{ background:C.surface, border:`1px solid ${C.border}` }}>
+                <TiltCard className="p-6" style={{ background:DARK.surface, border:`1px solid ${DARK.border}` }}>
                   <div className="flex items-start justify-between mb-5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={iconBg}>
-                      <Icon size={18} style={{ color:C.indigo }} />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={iconBgDark}>
+                      <Icon size={18} style={{ color:'#A5B4FC' }} />
                     </div>
-                    <span className="font-mono text-xs font-bold" style={{ color:'rgba(79,70,229,0.18)' }}>{n}</span>
+                    <span className="font-mono text-xs font-bold" style={{ color:'rgba(165,180,252,0.3)' }}>{n}</span>
                   </div>
-                  <h3 className="font-display font-bold text-lg mb-2" style={{ color:C.text }}>{title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color:C.muted }}>{desc}</p>
+                  <h3 className="font-display font-bold text-lg mb-2" style={{ color:DARK.text }}>{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color:DARK.muted }}>{desc}</p>
                 </TiltCard>
               </motion.div>
             ))}
@@ -1714,7 +1841,7 @@ export default function App() {
       </section>
 
       {/* ── Soluções em Destaque (Carrossel) ────────────────────── */}
-      <section id="solucoes" className="py-16 md:py-28 px-4 md:px-6" style={{ background: C.bg }}>
+      <section id="solucoes" className="py-16 md:py-28 px-4 md:px-6" style={{ background: LIGHT.bg }}>
         <div className="max-w-6xl mx-auto">
           <motion.div className="text-center mb-10 md:mb-14"
             variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
@@ -1739,8 +1866,59 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── Como Funciona ───────────────────────────────────────── */}
+      <section id="como-funciona" className="py-28 px-6 relative overflow-hidden" style={{ background:DARK.bg }}>
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Starfield */}
+          <StarField count={100} />
+          {/* Soft aurora blobs on top of stars */}
+          <div className="aurora-1 absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-[0.18] blur-[100px]"
+            style={{ background:`radial-gradient(circle,${C.violet},transparent)` }} />
+          <div className="aurora-3 absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-[0.1] blur-[80px]"
+            style={{ background:`radial-gradient(circle,${C.indigo},transparent)` }} />
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <Eyebrow dark>Processo</Eyebrow>
+            <AnimatedHeading text="Como funciona"
+              className="font-display font-bold text-4xl md:text-5xl"
+              style={{ color:DARK.text }} />
+          </div>
+
+          <motion.div className="grid md:grid-cols-3 gap-6"
+            variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
+            {STEPS.map(({ n, icon:Icon, title, desc }, i) => (
+              <motion.div key={n} variants={fadeUp}>
+                <TiltCard className="p-6" style={{ background:DARK.surface, border:`1px solid ${DARK.border}` }}>
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={iconBgDark}>
+                      <Icon size={18} style={{ color:'#A5B4FC' }} />
+                    </div>
+                    {i < 2 && <div className="hidden md:block flex-1 h-px"
+                      style={{ background:'linear-gradient(to right,rgba(165,180,252,0.3),transparent)' }} />}
+                    <span className="font-mono text-xs font-bold" style={{ color:'rgba(165,180,252,0.3)' }}>{n}</span>
+                  </div>
+                  <h3 className="font-display font-bold text-xl mb-2" style={{ color:DARK.text }}>{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color:DARK.muted }}>{desc}</p>
+                </TiltCard>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div className="mt-12 text-center"
+            initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={vp}
+            transition={{ duration:0.6, ease }}>
+            <MagneticBtn onClick={() => scrollTo('contato')}
+              className="px-7 py-3.5 rounded-full font-semibold text-base"
+              style={{ background:`linear-gradient(135deg,${C.indigo},${C.violet})`, color:'#fff', boxShadow:`0 8px 28px rgba(79,70,229,0.28)` }}>
+              Quero uma avaliação gratuita <ArrowRight size={17} />
+            </MagneticBtn>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── Experimente (Demo Chat) ─────────────────────────────── */}
-      <section id="experimente" className="py-16 md:py-28 px-4 md:px-6 relative overflow-hidden" style={{ background: C.soft }}>
+      <section id="experimente" className="py-16 md:py-28 px-4 md:px-6 relative overflow-hidden" style={{ background: LIGHT.bg }}>
         {/* Soft aurora */}
         <div className="absolute top-[-10%] right-[10%] w-[500px] h-[500px] rounded-full opacity-[0.10] blur-[100px] pointer-events-none"
           style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
@@ -1765,8 +1943,8 @@ export default function App() {
 
             <AnimatedHeading text="Experimente um agente da Nexla agora"
               className="font-display font-bold text-3xl md:text-5xl mb-5 tracking-tight"
-              style={{ color: C.text, letterSpacing: '-0.02em' }} />
-            <p className="text-[15px] md:text-[17px] max-w-2xl mx-auto leading-relaxed" style={{ color: C.muted }}>
+              style={{ color: LIGHT.text, letterSpacing: '-0.02em' }} />
+            <p className="text-[15px] md:text-[17px] max-w-2xl mx-auto leading-relaxed" style={{ color: LIGHT.muted }}>
               Converse como se fosse um cliente. Escolha um setor abaixo, mande sua pergunta
               e veja a IA da Nexla respondendo em tempo real — sem cadastro, sem instalação.
             </p>
@@ -1776,71 +1954,19 @@ export default function App() {
         </div>
       </section>
 
-      {/* ── Como Funciona ───────────────────────────────────────── */}
-      <section id="como-funciona" className="py-28 px-6 relative overflow-hidden" style={{ background:C.dark }}>
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Starfield */}
-          <StarField count={100} />
-          {/* Soft aurora blobs on top of stars */}
-          <div className="aurora-1 absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-[0.18] blur-[100px]"
-            style={{ background:`radial-gradient(circle,${C.violet},transparent)` }} />
-          <div className="aurora-3 absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-[0.1] blur-[80px]"
-            style={{ background:`radial-gradient(circle,${C.indigo},transparent)` }} />
-        </div>
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <Eyebrow dark>Processo</Eyebrow>
-            <AnimatedHeading text="Como funciona" dark
-              className="font-display font-bold text-4xl md:text-5xl"
-              style={{ color:C.darkText }} />
-          </div>
-
-          <motion.div className="grid md:grid-cols-3 gap-6"
-            variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
-            {STEPS.map(({ n, icon:Icon, title, desc }, i) => (
-              <motion.div key={n} variants={fadeUp}>
-                <TiltCard className="p-6" style={{ background:C.darkSurface, border:`1px solid ${C.darkBorder}` }}>
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ background:'rgba(167,139,250,0.14)', border:'1px solid rgba(167,139,250,0.25)' }}>
-                      <Icon size={18} style={{ color:'#A78BFA' }} />
-                    </div>
-                    {i < 2 && <div className="hidden md:block flex-1 h-px"
-                      style={{ background:'linear-gradient(to right,rgba(167,139,250,0.3),transparent)' }} />}
-                    <span className="font-mono text-xs font-bold" style={{ color:'rgba(167,139,250,0.28)' }}>{n}</span>
-                  </div>
-                  <h3 className="font-display font-bold text-xl mb-2" style={{ color:C.darkText }}>{title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color:C.darkMuted }}>{desc}</p>
-                </TiltCard>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div className="mt-12 text-center"
-            initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={vp}
-            transition={{ duration:0.6, ease }}>
-            <MagneticBtn onClick={() => scrollTo('contato')}
-              className="px-7 py-3.5 rounded-full font-semibold text-base"
-              style={{ background:C.darkText, color:C.dark }}>
-              Quero uma avaliação gratuita <ArrowRight size={17} />
-            </MagneticBtn>
-          </motion.div>
-        </div>
-      </section>
-
       {/* ── Cases ───────────────────────────────────────────────── */}
       <section id="cases" className="py-28 px-6 relative overflow-hidden"
-        style={{ background: `radial-gradient(ellipse 90% 55% at 50% 0%, #FFF5EC 0%, ${C.bg} 65%)` }}>
+        style={{ background: DARK.bg }}>
         <div className="max-w-6xl mx-auto">
           <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={vp}
             className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
             <div>
-              <Eyebrow>Cases</Eyebrow>
+              <Eyebrow dark>Cases</Eyebrow>
               <AnimatedHeading text="Resultados comprovados"
                 className="font-display font-bold text-4xl md:text-5xl"
-                style={{ color:C.text }} />
+                style={{ color:DARK.text }} />
             </div>
-            <motion.p variants={fadeUp} className="text-base max-w-xs leading-relaxed" style={{ color:C.muted }}>
+            <motion.p variants={fadeUp} className="text-base max-w-xs leading-relaxed" style={{ color:DARK.muted }}>
               30+ projetos entregues em 1 ano, em setores completamente distintos.
             </motion.p>
           </motion.div>
@@ -1849,23 +1975,23 @@ export default function App() {
             variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
             {CASES.map(({ icon:Icon, sector, title, desc, tag }) => (
               <motion.div key={title} variants={fadeUp}>
-                <TiltCard className="overflow-hidden !p-0" style={{ background:C.surface, border:`1px solid ${C.border}` }}>
+                <TiltCard className="overflow-hidden !p-0" style={{ background:DARK.surface, border:`1px solid ${DARK.border}` }}>
                   <div className="h-1 w-full" style={{ background:`linear-gradient(90deg,${C.indigo},${C.violet})` }} />
                   <div className="p-6">
                     <div className="flex items-center justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={iconBg}>
-                          <Icon size={16} style={{ color:C.indigo }} />
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={iconBgDark}>
+                          <Icon size={16} style={{ color:'#A5B4FC' }} />
                         </div>
-                        <span className="font-mono text-xs" style={{ color:C.muted }}>{sector}</span>
+                        <span className="font-mono text-xs" style={{ color:DARK.muted }}>{sector}</span>
                       </div>
                       <span className="px-3 py-1 rounded-full text-xs font-semibold shrink-0"
-                        style={{ background:'rgba(79,70,229,0.08)', color:C.indigo, border:'1px solid rgba(79,70,229,0.18)' }}>
+                        style={{ background:'rgba(129,140,248,0.14)', color:'#A5B4FC', border:'1px solid rgba(129,140,248,0.28)' }}>
                         {tag}
                       </span>
                     </div>
-                    <h3 className="font-display font-bold text-xl mb-2" style={{ color:C.text }}>{title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ color:C.muted }}>{desc}</p>
+                    <h3 className="font-display font-bold text-xl mb-2" style={{ color:DARK.text }}>{title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color:DARK.muted }}>{desc}</p>
                   </div>
                 </TiltCard>
               </motion.div>
@@ -1876,7 +2002,7 @@ export default function App() {
 
       {/* ── Depoimentos (Reels) ─────────────────────────────────── */}
       <section id="depoimentos" className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden"
-        style={{ background: `radial-gradient(ellipse 95% 70% at 50% 35%, #F1EEFE 0%, ${C.bg} 70%)` }}>
+        style={{ background: LIGHT.bg }}>
         <div className="absolute top-[10%] left-[5%] w-[400px] h-[400px] rounded-full opacity-[0.08] blur-[100px] pointer-events-none"
           style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
         <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] rounded-full opacity-[0.06] blur-[80px] pointer-events-none"
@@ -1911,24 +2037,24 @@ export default function App() {
       </section>
 
       {/* ── Setores ─────────────────────────────────────────────── */}
-      <section className="py-16 px-6" style={{ background:C.soft }}>
+      <section id="setores" className="py-16 px-6" style={{ background:DARK.bg }}>
         <div className="max-w-6xl mx-auto">
           <motion.div className="mb-10" initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={vp} transition={{ duration:0.6,ease }}>
-            <Eyebrow>Setores Atendidos</Eyebrow>
+            <Eyebrow dark>Setores Atendidos</Eyebrow>
             <AnimatedHeading text="Quem já confia na Nexla"
               className="font-display font-bold text-3xl md:text-4xl"
-              style={{ color:C.text }} />
+              style={{ color:DARK.text }} />
           </motion.div>
           <motion.div className="flex flex-wrap gap-3"
             variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
             {SECTORS.map((s,i) => (
               <motion.div key={s} variants={fadeUp}>
                 <motion.div className="flex items-center gap-3 px-5 py-3 rounded-full"
-                  style={{ background:C.surface, border:`1px solid ${C.border}`, boxShadow:'0 2px 8px rgba(15,23,42,0.04)' }}
-                  whileHover={{ scale:1.05, borderColor:'rgba(79,70,229,0.32)', boxShadow:`0 6px 20px rgba(79,70,229,0.12)`, y:-2 }}
+                  style={{ background:DARK.surface, border:`1px solid ${DARK.border}`, boxShadow:'0 2px 8px rgba(0,0,0,0.25)' }}
+                  whileHover={{ scale:1.05, borderColor:'rgba(129,140,248,0.5)', boxShadow:`0 6px 20px rgba(79,70,229,0.28)`, y:-2 }}
                   transition={{ type:'spring', stiffness:400, damping:25 }}>
-                  <span className="font-mono text-xs font-bold" style={{ color:C.indigo }}>{String(i+1).padStart(2,'0')}</span>
-                  <span className="text-sm font-medium" style={{ color:C.text }}>{s}</span>
+                  <span className="font-mono text-xs font-bold" style={{ color:'#A5B4FC' }}>{String(i+1).padStart(2,'0')}</span>
+                  <span className="text-sm font-medium" style={{ color:DARK.text }}>{s}</span>
                 </motion.div>
               </motion.div>
             ))}
@@ -1937,7 +2063,7 @@ export default function App() {
       </section>
 
       {/* ── Diferenciais ────────────────────────────────────────── */}
-      <section id="diferenciais" className="py-28 px-6" style={{ background:C.bg }}>
+      <section id="diferenciais" className="py-28 px-6" style={{ background:LIGHT.bg }}>
         <div className="max-w-6xl mx-auto">
           <motion.div className="mb-14" variants={stagger} initial="hidden" whileInView="show" viewport={vp}>
             <Eyebrow>Diferenciais Técnicos</Eyebrow>
@@ -1984,35 +2110,35 @@ export default function App() {
       </section>
 
       {/* ── Sobre ───────────────────────────────────────────────── */}
-      <section id="sobre" className="py-16 md:py-28 px-4 md:px-6" style={{ background:C.soft }}>
+      <section id="sobre" className="py-16 md:py-28 px-4 md:px-6" style={{ background:DARK.bg }}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-10 md:mb-14 grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-center">
             <div>
-              <Eyebrow>Sobre a Empresa</Eyebrow>
+              <Eyebrow dark>Sobre a Empresa</Eyebrow>
               <AnimatedHeading text="Quem é a Nexla"
                 className="font-display font-bold text-3xl md:text-5xl mb-4"
-                style={{ color:C.text }} />
-              <p className="text-[15px] md:text-base leading-relaxed mb-4" style={{ color:C.muted }}>
+                style={{ color:DARK.text }} />
+              <p className="text-[15px] md:text-base leading-relaxed mb-4" style={{ color:DARK.muted }}>
                 A Nexla é uma empresa brasileira de tecnologia que coloca{' '}
-                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                <span style={{ color: '#A5B4FC', fontWeight: 500, background: `linear-gradient(transparent 65%, rgba(165,180,252,0.22) 65%)`, padding: '0 2px' }}>
                   inteligência artificial
                 </span>{' '}
                 para trabalhar pelo seu negócio. Desenvolvemos automações, plataformas SaaS, aplicativos mobile e sistemas sob medida para empresas que querem crescer com previsibilidade — eliminando processos manuais, reduzindo custos operacionais e transformando ideias em produtos digitais reais. Cada projeto é construído com foco em{' '}
-                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                <span style={{ color: '#A5B4FC', fontWeight: 500, background: `linear-gradient(transparent 65%, rgba(165,180,252,0.22) 65%)`, padding: '0 2px' }}>
                   resultado mensurável
                 </span>{' '}
                 e estrutura preparada para escalar com a sua operação.
               </p>
-              <p className="text-[15px] md:text-base leading-relaxed" style={{ color:C.muted }}>
+              <p className="text-[15px] md:text-base leading-relaxed" style={{ color:DARK.muted }}>
                 Nascida em Vilhena, Rondônia, a Nexla levou tecnologia brasileira ao{' '}
-                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                <span style={{ color: '#A5B4FC', fontWeight: 500, background: `linear-gradient(transparent 65%, rgba(165,180,252,0.22) 65%)`, padding: '0 2px' }}>
                   Top 10 mundial do NASA Space Apps Challenge
                 </span>{' '}
                 — o maior hackathon do planeta — depois de conquistar a{' '}
-                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                <span style={{ color: '#A5B4FC', fontWeight: 500, background: `linear-gradient(transparent 65%, rgba(165,180,252,0.22) 65%)`, padding: '0 2px' }}>
                   etapa regional
                 </span>. Hoje, atende empresas em todo o Brasil no modelo{' '}
-                <span style={{ color: C.indigo, fontWeight: 500, background: `linear-gradient(transparent 65%, ${C.indigo}1A 65%)`, padding: '0 2px' }}>
+                <span style={{ color: '#A5B4FC', fontWeight: 500, background: `linear-gradient(transparent 65%, rgba(165,180,252,0.22) 65%)`, padding: '0 2px' }}>
                   B2B
                 </span>, com a mesma engenharia que competiu de igual para igual com os melhores do mundo.
               </p>
@@ -2022,8 +2148,8 @@ export default function App() {
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden"
                 style={{
-                  border: `1px solid ${C.border}`,
-                  boxShadow: '0 30px 80px -20px rgba(79,70,229,0.25), 0 8px 24px rgba(15,23,42,0.08)',
+                  border: `1px solid ${DARK.border}`,
+                  boxShadow: '0 30px 80px -20px rgba(79,70,229,0.4), 0 8px 24px rgba(0,0,0,0.35)',
                 }}>
                 <img
                   src="/nexla.jpg"
@@ -2032,7 +2158,7 @@ export default function App() {
                 />
               </div>
               {/* Caption */}
-              <p className="mt-3 text-xs font-mono text-center" style={{ color: C.muted }}>
+              <p className="mt-3 text-xs font-mono text-center" style={{ color: DARK.muted }}>
                 Equipe Nexla · Vilhena, RO — NASA Space Apps Challenge
               </p>
             </div>
@@ -2055,23 +2181,21 @@ export default function App() {
 
       {/* ── CTA ─────────────────────────────────────────────────── */}
       <section id="contato" className="py-28 px-6 relative overflow-hidden"
-        style={{ background:`linear-gradient(135deg,${C.dark} 0%,#2D1B69 50%,${C.dark} 100%)` }}>
+        style={{ background:LIGHT.bg }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Stars */}
-          <StarField count={110} />
-          {/* Aurora on top of stars */}
-          <div className="aurora-1 absolute top-[-20%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.18] blur-[100px]"
+          {/* Aurora sutil */}
+          <div className="aurora-1 absolute top-[-20%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.10] blur-[100px]"
             style={{ background:`radial-gradient(circle,${C.violet},transparent)` }} />
-          <div className="aurora-2 absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full opacity-[0.12] blur-[80px]"
+          <div className="aurora-2 absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[80px]"
             style={{ background:`radial-gradient(circle,${C.coral},transparent)` }} />
         </div>
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={stagger}>
             <AnimatedHeading text="Pronto para automatizar sua operação?"
               className="font-display font-bold leading-tight mb-6"
-              style={{ fontSize:'clamp(34px,7vw,76px)', color:'#FFFFFF' }} />
+              style={{ fontSize:'clamp(34px,7vw,76px)', color:LIGHT.text }} />
 
-            <motion.p variants={fadeUp} className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed" style={{ color:C.darkMuted }}>
+            <motion.p variants={fadeUp} className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed" style={{ color:LIGHT.muted }}>
               Entendemos seu processo e mostramos como a IA pode trabalhar por você — sem enrolação.
             </motion.p>
 
@@ -2084,7 +2208,7 @@ export default function App() {
 
               <MagneticBtn onClick={() => scrollTo('cases')}
                 className="px-8 py-4 rounded-full font-semibold text-base"
-                style={{ border:'1.5px solid rgba(237,233,254,0.25)', color:C.darkText }}>
+                style={{ border:`1.5px solid ${C.indigo}`, color:C.indigo, background:'rgba(79,70,229,0.04)' }}>
                 Ver cases de sucesso <ArrowRight size={18} />
               </MagneticBtn>
             </motion.div>
