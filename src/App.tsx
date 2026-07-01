@@ -30,7 +30,7 @@ const C = {
 const LIGHT = { bg:'#F1F5F9', text:'#0F172A', muted:'#475569', surface:'#FFFFFF', border:'rgba(15,23,42,0.08)' } as const;
 const DARK  = { bg:'#0F172A', text:'#F1F5F9', muted:'rgba(241,245,249,0.68)', surface:'#1E293B', border:'rgba(241,245,249,0.10)' } as const;
 /* Ids das seções com fundo escuro (usado para adaptar a cor do texto do menu) */
-const DARK_SECTION_IDS = ['servicos','como-funciona','cases','setores','sobre'];
+const DARK_SECTION_IDS = ['servicos','como-funciona','cases','setores','sobre','contato'];
 
 /* ─── Motion config ──────────────────────────────────────────── */
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -322,18 +322,6 @@ function StarField({ count = 90 }: { count?: number }) {
   );
 }
 
-/* ─── Scroll Progress Bar ────────────────────────────────────── */
-function ScrollProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useFMSpring(scrollYProgress, { stiffness: 200, damping: 30 });
-  return (
-    <motion.div
-      className="fixed top-0 left-0 right-0 h-[3px] z-[100] origin-left"
-      style={{ scaleX, background: `linear-gradient(90deg, ${C.indigo}, ${C.violet}, ${C.coral})` }}
-    />
-  );
-}
-
 /* ─── Mouse Spotlight ────────────────────────────────────────── */
 function MouseSpotlight() {
   const [pos, setPos] = useState({ x: -999, y: -999 });
@@ -345,6 +333,143 @@ function MouseSpotlight() {
   return (
     <div className="fixed inset-0 pointer-events-none z-[2] hidden md:block"
       style={{ background: `radial-gradient(700px circle at ${pos.x}px ${pos.y}px, rgba(79,70,229,0.055), transparent 45%)` }} />
+  );
+}
+
+/* ─── Water Ripples (segue o ponteiro do mouse) ──────────────── */
+/* Canvas leve que desenha ondas de água expandindo a partir do cursor.
+   Usado nas seções de fundo escuro. `position:relative` no <section> pai
+   é obrigatório; o conteúdo deve ficar em z-10 acima do canvas (z-1). */
+function WaterRipples() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Só em dispositivos com mouse e sem preferência por menos movimento
+    const finePointer = window.matchMedia('(pointer: fine)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!finePointer || reduce) return;
+
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let w = 0, h = 0;
+    const resize = () => {
+      const r = parent.getBoundingClientRect();
+      w = r.width; h = r.height;
+      canvas.width = Math.max(1, Math.round(w * dpr));
+      canvas.height = Math.max(1, Math.round(h * dpr));
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const ro = new ResizeObserver(resize);
+    ro.observe(parent);
+    resize();
+
+    type Ripple = { x: number; y: number; r: number; max: number; speed: number; width: number; life: number };
+    const ripples: Ripple[] = [];
+    let mx = -999, my = -999, inside = false;
+    let lastX = 0, lastY = 0, tick = 0, lastDrip = 0;
+
+    const spawn = (x: number, y: number, strength = 1) => {
+      if (ripples.length > 44) ripples.shift();
+      ripples.push({
+        x, y, r: 2,
+        max: 55 + Math.random() * 55 * strength,
+        speed: 0.85 + Math.random() * 0.6,
+        width: 1.3 * strength,
+        life: 1,
+      });
+    };
+
+    const onMove = (e: PointerEvent) => {
+      const r = parent.getBoundingClientRect();
+      mx = e.clientX - r.left;
+      my = e.clientY - r.top;
+      inside = mx >= 0 && my >= 0 && mx <= w && my <= h;
+      if (!inside) return;
+      const dx = mx - lastX, dy = my - lastY;
+      if (dx * dx + dy * dy > 820) { spawn(mx, my); lastX = mx; lastY = my; }
+    };
+    const onLeave = () => { inside = false; };
+    const onDown = (e: PointerEvent) => {
+      const r = parent.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      if (x >= 0 && y >= 0 && x <= w && y <= h) { spawn(x, y, 1.6); spawn(x, y, 1.1); }
+    };
+
+    window.addEventListener('pointermove', onMove);
+    parent.addEventListener('pointerleave', onLeave);
+    parent.addEventListener('pointerdown', onDown);
+
+    let raf = 0;
+    const loop = () => {
+      tick++;
+      ctx.clearRect(0, 0, w, h);
+
+      // Brilho suave "molhado" acompanhando o cursor + gotas ocasionais paradas
+      if (inside) {
+        const g = ctx.createRadialGradient(mx, my, 0, mx, my, 130);
+        g.addColorStop(0, 'rgba(129,140,248,0.10)');
+        g.addColorStop(1, 'rgba(129,140,248,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(mx, my, 130, 0, Math.PI * 2);
+        ctx.fill();
+        if (tick - lastDrip > 26) {
+          spawn(mx + (Math.random() - 0.5) * 26, my + (Math.random() - 0.5) * 26, 0.5);
+          lastDrip = tick;
+        }
+      }
+
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const rp = ripples[i];
+        rp.r += rp.speed;
+        rp.life = 1 - rp.r / rp.max;
+        if (rp.life <= 0) { ripples.splice(i, 1); continue; }
+        const a = rp.life * rp.life * 0.55;
+        // Anel principal
+        ctx.beginPath();
+        ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(165,180,252,${a})`;
+        ctx.lineWidth = rp.width;
+        ctx.stroke();
+        // Eco interno (tensão superficial da água)
+        if (rp.r > 9) {
+          ctx.beginPath();
+          ctx.arc(rp.x, rp.y, rp.r * 0.58, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(196,181,253,${a * 0.5})`;
+          ctx.lineWidth = rp.width * 0.7;
+          ctx.stroke();
+        }
+      }
+
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener('pointermove', onMove);
+      parent.removeEventListener('pointerleave', onLeave);
+      parent.removeEventListener('pointerdown', onDown);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden
+      className="absolute inset-0 w-full h-full pointer-events-none hidden md:block"
+      style={{ zIndex: 1 }}
+    />
   );
 }
 
@@ -1642,13 +1767,18 @@ export default function App() {
   /* Cores do menu transparente — adaptam ao fundo da seção atual */
   const navText  = navDark ? '#F1F5F9' : '#0F172A';
   const navMuted = navDark ? 'rgba(241,245,249,0.72)' : '#475569';
-  const navPillBg = navDark ? 'rgba(241,245,249,0.14)' : 'rgba(15,23,42,0.06)';
-  const navPillBd = navDark ? 'rgba(241,245,249,0.24)' : 'rgba(15,23,42,0.12)';
+  // "Pill" da seção ativa — vidro líquido estilo iOS (translúcido + reflexo + borda brilhante)
+  const navPillBg = navDark
+    ? 'linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.06))'
+    : 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86))';
+  const navPillBd = navDark ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.95)';
+  const navPillShadow = navDark
+    ? 'inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -4px 10px rgba(255,255,255,0.06), 0 8px 20px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3)'
+    : 'inset 0 1px 1px rgba(255,255,255,1), inset 0 -5px 12px rgba(255,255,255,0.5), 0 8px 22px rgba(15,23,42,0.20), 0 2px 6px rgba(15,23,42,0.14)';
   const navHover  = navDark ? 'rgba(241,245,249,0.08)' : 'rgba(15,23,42,0.05)';
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background:C.bg }}>
-      <ScrollProgress />
       <MouseSpotlight />
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
@@ -1658,7 +1788,7 @@ export default function App() {
           background: navDark
             ? (navScrolled ? 'rgba(15,23,42,0.72)' : 'rgba(15,23,42,0.42)')
             : (navScrolled ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.5)'),
-          borderBottom: `1px solid ${navDark ? 'rgba(241,245,249,0.14)' : 'rgba(15,23,42,0.08)'}`,
+          borderBottom: `1px solid ${navDark ? 'transparent' : 'rgba(15,23,42,0.08)'}`,
           boxShadow: navScrolled
             ? (navDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 8px 30px rgba(15,23,42,0.10)')
             : '0 1px 0 rgba(0,0,0,0)',
@@ -1685,13 +1815,20 @@ export default function App() {
                   {isActive && (
                     <motion.span
                       layoutId="navActivePill"
-                      className="absolute inset-0 rounded-full"
+                      className="absolute inset-0 rounded-full overflow-hidden"
                       style={{
                         background: navPillBg,
                         border: `1px solid ${navPillBd}`,
+                        backdropFilter: 'blur(14px) saturate(200%) brightness(1.06)',
+                        WebkitBackdropFilter: 'blur(14px) saturate(200%) brightness(1.06)',
+                        boxShadow: navPillShadow,
                       }}
                       transition={{ type: 'spring', stiffness: 500, damping: 34 }}
-                    />
+                    >
+                      {/* Reflexo especular no topo (brilho de vidro) */}
+                      <span className="absolute inset-x-1.5 top-0 h-1/2 rounded-full pointer-events-none"
+                        style={{ background: `linear-gradient(180deg, ${navDark ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.7)'}, transparent)` }} />
+                    </motion.span>
                   )}
                   <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     style={{ background: !isActive ? navHover : 'transparent' }} />
@@ -1805,8 +1942,9 @@ export default function App() {
       </section>
 
       {/* ── Serviços ────────────────────────────────────────────── */}
-      <section id="servicos" className="py-28 px-6" style={{ background:DARK.bg }}>
-        <div className="max-w-6xl mx-auto">
+      <section id="servicos" className="py-28 px-6 relative overflow-hidden" style={{ background:DARK.bg }}>
+        <WaterRipples />
+        <div className="relative z-10 max-w-6xl mx-auto">
           <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={vp}
             className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
             <div>
@@ -1868,6 +2006,7 @@ export default function App() {
 
       {/* ── Como Funciona ───────────────────────────────────────── */}
       <section id="como-funciona" className="py-28 px-6 relative overflow-hidden" style={{ background:DARK.bg }}>
+        <WaterRipples />
         <div className="absolute inset-0 pointer-events-none">
           {/* Starfield */}
           <StarField count={100} />
@@ -1957,7 +2096,8 @@ export default function App() {
       {/* ── Cases ───────────────────────────────────────────────── */}
       <section id="cases" className="py-28 px-6 relative overflow-hidden"
         style={{ background: DARK.bg }}>
-        <div className="max-w-6xl mx-auto">
+        <WaterRipples />
+        <div className="relative z-10 max-w-6xl mx-auto">
           <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={vp}
             className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
             <div>
@@ -2037,8 +2177,9 @@ export default function App() {
       </section>
 
       {/* ── Setores ─────────────────────────────────────────────── */}
-      <section id="setores" className="py-16 px-6" style={{ background:DARK.bg }}>
-        <div className="max-w-6xl mx-auto">
+      <section id="setores" className="py-16 px-6 relative overflow-hidden" style={{ background:DARK.bg }}>
+        <WaterRipples />
+        <div className="relative z-10 max-w-6xl mx-auto">
           <motion.div className="mb-10" initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={vp} transition={{ duration:0.6,ease }}>
             <Eyebrow dark>Setores Atendidos</Eyebrow>
             <AnimatedHeading text="Quem já confia na Nexla"
@@ -2110,8 +2251,9 @@ export default function App() {
       </section>
 
       {/* ── Sobre ───────────────────────────────────────────────── */}
-      <section id="sobre" className="py-16 md:py-28 px-4 md:px-6" style={{ background:DARK.bg }}>
-        <div className="max-w-6xl mx-auto">
+      <section id="sobre" className="py-16 md:py-28 px-4 md:px-6 relative overflow-hidden" style={{ background:DARK.bg }}>
+        <WaterRipples />
+        <div className="relative z-10 max-w-6xl mx-auto">
           <div className="mb-10 md:mb-14 grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-center">
             <div>
               <Eyebrow dark>Sobre a Empresa</Eyebrow>
@@ -2165,37 +2307,77 @@ export default function App() {
           </div>
 
 
-          <motion.div className="relative p-8 md:p-12 rounded-2xl text-center overflow-hidden"
-            style={{ background:`linear-gradient(135deg,${C.indigo},${C.violet})` }}
+          <motion.div className="group relative px-6 py-10 md:px-14 md:py-16 rounded-3xl text-center overflow-hidden"
+            style={{
+              background:`linear-gradient(135deg,${C.indigo} 0%,${C.violet} 55%,#8B5CF6 100%)`,
+              border:'1px solid rgba(255,255,255,0.14)',
+              boxShadow:'0 40px 90px -30px rgba(79,70,229,0.65), inset 0 1px 0 rgba(255,255,255,0.14)',
+            }}
             initial={{ opacity:0, y:24 }} whileInView={{ opacity:1, y:0 }} viewport={vp}
-            transition={{ duration:0.7, ease }}
-            whileHover={{ scale:1.01 }}>
-            <div className="absolute top-4 left-8 font-display font-bold text-8xl leading-none select-none opacity-10 text-white">"</div>
-            <p className="font-display font-bold text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto text-white relative z-10">
-              Transformar inteligência artificial em vantagem competitiva real para empresas brasileiras —
-              com tecnologia de ponta, execução sob medida e resultados que aparecem no caixa, não só na apresentação.
-            </p>
+            transition={{ duration:0.7, ease }}>
+
+            {/* Brilhos internos */}
+            <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[520px] h-[320px] rounded-full blur-[90px] opacity-40"
+                style={{ background:'radial-gradient(circle, rgba(255,255,255,0.5), transparent 65%)' }} />
+              <div className="absolute -bottom-28 -right-16 w-[360px] h-[360px] rounded-full blur-[90px] opacity-30"
+                style={{ background:`radial-gradient(circle, ${C.coral}, transparent 60%)` }} />
+              {/* Aspas decorativas */}
+              <span className="absolute top-2 left-6 md:left-10 font-display font-black text-[120px] md:text-[160px] leading-none select-none opacity-[0.14] text-white">“</span>
+              <span className="absolute bottom-[-2.5rem] right-6 md:right-10 font-display font-black text-[120px] md:text-[160px] leading-none select-none opacity-[0.14] text-white">”</span>
+            </div>
+
+            <div className="relative z-10">
+              {/* Rótulo */}
+              <motion.div className="inline-flex items-center gap-3 mb-6"
+                initial={{ opacity:0, y:10 }} whileInView={{ opacity:1, y:0 }} viewport={vp}
+                transition={{ duration:0.5, ease, delay:0.1 }}>
+                <span className="h-px w-8 md:w-12" style={{ background:'linear-gradient(90deg,transparent,rgba(255,255,255,0.6))' }} />
+                <span className="inline-flex items-center gap-2 font-mono text-[11px] md:text-xs font-bold tracking-[0.25em] uppercase text-white/90">
+                  <Sparkles size={14} className="text-white" /> Nossa Missão
+                </span>
+                <span className="h-px w-8 md:w-12" style={{ background:'linear-gradient(90deg,rgba(255,255,255,0.6),transparent)' }} />
+              </motion.div>
+
+              {/* Frase */}
+              <p className="font-display font-bold text-xl md:text-3xl leading-[1.4] max-w-3xl mx-auto text-white">
+                Transformar <span className="mission-hl">inteligência artificial</span> em{' '}
+                <span className="mission-hl">vantagem competitiva real</span> para empresas brasileiras —
+                com tecnologia de ponta, execução sob medida e resultados que aparecem{' '}
+                <span className="mission-hl">no caixa</span>, não só na apresentação.
+              </p>
+
+              {/* Assinatura */}
+              <motion.div className="mt-8 flex items-center justify-center gap-3"
+                initial={{ opacity:0 }} whileInView={{ opacity:1 }} viewport={vp}
+                transition={{ duration:0.6, ease, delay:0.3 }}>
+                <span className="h-px w-6" style={{ background:'rgba(255,255,255,0.4)' }} />
+                <span className="font-display font-bold text-sm md:text-base text-white tracking-wide">Equipe Nexla</span>
+                <span className="font-mono text-[11px] text-white/60">· Vilhena, RO</span>
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────── */}
       <section id="contato" className="py-28 px-6 relative overflow-hidden"
-        style={{ background:LIGHT.bg }}>
+        style={{ background:DARK.bg }}>
+        <WaterRipples />
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Aurora sutil */}
-          <div className="aurora-1 absolute top-[-20%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.10] blur-[100px]"
+          <div className="aurora-1 absolute top-[-20%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.20] blur-[100px]"
             style={{ background:`radial-gradient(circle,${C.violet},transparent)` }} />
-          <div className="aurora-2 absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full opacity-[0.08] blur-[80px]"
+          <div className="aurora-2 absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full opacity-[0.16] blur-[80px]"
             style={{ background:`radial-gradient(circle,${C.coral},transparent)` }} />
         </div>
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={stagger}>
             <AnimatedHeading text="Pronto para automatizar sua operação?"
               className="font-display font-bold leading-tight mb-6"
-              style={{ fontSize:'clamp(34px,7vw,76px)', color:LIGHT.text }} />
+              style={{ fontSize:'clamp(34px,7vw,76px)', color:DARK.text }} />
 
-            <motion.p variants={fadeUp} className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed" style={{ color:LIGHT.muted }}>
+            <motion.p variants={fadeUp} className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed" style={{ color:DARK.muted }}>
               Entendemos seu processo e mostramos como a IA pode trabalhar por você — sem enrolação.
             </motion.p>
 
@@ -2208,7 +2390,7 @@ export default function App() {
 
               <MagneticBtn onClick={() => scrollTo('cases')}
                 className="px-8 py-4 rounded-full font-semibold text-base"
-                style={{ border:`1.5px solid ${C.indigo}`, color:C.indigo, background:'rgba(79,70,229,0.04)' }}>
+                style={{ border:'1.5px solid rgba(129,140,248,0.5)', color:'#A5B4FC', background:'rgba(129,140,248,0.06)' }}>
                 Ver cases de sucesso <ArrowRight size={18} />
               </MagneticBtn>
             </motion.div>
@@ -2221,8 +2403,8 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <motion.button onClick={() => scrollTo('inicio')} className="flex items-center gap-3"
             whileHover={{ scale:1.04 }}>
-            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="Nexla" className="w-7 h-7 object-contain opacity-80" />
-            <span className="font-display font-bold text-xl" style={{ color:C.darkText }}>Nexla</span>
+            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="Nexla" className="w-12 h-12 md:w-14 md:h-14 object-contain opacity-90" />
+            <span className="font-display font-bold text-2xl" style={{ color:C.darkText }}>Nexla</span>
           </motion.button>
 
           <div className="flex flex-wrap justify-center items-center gap-6">

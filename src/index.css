@@ -27,15 +27,28 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  scrollbar-color: rgba(79,70,229,0.25) rgba(250,250,248,0.8);
+  scrollbar-color: var(--violet) rgba(124,58,237,0.08);
   scrollbar-width: thin;
 }
 
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(250,250,248,0.8); }
-::-webkit-scrollbar-thumb { background: rgba(79,70,229,0.22); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(79,70,229,0.4); }
+/* Barra de rolagem combinando com o site (gradiente da marca) */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track {
+  background: rgba(124,58,237,0.06);
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: var(--violet);
+  background-image: linear-gradient(180deg, var(--indigo), var(--violet) 55%, var(--coral));
+}
+::-webkit-scrollbar-thumb:hover {
+  background-image: linear-gradient(180deg, #6366F1, #8B5CF6 55%, #FB923C);
+}
+::-webkit-scrollbar-thumb:active {
+  background-image: linear-gradient(180deg, var(--indigo), var(--coral));
+}
 
 /* ── Aurora blobs ────────────────────────────────────────────── */
 @keyframes aurora1 {
@@ -55,6 +68,20 @@ html, body {
 .aurora-1 { animation: aurora1 14s ease-in-out infinite; }
 .aurora-2 { animation: aurora2 18s ease-in-out infinite; }
 .aurora-3 { animation: aurora3 22s ease-in-out infinite; }
+
+/* ── Mission highlight (bloco da missão) ─────────────────────── */
+.mission-hl {
+  position: relative;
+  color: #FFFFFF;
+  padding: 0 3px;
+  background-image: linear-gradient(120deg, rgba(249,115,22,0.55), rgba(251,146,60,0.55));
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  background-size: 100% 0.32em;
+  border-radius: 2px;
+  transition: background-size 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.group:hover .mission-hl { background-size: 100% 100%; }
 
 /* ── Floating (dashboard card) ───────────────────────────────── */
 @keyframes floatY     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
