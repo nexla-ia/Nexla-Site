@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Award, Check, CheckCircle2, Circle, Clock, Lock, PlayCircle, Trophy, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, Check, CheckCircle2, Circle, Clock, Download, FileText, Lock, PlayCircle, Trophy, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
@@ -24,6 +24,44 @@ async function buscarSugestao(cursoAtual: string): Promise<Sugestao | null> {
   const meus = new Set((mats.data ?? []).map(m => m.course_id as string));
   const c = (cat.data ?? []).find(x => x.id !== cursoAtual && !meus.has(x.id as string));
   return c ? { slug: c.slug as string, titulo: c.titulo as string, subtitulo: c.subtitulo as string | null } : null;
+}
+
+/* Materiais da aula (planilhas, PDFs): baixados por link temporário do Storage, só para quem pode assistir */
+function MateriaisAula({ aulaId }: { aulaId: string }) {
+  const [lista, setLista] = useState<{ id: string; nome: string; arquivo: string }[]>([]);
+  const [baixando, setBaixando] = useState('');
+  useEffect(() => {
+    setLista([]);
+    supabase.from('academy_lesson_materials').select('id, nome, arquivo').eq('lesson_id', aulaId).order('criado_em')
+      .then(({ data }) => setLista((data ?? []) as { id: string; nome: string; arquivo: string }[]));
+  }, [aulaId]);
+  if (!lista.length) return null;
+
+  const baixar = async (m: { id: string; nome: string; arquivo: string }) => {
+    setBaixando(m.id);
+    const { data } = await supabase.storage.from('academy-materiais').createSignedUrl(m.arquivo, 120, { download: m.nome });
+    setBaixando('');
+    if (data?.signedUrl) window.location.href = data.signedUrl;
+  };
+
+  return (
+    <div className="mt-6">
+      <p className="text-[13px] font-semibold mb-2.5" style={{ color: T.ink2 }}>Materiais da aula</p>
+      <ul className="grid sm:grid-cols-2 gap-2.5">
+        {lista.map(m => (
+          <li key={m.id}>
+            <button onClick={() => baixar(m)} disabled={baixando === m.id}
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-slate-50 disabled:opacity-60"
+              style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+              <FileText size={18} strokeWidth={1.75} style={{ color: T.accent }} />
+              <span className="flex-1 min-w-0 text-[14px] truncate" style={{ color: T.ink }}>{m.nome}</span>
+              <Download size={16} strokeWidth={1.75} style={{ color: T.mute }} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 /* Bloco "próximo passo": curso sugerido para quem terminou */
@@ -151,7 +189,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
               <span className="text-[13.5px] font-semibold whitespace-nowrap">{percentual}% · {feitas.size}/{curso.aulas.length} aulas</span>
             </div>
           </div>
-          {!matriculado ? null : percentual >= CERTIFICADO_MIN ? (
+          {!matriculado || percentual >= 100 ? null : percentual >= CERTIFICADO_MIN ? (
             <Link para={`/certificado/${slug}`} className="inline-flex items-center gap-2 text-[13.5px] font-semibold px-3.5 py-2 rounded-xl self-start md:self-auto transition-colors hover:bg-green-100"
               style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
               <Award size={16} strokeWidth={2} /> Ver certificado <ArrowRight size={15} strokeWidth={2} />
@@ -256,6 +294,8 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
                 {erro && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-3 text-[14px]" style={{ color: '#B91C1C' }}>{erro}</motion.p>}
               </AnimatePresence>
             </div>
+
+            {liberada && <MateriaisAula aulaId={aula.id} />}
 
             {/* Comentários da aula (só para quem pode assistir a ela) */}
             {liberada && <Comunidade sessao={sessao} aulaId={aula.id} />}

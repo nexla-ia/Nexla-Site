@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, BookOpen, ChevronDown, Compass, LogOut, UserRound } from 'lucide-react';
+import { Award, BookOpen, ChevronDown, Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
 import { T, LOGO, display, ease } from './ui';
 import { Link, navegar, useRota } from './router';
 import { supabase, useSessao } from './supabase';
@@ -9,7 +9,14 @@ import { supabase, useSessao } from './supabase';
 function MenuPerfil({ nome }: { nome: string }) {
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const email = useSessao()?.user.email ?? '';
+  const sessao = useSessao();
+  const email = sessao?.user.email ?? '';
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    if (!sessao) return;
+    supabase.from('academy_profiles').select('role').eq('id', sessao.user.id).maybeSingle()
+      .then(({ data }) => setAdmin(data?.role === 'admin'));
+  }, [sessao]);
   const inicial = (nome.trim()[0] || email[0] || '?').toUpperCase();
 
   useEffect(() => {
@@ -29,6 +36,7 @@ function MenuPerfil({ nome }: { nome: string }) {
     { icon: Compass,    texto: 'Explorar cursos',   acao: () => ir('/cursos') },
     { icon: UserRound,  texto: 'Meu perfil',        acao: () => ir('/perfil') },
     { icon: Award,      texto: 'Meus certificados', acao: () => ir('/certificados') },
+    ...(admin ? [{ icon: LayoutDashboard, texto: 'Painel admin', acao: () => ir('/admin') }] : []),
   ];
 
   return (
