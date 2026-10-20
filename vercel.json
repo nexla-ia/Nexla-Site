@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/academy", "destination": "/academy/index.html" },
+    { "source": "/academy/:path*", "destination": "/academy/index.html" }
+  ]
+}

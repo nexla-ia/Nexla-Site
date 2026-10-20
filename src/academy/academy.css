@@ -1,0 +1,22 @@
+/* ─── Nexla Academy — mesma identidade do site ─────────────────── */
+.acad-field {
+  background: #FFFFFF;
+  border: 1px solid rgba(15,23,42,0.12);
+  color: #0F172A;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.acad-field::placeholder { color: #94A3B8; }
+.acad-field:hover { border-color: rgba(15,23,42,0.22); }
+.acad-field:focus { border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); outline: none; }
+
+.acad-btn {
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  box-shadow: 0 8px 24px rgba(79,70,229,0.28);
+  transition: filter 180ms ease, box-shadow 180ms ease;
+}
+.acad-btn:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 10px 30px rgba(79,70,229,0.38); }
+.acad-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.acad-btn .acad-arrow { transition: transform 200ms ease; }
+.acad-btn:hover:not(:disabled) .acad-arrow { transform: translateX(3px); }
+
+:focus-visible { outline: 2px solid #4F46E5; outline-offset: 3px; }
