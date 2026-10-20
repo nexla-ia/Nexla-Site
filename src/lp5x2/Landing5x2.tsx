@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import {
-  ArrowRight, ArrowLeft, CheckCircle2, Clock, MessageCircle, CalendarCheck,
-  FileSpreadsheet, Receipt, Users, Flame, UserPlus, PhoneOff, Sparkles,
-  GraduationCap, Wrench, HelpCircle, ChevronDown, Loader2, Rocket, Mic, Trophy,
-} from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, ChevronDown, Loader2, MessageCircle, Plus, Minus } from 'lucide-react';
 
 /* ─── Configuração da campanha ───────────────────────────────────
  * WEBHOOK_URL  → crie no n8n um Webhook (POST) com esse caminho.
@@ -14,22 +10,22 @@ const WEBHOOK_URL   = 'https://n8n.nexladesenvolvimento.com.br/webhook/5x2';
 const META_PIXEL_ID: string = '';
 const WHATSAPP      = '556999300101';
 
-/* ─── Paleta (a mesma do site) ─────────────────────────────────── */
-const C = {
-  bg: '#F1F5F9', surface: '#FFFFFF',
-  indigo: '#4F46E5', violet: '#7C3AED', coral: '#F97316', green: '#22C55E',
-  text: '#0F172A', muted: '#475569', border: 'rgba(15,23,42,0.08)',
-  dark: '#0F172A', darkSurface: '#1E293B', darkText: '#F1F5F9',
-  darkMuted: 'rgba(241,245,249,0.68)', darkBorder: 'rgba(241,245,249,0.10)',
+/* ─── Paleta editorial ─────────────────────────────────────────── */
+const T = {
+  paper: '#F6F4EF', paper2: '#ECE8DF', card: '#FFFDF9',
+  ink: '#14161B', ink2: '#2E3138', mute: '#62656D', rule: 'rgba(20,22,27,0.14)',
+  accent: '#4338CA', loss: '#B4441C',
+  dark: '#111317', dark2: '#191C21', darkText: '#F2EFE8',
+  darkMute: 'rgba(242,239,232,0.62)', darkRule: 'rgba(242,239,232,0.14)',
 } as const;
-const GRAD = `linear-gradient(135deg, ${C.indigo}, ${C.violet})`;
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 20 },
   show:   { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
 };
 const vp = { once: true, margin: '-60px' } as const;
+const WRAP = 'max-w-[1180px] mx-auto px-5 md:px-10';
 
 /* ─── Dados ────────────────────────────────────────────────────── */
 const SEGMENTOS = [
@@ -37,11 +33,17 @@ const SEGMENTOS = [
   'Serviços', 'Automotivo / autopeças', 'Construção', 'Indústria', 'Outro',
 ];
 
+const PROBLEMAS = [
+  { t: 'Sobrecarregar a equipe', d: 'Mesma demanda em menos horas. Aumenta o erro, o estresse e a rotatividade.' },
+  { t: 'Contratar no desespero', d: 'Folha maior, encargos e tempo de treinamento, justo no período de adaptação.' },
+  { t: 'Perder cliente no atendimento', d: 'Mensagem sem resposta no WhatsApp vira venda para o concorrente.' },
+];
+
 const AUTOMATIZAVEL = [
-  { icon: MessageCircle,   title: 'Atendimento no WhatsApp', desc: 'Responder dúvidas, preço, horário e status de pedido, 24h por dia.' },
-  { icon: CalendarCheck,   title: 'Agendamentos',            desc: 'Marcar, confirmar e lembrar o cliente sem ninguém no telefone.' },
-  { icon: Receipt,         title: 'Orçamentos e cobranças',  desc: 'Enviar orçamento, follow-up e lembrete de pagamento automaticamente.' },
-  { icon: FileSpreadsheet, title: 'Planilhas e relatórios',  desc: 'Dados que se atualizam sozinhos e relatório pronto no seu WhatsApp.' },
+  { title: 'Atendimento no WhatsApp', desc: 'Responder dúvidas, preço, horário e status de pedido, 24h por dia.' },
+  { title: 'Agendamentos',            desc: 'Marcar, confirmar e lembrar o cliente sem ninguém no telefone.' },
+  { title: 'Orçamentos e cobranças',  desc: 'Enviar orçamento, follow-up e lembrete de pagamento automaticamente.' },
+  { title: 'Planilhas e relatórios',  desc: 'Dados que se atualizam sozinhos e relatório pronto no seu WhatsApp.' },
 ];
 
 const MODULOS = [
@@ -49,6 +51,12 @@ const MODULOS = [
   { n: '02', title: 'Atendimento com IA no WhatsApp', desc: 'Monte um agente que responde, qualifica e agenda clientes com o jeito da sua empresa.' },
   { n: '03', title: 'Rotinas de escritório no automático', desc: 'Planilhas, relatórios e avisos rodando sozinhos, com IA lendo documentos por você.' },
   { n: '04', title: 'Seu plano de transição para a 5×2', desc: 'Reorganize escalas e processos para atravessar a mudança sem sobrecarregar ninguém.' },
+];
+
+const CREDENCIAIS = [
+  { k: 'Top 10', t: 'mundial no NASA Space Apps Challenge, com a equipe Nexla.' },
+  { k: '1.000+', t: 'pessoas na plateia. Palestrante para públicos de mais de mil pessoas.' },
+  { k: '30+',    t: 'projetos entregues e 15+ clientes recorrentes pela Nexla.' },
 ];
 
 const FAQ = [
@@ -99,31 +107,30 @@ function loadPixel() {
 }
 
 /* ─── Componentes base ─────────────────────────────────────────── */
-function Eyebrow({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+function SectionLabel({ n, children, dark = false }: { n: string; children: React.ReactNode; dark?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] px-3 py-1.5 rounded-full"
-      style={{
-        color: dark ? '#A5B4FC' : C.indigo,
-        background: dark ? 'rgba(165,180,252,0.10)' : 'rgba(79,70,229,0.08)',
-        border: `1px solid ${dark ? 'rgba(165,180,252,0.20)' : 'rgba(79,70,229,0.18)'}`,
-      }}>
-      {children}
-    </span>
+    <div className="flex items-center gap-4 mb-8">
+      <span className="lp-mono text-[11px] uppercase tracking-[0.16em] whitespace-nowrap" style={{ color: dark ? T.darkMute : T.mute }}>
+        {n} <span className="mx-1.5 opacity-50">/</span> {children}
+      </span>
+      <span className="flex-1 h-px" style={{ background: dark ? T.darkRule : T.rule }} />
+    </div>
   );
 }
 
-function PrimaryBtn({ children, onClick, type = 'button', disabled = false, full = false }: {
-  children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; full?: boolean;
+function PrimaryBtn({ children, onClick, type = 'button', disabled = false, full = false, tone = 'accent' }: {
+  children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit';
+  disabled?: boolean; full?: boolean; tone?: 'accent' | 'light';
 }) {
   return (
-    <motion.button type={type} onClick={onClick} disabled={disabled}
-      whileHover={disabled ? undefined : { scale: 1.03 }} whileTap={disabled ? undefined : { scale: 0.97 }}
-      className={`inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full font-semibold text-base text-white disabled:opacity-70 ${full ? 'w-full' : ''}`}
-      style={{ background: GRAD, boxShadow: '0 10px 30px rgba(79,70,229,0.30)' }}>
+    <button type={type} onClick={onClick} disabled={disabled} data-tone={tone}
+      className={`lp-btn inline-flex items-center justify-center gap-2.5 px-6 h-[52px] rounded-[6px] font-medium text-[15px] disabled:opacity-60 ${full ? 'w-full' : ''}`}>
       {children}
-    </motion.button>
+    </button>
   );
 }
+
+const Arrow = ({ size = 17 }: { size?: number }) => <ArrowRight size={size} strokeWidth={1.75} className="lp-arrow" />;
 
 const scrollToForm = () =>
   document.getElementById('lista')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -137,78 +144,107 @@ function Calculadora({ funcionarios, setFuncionarios, horas, setHoras }: {
   const final = funcionarios * Math.max(0, horas - 40);
   const pessoas = final / 40;
   const mes = final * 4.33;
+  const capHoje = funcionarios * horas;
+  const capDepois = funcionarios * Math.min(horas, 40);
+  const pctDepois = capHoje ? (capDepois / capHoje) * 100 : 100;
+  const sliderPct = ((funcionarios - 1) / 99) * 100;
 
   return (
-    <div className="relative rounded-3xl p-6 md:p-8"
-      style={{ background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 30px 80px -24px rgba(79,70,229,0.35), 0 8px 24px rgba(15,23,42,0.06)' }}>
-      <div className="absolute -top-3 right-6 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white"
-        style={{ background: GRAD }}>
-        <Clock size={13} /> Diagnóstico rápido
+    <div className="rounded-[8px]"
+      style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 1px 0 rgba(20,22,27,0.04), 0 40px 80px -48px rgba(20,22,27,0.45)' }}>
+      <div className="flex items-center justify-between px-6 md:px-7 py-3.5" style={{ borderBottom: `1px solid ${T.rule}` }}>
+        <span className="lp-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: T.ink }}>Simulador de horas</span>
+        <span className="lp-mono text-[11px]" style={{ color: T.mute }}>estimativa</span>
       </div>
 
-      <h3 className="font-display font-bold text-xl md:text-2xl mb-1" style={{ color: C.text }}>
-        Quantas horas sua empresa vai perder?
-      </h3>
-      <p className="text-sm mb-6" style={{ color: C.muted }}>Ajuste para a realidade da sua equipe.</p>
+      <div className="p-6 md:p-7">
+        <h3 className="lp-serif text-[26px] leading-[1.15] mb-7" style={{ color: T.ink }}>
+          Quantas horas sua empresa vai perder?
+        </h3>
 
-      <label className="block mb-5">
-        <div className="flex items-baseline justify-between mb-2">
-          <span className="text-sm font-semibold" style={{ color: C.text }}>Funcionários com carteira</span>
-          <span className="font-display font-bold text-2xl" style={{ color: C.indigo }}>{funcionarios}</span>
-        </div>
-        <input type="range" min={1} max={100} value={funcionarios}
-          onChange={e => setFuncionarios(Number(e.target.value))}
-          className="w-full accent-indigo-600" aria-label="Número de funcionários" />
-        <div className="flex justify-between text-[11px] font-mono mt-1" style={{ color: C.muted }}>
-          <span>1</span><span>100+</span>
-        </div>
-      </label>
+        <label className="block mb-6">
+          <div className="flex items-baseline justify-between mb-1">
+            <span className="text-sm font-medium" style={{ color: T.ink2 }}>Funcionários com carteira</span>
+            <span className="lp-serif lp-num text-[30px] leading-none" style={{ color: T.ink }}>{funcionarios}</span>
+          </div>
+          <input type="range" min={1} max={100} value={funcionarios}
+            onChange={e => setFuncionarios(Number(e.target.value))}
+            className="lp-range" style={{ ['--p' as string]: `${sliderPct}%` }} aria-label="Número de funcionários" />
+          <div className="flex justify-between lp-mono text-[10.5px]" style={{ color: T.mute }}>
+            <span>1</span><span>100+</span>
+          </div>
+        </label>
 
-      <div className="mb-6">
-        <span className="block text-sm font-semibold mb-2" style={{ color: C.text }}>Jornada semanal hoje</span>
-        <div className="grid grid-cols-3 gap-2">
-          {[44, 42, 40].map(h => (
-            <button key={h} type="button" onClick={() => setHoras(h)}
-              className="py-2.5 rounded-xl text-sm font-semibold transition-colors"
-              style={horas === h
-                ? { background: GRAD, color: '#fff' }
-                : { background: '#F8FAFC', color: C.muted, border: `1px solid ${C.border}` }}>
-              {h}h
-            </button>
-          ))}
+        <div className="mb-7">
+          <span className="block text-sm font-medium mb-2" style={{ color: T.ink2 }}>Jornada semanal hoje</span>
+          <div className="grid grid-cols-3 rounded-[6px] overflow-hidden" style={{ border: `1px solid ${T.rule}` }} role="radiogroup">
+            {[44, 42, 40].map((h, i) => {
+              const on = horas === h;
+              return (
+                <button key={h} type="button" role="radio" aria-checked={on} onClick={() => setHoras(h)}
+                  className="lp-num h-11 text-sm font-medium transition-colors"
+                  style={{
+                    background: on ? T.ink : 'transparent', color: on ? T.paper : T.ink2,
+                    borderLeft: i ? `1px solid ${T.rule}` : 'none',
+                  }}>
+                  {h}h
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      <div className="rounded-2xl p-5" style={{ background: '#FFF7ED', border: '1px solid rgba(249,115,22,0.22)' }}>
-        <div className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: '#C2410C' }}>
-          Ao fim da transição (40h)
+        <div className="pt-6" style={{ borderTop: `1px solid ${T.rule}` }}>
+          <div className="lp-mono text-[11px] uppercase tracking-[0.14em] mb-2" style={{ color: T.loss }}>
+            Ao fim da transição · 40h
+          </div>
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <motion.span key={final} initial={{ opacity: 0.35, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease }}
+              className="lp-serif lp-num leading-none" style={{ fontSize: 'clamp(52px,6.5vw,68px)', color: T.loss }}>
+              −{fmt(final)}h
+            </motion.span>
+            <span className="text-sm" style={{ color: T.ink2 }}>por semana</span>
+          </div>
+
+          {/* Capacidade de horas: hoje × depois da transição */}
+          <div className="mt-5">
+            <div className="flex h-2.5 rounded-[2px] overflow-hidden" aria-hidden>
+              <motion.div animate={{ width: `${pctDepois}%` }} transition={{ duration: 0.5, ease }} style={{ background: T.ink }} />
+              <div className="lp-hatch flex-1" />
+            </div>
+            <div className="flex justify-between mt-2 lp-mono lp-num text-[10.5px]" style={{ color: T.mute }}>
+              <span>Depois: {fmt(capDepois)} h/sem</span>
+              <span>Hoje: {fmt(capHoje)} h/sem</span>
+            </div>
+          </div>
+
+          {final > 0 ? (
+            <dl className="mt-5 text-sm">
+              {[
+                { k: 'Primeira etapa (42h)', v: fase1 > 0 ? `−${fmt(fase1)} h/sem` : '—' },
+                { k: 'Por mês',              v: `${fmt(mes)} h` },
+                { k: 'Equivale a',           v: `${fmt(pessoas, Number.isInteger(pessoas) || pessoas >= 10 ? 0 : 1)} funcionário${pessoas >= 2 ? 's' : ''} de 40h` },
+              ].map(r => (
+                <div key={r.k} className="flex justify-between gap-4 py-2.5" style={{ borderTop: `1px dashed ${T.rule}` }}>
+                  <dt style={{ color: T.mute }}>{r.k}</dt>
+                  <dd className="lp-num font-medium text-right" style={{ color: T.ink }}>{r.v}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="mt-5 text-sm leading-relaxed" style={{ color: T.ink2 }}>
+              Sua jornada já está no novo limite. Ainda dá para ganhar tempo automatizando o repetitivo.
+            </p>
+          )}
         </div>
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="font-display font-extrabold leading-none" style={{ fontSize: 'clamp(40px,6vw,56px)', color: C.coral }}>
-            −{fmt(final)}h
-          </span>
-          <span className="text-sm font-semibold" style={{ color: '#9A3412' }}>por semana</span>
+
+        <div className="mt-6">
+          <PrimaryBtn onClick={scrollToForm} full>Quero cobrir essas horas <Arrow /></PrimaryBtn>
         </div>
-        <p className="text-sm mt-2" style={{ color: '#9A3412' }}>
-          {final > 0
-            ? <>Cerca de <strong>{fmt(mes)} horas por mês</strong>. É o mesmo que <strong>{fmt(pessoas, Number.isInteger(pessoas) || pessoas >= 10 ? 0 : 1)} funcionário{pessoas >= 2 ? 's' : ''}</strong> de 40h a menos na operação.</>
-            : <>Sua jornada já está no novo limite. Ainda dá para ganhar tempo automatizando o repetitivo.</>}
+        <p className="lp-mono text-[10.5px] text-center mt-3" style={{ color: T.mute }}>
+          Diferença de jornada × número de funcionários.
         </p>
-        {fase1 > 0 && (
-          <p className="text-xs mt-3 pt-3" style={{ color: '#9A3412', borderTop: '1px dashed rgba(249,115,22,0.35)' }}>
-            Já na primeira etapa (42h): <strong>−{fmt(fase1)}h por semana</strong>.
-          </p>
-        )}
       </div>
-
-      <div className="mt-5">
-        <PrimaryBtn onClick={scrollToForm} full>
-          Quero cobrir essas horas <ArrowRight size={18} />
-        </PrimaryBtn>
-      </div>
-      <p className="text-[11px] text-center mt-3" style={{ color: C.muted }}>
-        Estimativa: diferença de jornada × número de funcionários.
-      </p>
     </div>
   );
 }
@@ -216,6 +252,15 @@ function Calculadora({ funcionarios, setFuncionarios, horas, setHoras }: {
 /* ─── Formulário ───────────────────────────────────────────────── */
 type Interesse = 'aprender' | 'implementar' | 'indefinido' | '';
 type Status = 'idle' | 'sending' | 'ok' | 'error';
+
+function Campo({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="block lp-mono text-[10.5px] uppercase tracking-[0.14em] mb-2" style={{ color: T.darkMute }}>{label}</span>
+      {children}
+    </label>
+  );
+}
 
 function Formulario({ funcionarios, horas }: { funcionarios: number; horas: number }) {
   const [nome, setNome] = useState('');
@@ -278,22 +323,20 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
     }
   };
 
-  const field = 'w-full rounded-xl px-4 py-3.5 text-[15px] outline-none transition-shadow focus:ring-2 focus:ring-indigo-400';
-  const fieldStyle = { background: 'rgba(241,245,249,0.06)', border: `1px solid ${C.darkBorder}`, color: C.darkText };
+  const field = 'lp-field w-full h-12 rounded-[4px] px-3.5 text-[15px]';
 
   if (status === 'ok' || status === 'error') {
     const ok = status === 'ok';
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease }}
-        className="text-center py-6">
-        <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5"
-          style={{ background: ok ? 'rgba(34,197,94,0.15)' : 'rgba(249,115,22,0.15)' }}>
-          {ok ? <CheckCircle2 size={34} color={C.green} /> : <MessageCircle size={30} color={C.coral} />}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="py-4">
+        <div className="w-11 h-11 rounded-[6px] flex items-center justify-center mb-6"
+          style={{ border: `1px solid ${T.darkRule}`, color: ok ? '#7FD1A0' : '#F0A27A' }}>
+          {ok ? <Check size={22} strokeWidth={2} /> : <MessageCircle size={20} strokeWidth={1.75} />}
         </div>
-        <h3 className="font-display font-bold text-2xl md:text-3xl mb-3" style={{ color: C.darkText }}>
-          {ok ? `Pronto, ${nome.split(' ')[0]}! Você está na lista.` : 'Quase lá! Finalize pelo WhatsApp.'}
+        <h3 className="lp-serif text-[30px] md:text-[34px] leading-[1.1] mb-3" style={{ color: T.darkText }}>
+          {ok ? `Pronto, ${nome.split(' ')[0]}. Você está na lista.` : 'Quase lá. Finalize pelo WhatsApp.'}
         </h3>
-        <p className="max-w-md mx-auto mb-7" style={{ color: C.darkMuted }}>
+        <p className="max-w-md leading-relaxed mb-8" style={{ color: T.darkMute }}>
           {ok
             ? interesse === 'implementar'
               ? 'Como você prefere que a Nexla implemente, nossa equipe vai te chamar no WhatsApp para o diagnóstico. Se quiser adiantar, é só clicar abaixo.'
@@ -302,91 +345,97 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
         </p>
         {(!ok || interesse === 'implementar') && (
           <a href={waLink} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-semibold text-white"
-            style={{ background: '#22C55E', boxShadow: '0 10px 30px rgba(34,197,94,0.30)' }}>
-            <MessageCircle size={18} /> Falar no WhatsApp
+            className="lp-btn inline-flex items-center gap-2.5 px-6 h-[52px] rounded-[6px] font-medium text-[15px]" data-tone="light">
+            <MessageCircle size={17} strokeWidth={1.75} /> Falar no WhatsApp <Arrow />
           </a>
         )}
       </motion.div>
     );
   }
 
-  const opcoes: { v: Interesse; icon: typeof GraduationCap; t: string; d: string }[] = [
-    { v: 'aprender',    icon: GraduationCap, t: 'Quero aprender a montar', d: 'Entrar na lista do curso' },
-    { v: 'implementar', icon: Wrench,        t: 'Prefiro que a Nexla monte', d: 'Diagnóstico e implantação' },
-    { v: 'indefinido',  icon: HelpCircle,    t: 'Ainda não sei', d: 'Quero entender melhor' },
+  const opcoes: { v: Interesse; t: string; d: string }[] = [
+    { v: 'aprender',    t: 'Quero aprender a montar',   d: 'Entrar na lista do curso' },
+    { v: 'implementar', t: 'Prefiro que a Nexla monte', d: 'Diagnóstico e implantação' },
+    { v: 'indefinido',  t: 'Ainda não sei',             d: 'Quero entender melhor' },
   ];
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4">
+    <form onSubmit={submit} noValidate className="space-y-5">
       <div className="grid sm:grid-cols-2 gap-4">
-        <input className={field} style={fieldStyle} placeholder="Seu nome" value={nome}
-          onChange={e => setNome(e.target.value)} autoComplete="name" />
-        <input className={field} style={fieldStyle} placeholder="WhatsApp com DDD" value={whats} inputMode="tel"
-          onChange={e => setWhats(maskPhone(e.target.value))} autoComplete="tel" />
-        <input className={field} style={fieldStyle} placeholder="Nome da empresa" value={empresa}
-          onChange={e => setEmpresa(e.target.value)} autoComplete="organization" />
-        <div className="relative">
-          <select className={`${field} appearance-none pr-10`} style={{ ...fieldStyle, color: segmento ? C.darkText : 'rgba(241,245,249,0.45)' }}
-            value={segmento} onChange={e => setSegmento(e.target.value)}>
-            <option value="" disabled>Segmento</option>
-            {SEGMENTOS.map(s => <option key={s} value={s} style={{ color: C.text }}>{s}</option>)}
-          </select>
-          <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" color={C.darkMuted} />
-        </div>
+        <Campo label="Nome">
+          <input className={field} placeholder="Seu nome" value={nome}
+            onChange={e => setNome(e.target.value)} autoComplete="name" />
+        </Campo>
+        <Campo label="WhatsApp">
+          <input className={field} placeholder="(00) 00000-0000" value={whats} inputMode="tel"
+            onChange={e => setWhats(maskPhone(e.target.value))} autoComplete="tel" />
+        </Campo>
+        <Campo label="Empresa" className="sm:col-span-2">
+          <input className={field} placeholder="Nome da empresa" value={empresa}
+            onChange={e => setEmpresa(e.target.value)} autoComplete="organization" />
+        </Campo>
+        <Campo label="Segmento">
+          <div className="relative">
+            <select className={`${field} appearance-none pr-10`} style={{ color: segmento ? T.darkText : 'rgba(242,239,232,0.38)' }}
+              value={segmento} onChange={e => setSegmento(e.target.value)}>
+              <option value="" disabled>Selecione</option>
+              {SEGMENTOS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <ChevronDown size={16} strokeWidth={1.75} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" color={T.darkMute} />
+          </div>
+        </Campo>
+        <Campo label="Funcionários com carteira">
+          <input type="number" min={0} className={`${field} lp-num`} value={qtd}
+            onChange={e => { touchedQtd.current = true; setQtd(e.target.value); }} />
+        </Campo>
       </div>
 
-      <label className="flex items-center gap-3 rounded-xl px-4 py-3" style={fieldStyle}>
-        <Users size={18} color="#A5B4FC" />
-        <span className="text-[15px] flex-1" style={{ color: C.darkMuted }}>Funcionários com carteira</span>
-        <input type="number" min={0} className="w-20 bg-transparent text-right font-semibold outline-none" style={{ color: C.darkText }}
-          value={qtd} onChange={e => { touchedQtd.current = true; setQtd(e.target.value); }} />
-      </label>
-
       <fieldset>
-        <legend className="text-sm font-semibold mb-2.5" style={{ color: C.darkText }}>Como você prefere resolver?</legend>
-        <div className="grid sm:grid-cols-3 gap-2.5">
+        <legend className="block lp-mono text-[10.5px] uppercase tracking-[0.14em] mb-2" style={{ color: T.darkMute }}>
+          Como você prefere resolver?
+        </legend>
+        <div className="space-y-2" role="radiogroup">
           {opcoes.map(o => {
             const on = interesse === o.v;
             return (
-              <button key={o.v} type="button" onClick={() => setInteresse(o.v)}
-                className="text-left rounded-xl p-3.5 transition-all"
+              <button key={o.v} type="button" role="radio" aria-checked={on} onClick={() => setInteresse(o.v)}
+                className="w-full flex items-center gap-3.5 text-left rounded-[4px] px-4 py-3.5 transition-colors"
                 style={{
-                  background: on ? 'rgba(124,58,237,0.22)' : 'rgba(241,245,249,0.04)',
-                  border: `1.5px solid ${on ? '#8B5CF6' : C.darkBorder}`,
+                  background: on ? 'rgba(242,239,232,0.07)' : 'transparent',
+                  border: `1px solid ${on ? T.darkText : T.darkRule}`,
                 }}>
-                <o.icon size={18} color={on ? '#C4B5FD' : '#A5B4FC'} />
-                <div className="text-sm font-semibold mt-2" style={{ color: C.darkText }}>{o.t}</div>
-                <div className="text-xs mt-0.5" style={{ color: C.darkMuted }}>{o.d}</div>
+                <span className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center"
+                  style={{ border: `1.5px solid ${on ? T.darkText : 'rgba(242,239,232,0.35)'}` }}>
+                  {on && <span className="w-2 h-2 rounded-full" style={{ background: T.darkText }} />}
+                </span>
+                <span className="flex-1 text-[15px] font-medium" style={{ color: T.darkText }}>{o.t}</span>
+                <span className="hidden sm:block text-[13px]" style={{ color: T.darkMute }}>{o.d}</span>
               </button>
             );
           })}
         </div>
       </fieldset>
 
-      <label className="flex items-start gap-3 text-sm cursor-pointer select-none" style={{ color: C.darkMuted }}>
+      <label className="flex items-start gap-3 text-[13px] leading-relaxed cursor-pointer select-none" style={{ color: T.darkMute }}>
         <input type="checkbox" checked={aceite} onChange={e => setAceite(e.target.checked)}
-          className="mt-0.5 w-4 h-4 accent-violet-500 shrink-0" />
+          className="mt-0.5 w-4 h-4 shrink-0 accent-stone-200" />
         Aceito receber contato da Nexla pelo WhatsApp sobre o curso e os serviços. Seus dados não são compartilhados.
       </label>
 
       <AnimatePresence>
         {erro && (
           <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="text-sm font-medium" style={{ color: '#FDBA74' }} role="alert">
+            className="text-sm" style={{ color: '#F0A27A' }} role="alert">
             {erro}
           </motion.p>
         )}
       </AnimatePresence>
 
-      <PrimaryBtn type="submit" disabled={status === 'sending'} full>
+      <PrimaryBtn type="submit" disabled={status === 'sending'} full tone="light">
         {status === 'sending'
-          ? <><Loader2 size={18} className="animate-spin" /> Enviando…</>
-          : <>Quero entrar na lista <ArrowRight size={18} /></>}
+          ? <><Loader2 size={17} className="animate-spin" /> Enviando…</>
+          : <>Quero entrar na lista <Arrow /></>}
       </PrimaryBtn>
-      <p className="text-xs text-center" style={{ color: 'rgba(241,245,249,0.45)' }}>
-        Gratuito · sem compromisso · condição especial para quem estiver na lista
-      </p>
     </form>
   );
 }
@@ -405,293 +454,313 @@ export default function Landing5x2() {
 
   useEffect(() => { loadPixel(); }, []);
 
+  const load = (delay: number) => ({
+    initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.8, delay, ease },
+  });
+
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: C.bg, color: C.text }}>
+    <div className="lp min-h-screen overflow-x-hidden" style={{ background: T.paper, color: T.ink }}>
       {/* Topo */}
-      <header className="absolute top-0 inset-x-0 z-30">
-        <div className="max-w-6xl mx-auto px-5 md:px-10 h-20 flex items-center justify-between">
+      <header style={{ borderBottom: `1px solid ${T.rule}` }}>
+        <div className={`${WRAP} h-16 flex items-center justify-between`}>
           <a href="/" className="flex items-center gap-2.5">
-            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="" className="w-8 h-8 object-contain" />
-            <span className="font-display font-bold text-xl" style={{ color: C.text }}>Nexla</span>
+            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="" className="w-7 h-7 object-contain" />
+            <span className="font-semibold text-[17px] tracking-tight">Nexla</span>
           </a>
-          <a href="/" className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: C.muted }}>
-            <ArrowLeft size={15} /> Voltar ao site
+          <a href="/" className="lp-link inline-flex items-center gap-1.5 text-sm" style={{ color: T.mute }}>
+            <ArrowLeft size={15} strokeWidth={1.75} /> <span className="hidden sm:inline">Voltar ao site</span><span className="sm:hidden">Site</span>
           </a>
         </div>
       </header>
 
       {/* HERO */}
-      <section ref={heroRef} className="relative pt-28 pb-20 md:pt-36 md:pb-28">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="aurora-1 absolute top-[-15%] left-[-10%] w-[620px] h-[620px] rounded-full opacity-[0.16] blur-[110px]"
-            style={{ background: `radial-gradient(circle, ${C.indigo}, transparent)` }} />
-          <div className="aurora-2 absolute bottom-[-20%] right-[-5%] w-[560px] h-[560px] rounded-full opacity-[0.14] blur-[100px]"
-            style={{ background: `radial-gradient(circle, #818CF8, ${C.violet})` }} />
-          <div className="aurora-3 absolute top-[35%] right-[30%] w-[380px] h-[380px] rounded-full opacity-[0.10] blur-[90px]"
-            style={{ background: `radial-gradient(circle, ${C.coral}, #FBBF24)` }} />
-        </div>
-
-        <div className="relative max-w-6xl mx-auto px-5 md:px-10 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
-          <div>
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
-              <span className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6"
-                style={{ background: 'rgba(249,115,22,0.10)', color: '#C2410C', border: '1px solid rgba(249,115,22,0.25)' }}>
-                <span className="relative flex w-2 h-2">
-                  <span className="absolute inline-flex w-full h-full rounded-full opacity-60 animate-ping" style={{ background: C.coral }} />
-                  <span className="relative inline-flex w-2 h-2 rounded-full" style={{ background: C.coral }} />
-                </span>
+      <section ref={heroRef} className="pt-12 pb-20 md:pt-20 md:pb-28">
+        <div className={`${WRAP} grid lg:grid-cols-[1.18fr_1fr] gap-14 lg:gap-20 items-start`}>
+          <div className="lg:pt-4">
+            <motion.div {...load(0)} className="flex items-center gap-2.5 mb-8">
+              <span className="w-1.5 h-1.5" style={{ background: T.loss }} />
+              <span className="lp-mono text-[11.5px] uppercase tracking-[0.14em]" style={{ color: T.ink2 }}>
                 Fim da escala 6×1 aprovado pelo Congresso
               </span>
             </motion.div>
 
-            <motion.h1 initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.08, ease }}
-              className="font-display font-bold leading-[1.04] mb-6" style={{ fontSize: 'clamp(38px,6.2vw,70px)' }}>
-              Sua empresa vai perder horas com a{' '}
-              <span className="text-gradient">escala 5×2</span>.
-              <br className="hidden md:block" />{' '}
+            <motion.h1 {...load(0.06)} className="lp-serif font-medium leading-[1.02] mb-8"
+              style={{ fontSize: 'clamp(42px,5.8vw,76px)', letterSpacing: '-0.025em' }}>
+              Sua empresa vai perder horas com a <em className="font-normal" style={{ color: T.accent }}>escala 5×2</em>.
               Você já sabe como cobrir?
             </motion.h1>
 
-            <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2, ease }}
-              className="text-lg leading-relaxed max-w-xl mb-8" style={{ color: C.muted }}>
-              A jornada cai para <strong style={{ color: C.text }}>42h</strong> e depois para{' '}
-              <strong style={{ color: C.text }}>40h</strong> por semana, <strong style={{ color: C.text }}>sem redução de salário</strong>.
-              Aprenda a usar inteligência artificial para tirar o trabalho repetitivo da sua equipe e atravessar a
-              transição sem contratar no desespero.
+            <motion.p {...load(0.16)} className="text-[18px] leading-[1.6] max-w-[34rem] mb-10" style={{ color: T.ink2 }}>
+              A jornada cai para <strong className="font-semibold" style={{ color: T.ink }}>42h</strong> e depois para{' '}
+              <strong className="font-semibold" style={{ color: T.ink }}>40h</strong> por semana,{' '}
+              <strong className="font-semibold" style={{ color: T.ink }}>sem redução de salário</strong>. Aprenda a usar
+              inteligência artificial para tirar o trabalho repetitivo da sua equipe e atravessar a transição sem
+              contratar no desespero.
             </motion.p>
 
-            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.32, ease }}
-              className="flex flex-wrap items-center gap-4 mb-10">
-              <PrimaryBtn onClick={scrollToForm}>Entrar na lista do curso <ArrowRight size={18} /></PrimaryBtn>
-              <span className="text-sm" style={{ color: C.muted }}>Gratuito · vagas da 1ª turma limitadas</span>
+            <motion.div {...load(0.24)} className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-14">
+              <PrimaryBtn onClick={scrollToForm}>Entrar na lista do curso <Arrow /></PrimaryBtn>
+              <span className="text-sm" style={{ color: T.mute }}>Gratuito · vagas da 1ª turma limitadas</span>
             </motion.div>
 
             {/* Linha do tempo */}
-            <motion.ol initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.1, delayChildren: 0.45 } } }}
-              className="grid grid-cols-3 gap-3 max-w-xl">
-              {[
-                { t: 'Hoje', h: '44h', d: 'regra atual' },
-                { t: '+60 dias', h: '42h', d: 'escala 5×2' },
-                { t: '+14 meses', h: '40h', d: 'jornada final' },
-              ].map((s, i) => (
-                <motion.li key={s.t} variants={fadeUp} className="rounded-2xl p-3.5"
-                  style={{ background: 'rgba(255,255,255,0.7)', border: `1px solid ${C.border}`, backdropFilter: 'blur(6px)' }}>
-                  <div className="text-[10px] font-mono uppercase tracking-wider" style={{ color: C.muted }}>{s.t}</div>
-                  <div className="font-display font-bold text-2xl mt-0.5" style={{ color: i === 2 ? C.coral : C.text }}>{s.h}</div>
-                  <div className="text-xs" style={{ color: C.muted }}>{s.d}</div>
-                </motion.li>
-              ))}
-            </motion.ol>
-            <p className="text-[11px] mt-2.5 max-w-xl" style={{ color: C.muted }}>
-              Prazos contados a partir da promulgação da emenda constitucional.
-            </p>
+            <motion.div {...load(0.34)} className="max-w-[34rem]">
+              <ol className="grid grid-cols-3">
+                {[
+                  { t: 'Hoje', h: '44h', d: 'regra atual' },
+                  { t: '+60 dias', h: '42h', d: 'escala 5×2' },
+                  { t: '+14 meses', h: '40h', d: 'jornada final' },
+                ].map((s, i) => (
+                  <li key={s.t} className="relative pt-5 pr-3" style={{ borderTop: `1px solid ${i === 0 ? T.ink : T.rule}` }}>
+                    <span className="absolute -top-[4.5px] left-0 w-2 h-2 rounded-full"
+                      style={{ background: i === 0 ? T.ink : T.paper, border: `1.5px solid ${i === 2 ? T.accent : T.ink}` }} />
+                    <div className="lp-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: T.mute }}>{s.t}</div>
+                    <div className="lp-serif lp-num text-[34px] leading-none mt-2" style={{ color: i === 2 ? T.accent : T.ink }}>{s.h}</div>
+                    <div className="text-[13px] mt-1.5" style={{ color: T.mute }}>{s.d}</div>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[12px] mt-5" style={{ color: T.mute }}>
+                Prazos contados a partir da promulgação da emenda constitucional.
+              </p>
+            </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.25, ease }}>
+          <motion.div {...load(0.2)}>
             <Calculadora funcionarios={funcionarios} setFuncionarios={setFuncionarios} horas={horas} setHoras={setHoras} />
           </motion.div>
         </div>
       </section>
 
       {/* O PROBLEMA */}
-      <section className="py-20 md:py-28" style={{ background: C.dark, color: C.darkText }}>
-        <div className="max-w-6xl mx-auto px-5 md:px-10">
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="max-w-2xl mb-12">
-            <Eyebrow dark>O problema</Eyebrow>
-            <h2 className="font-display font-bold mt-5 leading-tight" style={{ fontSize: 'clamp(30px,4.4vw,48px)' }}>
-              Menos horas, mesmo salário. A maioria vai resolver do jeito mais caro.
-            </h2>
-          </motion.div>
+      <section className="pb-24 md:pb-32">
+        <div className={WRAP}>
+          <SectionLabel n="01">O problema</SectionLabel>
+          <motion.h2 initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+            className="lp-serif font-medium leading-[1.08] max-w-[46rem] mb-14" style={{ fontSize: 'clamp(32px,4.2vw,52px)' }}>
+            Menos horas, mesmo salário. A maioria vai resolver do jeito <em className="font-normal" style={{ color: T.loss }}>mais caro</em>.
+          </motion.h2>
 
-          <motion.div initial="hidden" whileInView="show" viewport={vp}
-            variants={{ show: { transition: { staggerChildren: 0.1 } } }} className="grid md:grid-cols-3 gap-5">
-            {[
-              { icon: Flame,    t: 'Sobrecarregar a equipe', d: 'Mesma demanda em menos horas. Aumenta o erro, o estresse e a rotatividade.' },
-              { icon: UserPlus, t: 'Contratar no desespero', d: 'Folha maior, encargos e tempo de treinamento, justo no período de adaptação.' },
-              { icon: PhoneOff, t: 'Perder cliente no atendimento', d: 'Mensagem sem resposta no WhatsApp vira venda para o concorrente.' },
-            ].map(c => (
-              <motion.div key={c.t} variants={fadeUp} className="rounded-2xl p-6"
-                style={{ background: C.darkSurface, border: `1px solid ${C.darkBorder}` }}>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(249,115,22,0.14)' }}>
-                  <c.icon size={20} color="#FB923C" />
-                </div>
-                <h3 className="font-display font-semibold text-xl mb-2">{c.t}</h3>
-                <p className="text-[15px] leading-relaxed" style={{ color: C.darkMuted }}>{c.d}</p>
-              </motion.div>
+          <motion.ol initial="hidden" whileInView="show" viewport={vp}
+            variants={{ show: { transition: { staggerChildren: 0.08 } } }} className="grid md:grid-cols-3 gap-x-10 gap-y-10">
+            {PROBLEMAS.map((c, i) => (
+              <motion.li key={c.t} variants={fadeUp} className="pt-6" style={{ borderTop: `1px solid ${T.ink}` }}>
+                <div className="lp-mono text-[11px] mb-5" style={{ color: T.loss }}>✕ 0{i + 1}</div>
+                <h3 className="lp-serif text-[26px] leading-tight mb-3">{c.t}</h3>
+                <p className="text-[15px] leading-relaxed" style={{ color: T.ink2 }}>{c.d}</p>
+              </motion.li>
             ))}
-          </motion.div>
+          </motion.ol>
+        </div>
+      </section>
 
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="mt-16 grid lg:grid-cols-[1fr_1.3fr] gap-10 items-start">
-            <div>
-              <Eyebrow dark>A saída inteligente</Eyebrow>
-              <h2 className="font-display font-bold mt-5 leading-tight mb-4" style={{ fontSize: 'clamp(28px,3.8vw,42px)' }}>
+      {/* A SAÍDA */}
+      <section className="lp-dark py-24 md:py-32" style={{ background: T.dark, color: T.darkText }}>
+        <div className={WRAP}>
+          <SectionLabel n="02" dark>A saída</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.25fr] gap-14 lg:gap-20 items-start">
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="lg:sticky lg:top-12">
+              <h2 className="lp-serif font-medium leading-[1.08] mb-6" style={{ fontSize: 'clamp(32px,4vw,50px)' }}>
                 Tire o repetitivo da equipe. Deixe a IA cobrir essas horas.
               </h2>
-              <p className="leading-relaxed" style={{ color: C.darkMuted }}>
+              <p className="text-[17px] leading-[1.65]" style={{ color: T.darkMute }}>
                 IA não repõe estoque nem serve mesa. Mas boa parte do dia da sua equipe vai embora em tarefas que uma
                 automação faz em segundos. As horas que sobram vão para o que só gente faz.
               </p>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            </motion.div>
+
+            <motion.div initial="hidden" whileInView="show" viewport={vp}
+              variants={{ show: { transition: { staggerChildren: 0.07 } } }}>
+              <div className="hidden sm:grid grid-cols-[minmax(0,15rem)_1fr] gap-8 pb-3 lp-mono text-[10.5px] uppercase tracking-[0.14em]"
+                style={{ color: T.darkMute }}>
+                <span>Tarefa</span><span>O que a automação assume</span>
+              </div>
               {AUTOMATIZAVEL.map(a => (
-                <div key={a.title} className="rounded-2xl p-5 glow-card"
-                  style={{ background: 'rgba(241,245,249,0.04)', border: `1px solid ${C.darkBorder}` }}>
-                  <a.icon size={20} color="#A5B4FC" />
-                  <h3 className="font-semibold mt-3 mb-1">{a.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: C.darkMuted }}>{a.desc}</p>
-                </div>
+                <motion.div key={a.title} variants={fadeUp}
+                  className="grid sm:grid-cols-[minmax(0,15rem)_1fr] gap-x-8 gap-y-1.5 py-6"
+                  style={{ borderTop: `1px solid ${T.darkRule}` }}>
+                  <h3 className="lp-serif text-[23px] leading-tight">{a.title}</h3>
+                  <p className="text-[15px] leading-relaxed sm:pt-1" style={{ color: T.darkMute }}>{a.desc}</p>
+                </motion.div>
               ))}
-            </div>
-          </motion.div>
+              <div style={{ borderTop: `1px solid ${T.darkRule}` }} />
+            </motion.div>
+          </div>
         </div>
       </section>
 
       {/* O CURSO */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-6xl mx-auto px-5 md:px-10">
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="max-w-2xl mb-12">
-            <Eyebrow>O curso</Eyebrow>
-            <h2 className="font-display font-bold mt-5 leading-tight mb-4" style={{ fontSize: 'clamp(30px,4.4vw,48px)' }}>
-              IA na prática para atravessar a <span className="text-gradient">5×2</span>, sem precisar programar.
+      <section className="py-24 md:py-32">
+        <div className={WRAP}>
+          <SectionLabel n="03">O curso</SectionLabel>
+          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+            className="grid lg:grid-cols-[1.3fr_1fr] gap-8 lg:gap-20 items-end mb-14">
+            <h2 className="lp-serif font-medium leading-[1.08]" style={{ fontSize: 'clamp(32px,4.2vw,52px)' }}>
+              IA na prática para atravessar a <em className="font-normal" style={{ color: T.accent }}>5×2</em>, sem precisar programar.
             </h2>
-            <p className="text-lg" style={{ color: C.muted }}>
+            <p className="text-[17px] leading-[1.65]" style={{ color: T.ink2 }}>
               Feito para dono de empresa e equipe administrativa. Você sai com as automações montadas e um plano de
               transição para o seu negócio.
             </p>
           </motion.div>
 
-          <motion.div initial="hidden" whileInView="show" viewport={vp}
-            variants={{ show: { transition: { staggerChildren: 0.08 } } }} className="grid md:grid-cols-2 gap-5">
+          <motion.ol initial="hidden" whileInView="show" viewport={vp}
+            variants={{ show: { transition: { staggerChildren: 0.07 } } }} style={{ borderBottom: `1px solid ${T.rule}` }}>
             {MODULOS.map(m => (
-              <motion.div key={m.n} variants={fadeUp} className="glow-card rounded-2xl p-6 md:p-7 flex gap-5"
-                style={{ background: C.surface, border: `1px solid ${C.border}`, boxShadow: '0 4px 20px rgba(15,23,42,0.04)' }}>
-                <span className="font-mono text-sm font-bold shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                  style={{ background: GRAD }}>{m.n}</span>
-                <div>
-                  <h3 className="font-display font-semibold text-xl mb-1.5">{m.title}</h3>
-                  <p className="text-[15px] leading-relaxed" style={{ color: C.muted }}>{m.desc}</p>
-                </div>
-              </motion.div>
+              <motion.li key={m.n} variants={fadeUp}
+                className="lp-row grid md:grid-cols-[9rem_1fr_1fr] gap-x-10 gap-y-2 py-7 md:py-8"
+                style={{ borderTop: `1px solid ${T.rule}` }}>
+                <span className="lp-mono text-[11px] uppercase tracking-[0.14em] md:pt-2" style={{ color: T.mute }}>Módulo {m.n}</span>
+                <h3 className="lp-serif text-[26px] md:text-[28px] leading-tight">{m.title}</h3>
+                <p className="text-[15px] leading-relaxed md:pt-1.5" style={{ color: T.ink2 }}>{m.desc}</p>
+              </motion.li>
             ))}
-          </motion.div>
+          </motion.ol>
 
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="mt-8 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
-            style={{ background: 'rgba(79,70,229,0.06)', border: '1px solid rgba(79,70,229,0.18)' }}>
-            <div className="flex items-center gap-3">
-              <Sparkles size={22} color={C.violet} />
-              <p className="font-medium">
-                Primeira turma em breve. <span style={{ color: C.muted }}>Quem estiver na lista tem condição especial de lançamento.</span>
-              </p>
-            </div>
-            <button onClick={scrollToForm} className="inline-flex items-center gap-1.5 font-semibold shrink-0" style={{ color: C.indigo }}>
-              Garantir minha vaga <ArrowRight size={16} />
+            className="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <p className="text-[15px]" style={{ color: T.ink2 }}>
+              <span className="font-semibold" style={{ color: T.ink }}>Primeira turma em breve.</span>{' '}
+              Quem estiver na lista tem condição especial de lançamento.
+            </p>
+            <button onClick={scrollToForm} className="lp-link inline-flex items-center gap-2 font-medium shrink-0 underline underline-offset-[6px] decoration-1"
+              style={{ color: T.accent }}>
+              Garantir minha vaga <Arrow size={16} />
             </button>
           </motion.div>
         </div>
       </section>
 
       {/* QUEM ENSINA */}
-      <section className="pb-20 md:pb-28">
-        <div className="max-w-6xl mx-auto px-5 md:px-10 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="relative order-2 lg:order-1">
-            <div className="rounded-3xl overflow-hidden" style={{ boxShadow: '0 30px 80px -20px rgba(79,70,229,0.35)' }}>
-              <img src="/nexla.jpg" alt="Equipe Nexla no NASA Space Apps Challenge" className="w-full h-auto block" loading="lazy" />
-            </div>
-            <p className="mt-3 text-xs font-mono text-center" style={{ color: C.muted }}>
-              Equipe Nexla · Vilhena, RO
-            </p>
-          </motion.div>
+      <section className="py-24 md:py-32" style={{ background: T.paper2 }}>
+        <div className={WRAP}>
+          <SectionLabel n="04">Quem ensina</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-20 items-start">
+            <motion.figure initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <div className="rounded-[6px] overflow-hidden" style={{ border: `1px solid ${T.rule}` }}>
+                <img src="/nexla.jpg" alt="Equipe Nexla no NASA Space Apps Challenge" className="w-full h-auto block" loading="lazy" />
+              </div>
+              <figcaption className="mt-3 lp-mono text-[11px]" style={{ color: T.mute }}>
+                Equipe Nexla no NASA Space Apps Challenge · Vilhena, RO
+              </figcaption>
+            </motion.figure>
 
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="order-1 lg:order-2">
-            <Eyebrow>Quem ensina</Eyebrow>
-            <h2 className="font-display font-bold mt-5 leading-tight mb-4" style={{ fontSize: 'clamp(28px,3.8vw,42px)' }}>
-              Alisson Amorim, fundador da Nexla
-            </h2>
-            <p className="leading-relaxed mb-6" style={{ color: C.muted }}>
-              Engenheiro de automação com IA. À frente da Nexla, constrói agentes de atendimento e automações para
-              clínicas, comércios, restaurantes e escritórios. Vai ensinar exatamente o que aplica nos clientes.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {[
-                { icon: Trophy, t: 'Top 10 mundial do NASA Space Apps Challenge com a equipe Nexla' },
-                { icon: Mic,    t: 'Palestrante, já apresentou para públicos de mais de mil pessoas' },
-                { icon: Rocket, t: '30+ projetos entregues e 15+ clientes recorrentes pela Nexla' },
-              ].map(i => (
-                <li key={i.t} className="flex items-start gap-3">
-                  <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(79,70,229,0.08)' }}>
-                    <i.icon size={16} color={C.indigo} />
-                  </span>
-                  <span className="pt-1 text-[15px]">{i.t}</span>
-                </li>
-              ))}
-            </ul>
-            <a href="/#experimente" className="inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: C.indigo }}>
-              Testar um agente da Nexla agora <ArrowRight size={15} />
-            </a>
-          </motion.div>
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <h2 className="lp-serif font-medium leading-[1.05]" style={{ fontSize: 'clamp(34px,4.2vw,52px)' }}>
+                Alisson Amorim
+              </h2>
+              <p className="lp-mono text-[11.5px] uppercase tracking-[0.14em] mt-3 mb-6" style={{ color: T.mute }}>
+                Fundador da Nexla · Engenheiro de automação com IA
+              </p>
+              <p className="text-[17px] leading-[1.65] mb-10" style={{ color: T.ink2 }}>
+                À frente da Nexla, constrói agentes de atendimento e automações para clínicas, comércios, restaurantes e
+                escritórios. Vai ensinar exatamente o que aplica nos clientes.
+              </p>
+              <dl className="mb-10" style={{ borderBottom: `1px solid ${T.rule}` }}>
+                {CREDENCIAIS.map(c => (
+                  <div key={c.k} className="grid grid-cols-[6.5rem_1fr] gap-6 py-5 items-baseline" style={{ borderTop: `1px solid ${T.rule}` }}>
+                    <dt className="lp-serif lp-num text-[30px] leading-none">{c.k}</dt>
+                    <dd className="text-[15px] leading-relaxed" style={{ color: T.ink2 }}>{c.t}</dd>
+                  </div>
+                ))}
+              </dl>
+              <a href="/#experimente" className="lp-link inline-flex items-center gap-2 font-medium underline underline-offset-[6px] decoration-1"
+                style={{ color: T.accent }}>
+                Testar um agente da Nexla agora <Arrow size={16} />
+              </a>
+            </motion.div>
+          </div>
         </div>
       </section>
 
       {/* FORMULÁRIO */}
-      <section id="lista" ref={formRef} className="py-20 md:py-28 relative overflow-hidden" style={{ background: C.dark }}>
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="aurora-1 absolute top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full opacity-[0.18] blur-[120px]"
-            style={{ background: `radial-gradient(circle, ${C.violet}, transparent)` }} />
-        </div>
-        <div className="relative max-w-3xl mx-auto px-5 md:px-10">
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="text-center mb-10">
-            <Eyebrow dark>Pré-cadastro</Eyebrow>
-            <h2 className="font-display font-bold mt-5 leading-tight mb-3" style={{ fontSize: 'clamp(30px,4.4vw,48px)', color: C.darkText }}>
-              Entre na lista e saia na frente da 5×2
-            </h2>
-            <p style={{ color: C.darkMuted }}>Leva 30 segundos. Você recebe tudo pelo WhatsApp.</p>
-          </motion.div>
+      <section id="lista" ref={formRef} className="lp-dark py-24 md:py-32" style={{ background: T.dark, color: T.darkText }}>
+        <div className={WRAP}>
+          <SectionLabel n="05" dark>Pré-cadastro</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-start">
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <h2 className="lp-serif font-medium leading-[1.06] mb-5" style={{ fontSize: 'clamp(34px,4.4vw,56px)' }}>
+                Entre na lista e saia na frente da 5×2.
+              </h2>
+              <p className="text-[17px] leading-[1.65] mb-10" style={{ color: T.darkMute }}>
+                Leva 30 segundos. Você recebe tudo pelo WhatsApp.
+              </p>
+              <ul className="space-y-3.5">
+                {['Gratuito e sem compromisso', 'Novidades do curso antes de todo mundo', 'Condição especial de lançamento'].map(t => (
+                  <li key={t} className="flex items-center gap-3 text-[15px]">
+                    <Check size={16} strokeWidth={2} color="#7FD1A0" /> {t}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
 
-          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="rounded-3xl p-6 md:p-9"
-            style={{ background: 'rgba(30,41,59,0.75)', border: `1px solid ${C.darkBorder}`, backdropFilter: 'blur(10px)', boxShadow: '0 40px 100px -30px rgba(124,58,237,0.45)' }}>
-            <Formulario funcionarios={funcionarios} horas={horas} />
-          </motion.div>
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+              className="rounded-[8px] p-6 md:p-8" style={{ background: T.dark2, border: `1px solid ${T.darkRule}` }}>
+              <Formulario funcionarios={funcionarios} horas={horas} />
+            </motion.div>
+          </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="py-20 md:py-24">
-        <div className="max-w-3xl mx-auto px-5 md:px-10">
-          <h2 className="font-display font-bold text-3xl md:text-4xl mb-8 text-center">Perguntas frequentes</h2>
-          <div className="space-y-3">
-            {FAQ.map((f, i) => {
-              const open = openFaq === i;
-              return (
-                <div key={f.q} className="rounded-2xl overflow-hidden" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
-                  <button onClick={() => setOpenFaq(open ? null : i)}
-                    className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 font-semibold">
-                    {f.q}
-                    <ChevronDown size={18} className="shrink-0 transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'none', color: C.indigo }} />
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {open && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease }}>
-                        <p className="px-5 pb-5 text-[15px] leading-relaxed" style={{ color: C.muted }}>{f.a}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
+      <section className="py-24 md:py-32">
+        <div className={WRAP}>
+          <SectionLabel n="06">Dúvidas</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.6fr] gap-10 lg:gap-20 items-start">
+            <div>
+              <h2 className="lp-serif font-medium leading-[1.08] mb-5" style={{ fontSize: 'clamp(32px,3.8vw,46px)' }}>
+                Perguntas frequentes
+              </h2>
+              <p className="text-[15px] leading-relaxed mb-8" style={{ color: T.ink2 }}>
+                Ficou alguma dúvida?{' '}
+                <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
+                  className="underline underline-offset-4 decoration-1" style={{ color: T.accent }}>
+                  Fale com a gente no WhatsApp
+                </a>.
+              </p>
+              <div className="hidden lg:block">
+                <PrimaryBtn onClick={scrollToForm}>Quero entrar na lista <Arrow /></PrimaryBtn>
+              </div>
+            </div>
+
+            <div style={{ borderBottom: `1px solid ${T.rule}` }}>
+              {FAQ.map((f, i) => {
+                const open = openFaq === i;
+                return (
+                  <div key={f.q} style={{ borderTop: `1px solid ${T.rule}` }}>
+                    <button onClick={() => setOpenFaq(open ? null : i)} aria-expanded={open}
+                      className="w-full flex items-center justify-between gap-6 text-left py-6">
+                      <span className="lp-serif text-[22px] leading-snug">{f.q}</span>
+                      <span className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center"
+                        style={{ border: `1px solid ${T.rule}`, color: T.ink }}>
+                        {open ? <Minus size={15} strokeWidth={1.75} /> : <Plus size={15} strokeWidth={1.75} />}
+                      </span>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {open && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease }} className="overflow-hidden">
+                          <p className="pb-6 pr-14 text-[16px] leading-relaxed" style={{ color: T.ink2 }}>{f.a}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="text-center mt-10">
-            <PrimaryBtn onClick={scrollToForm}>Quero entrar na lista <ArrowRight size={18} /></PrimaryBtn>
+          <div className="lg:hidden mt-10">
+            <PrimaryBtn onClick={scrollToForm} full>Quero entrar na lista <Arrow /></PrimaryBtn>
           </div>
         </div>
       </section>
 
-      <footer className="py-8 text-center text-sm" style={{ color: C.muted, borderTop: `1px solid ${C.border}` }}>
-        Nexla Automação e Inteligência Artificial · Vilhena, RO ·{' '}
-        <a href="/" className="font-medium" style={{ color: C.indigo }}>nexla.com.br</a>
+      <footer style={{ borderTop: `1px solid ${T.rule}` }}>
+        <div className={`${WRAP} py-8 flex flex-col sm:flex-row gap-2 justify-between text-[13px]`} style={{ color: T.mute }}>
+          <span>Nexla Automação e Inteligência Artificial · Vilhena, RO</span>
+          <a href="/" className="underline underline-offset-4 decoration-1" style={{ color: T.ink }}>nexla.com.br</a>
+        </div>
       </footer>
 
       {/* CTA fixo no celular */}
@@ -699,8 +768,8 @@ export default function Landing5x2() {
         {showSticky && (
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} transition={{ duration: 0.35, ease }}
             className="fixed bottom-0 inset-x-0 z-40 p-3 md:hidden"
-            style={{ background: 'linear-gradient(transparent, rgba(241,245,249,0.95) 30%)' }}>
-            <PrimaryBtn onClick={scrollToForm} full>Entrar na lista do curso <ArrowRight size={18} /></PrimaryBtn>
+            style={{ background: 'rgba(246,244,239,0.94)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
+            <PrimaryBtn onClick={scrollToForm} full>Entrar na lista do curso <Arrow /></PrimaryBtn>
           </motion.div>
         )}
       </AnimatePresence>

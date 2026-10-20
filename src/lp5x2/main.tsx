@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import Landing5x2 from './Landing5x2';
 import '../index.css';
+import './landing5x2.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
