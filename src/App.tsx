@@ -62,6 +62,19 @@ const SERVICES = [
 ];
 const SHOWCASE = [
   {
+    image: '/robo-curso.png',
+    tag: 'Nexla Academy · Cursos de IA e automação',
+    title: 'A escala 5×2 vem aí. Aprenda a cobrir as horas com IA',
+    desc: 'A jornada cai para 42h e depois 40h por semana, sem redução de salário. Na Nexla Academy, você aprende a usar IA para tirar o trabalho repetitivo da equipe e atravessar a transição sem contratar no desespero.',
+    bullets: [
+      'Atendimento com IA no WhatsApp que responde, qualifica e agenda',
+      'Planilhas, relatórios e avisos rodando sozinhos, sem programar',
+      'Plano de transição para a 5×2 feito para a sua empresa',
+    ],
+    href: '/academy/',
+    ctaLabel: 'Acessar a Nexla Academy',
+  },
+  {
     image: '/ChatGPT Image 18 de mai. de 2026, 16_28_48.png',
     tag: 'Atendimento 24/7 com IA',
     title: 'Atenda 10x mais clientes no WhatsApp — sem contratar ninguém',
@@ -553,13 +566,14 @@ function MagneticBtn({ children, onClick, href, style = {}, className = '' }: {
   const onLeave = () => { mx.set(0); my.set(0); };
 
   const Tag = href ? motion.a : motion.button;
+  const external = !!href && /^https?:/.test(href);
   return (
     <Tag
       ref={ref as any}
       href={href}
       onClick={onClick}
-      target={href ? '_blank' : undefined}
-      rel={href ? 'noopener noreferrer' : undefined}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
       className={`relative inline-flex items-center justify-center gap-2 overflow-hidden ${className}`}
       style={{ x: sx, y: sy, ...style }}
       onMouseMove={onMove}
