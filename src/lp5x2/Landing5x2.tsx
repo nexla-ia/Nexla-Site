@@ -10,13 +10,13 @@ const WEBHOOK_URL   = 'https://n8n.nexladesenvolvimento.com.br/webhook/5x2';
 const META_PIXEL_ID: string = '';
 const WHATSAPP      = '556999300101';
 
-/* ─── Paleta editorial ─────────────────────────────────────────── */
+/* ─── Paleta (a mesma do site nexla.com.br) ─────────────────────────────────────────── */
 const T = {
-  paper: '#F6F4EF', paper2: '#ECE8DF', card: '#FFFDF9',
-  ink: '#14161B', ink2: '#2E3138', mute: '#62656D', rule: 'rgba(20,22,27,0.14)',
-  accent: '#4338CA', loss: '#B4441C',
-  dark: '#111317', dark2: '#191C21', darkText: '#F2EFE8',
-  darkMute: 'rgba(242,239,232,0.62)', darkRule: 'rgba(242,239,232,0.14)',
+  paper: '#F1F5F9', paper2: '#E7ECF4', card: '#FFFFFF',
+  ink: '#0F172A', ink2: '#1E293B', mute: '#475569', rule: 'rgba(15,23,42,0.10)',
+  accent: '#4F46E5', violet: '#7C3AED', loss: '#F97316',
+  dark: '#0F172A', dark2: '#1E293B', darkText: '#F1F5F9',
+  darkMute: 'rgba(241,245,249,0.68)', darkRule: 'rgba(241,245,249,0.12)',
 } as const;
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -151,7 +151,7 @@ function Calculadora({ funcionarios, setFuncionarios, horas, setHoras }: {
 
   return (
     <div className="rounded-[8px]"
-      style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 1px 0 rgba(20,22,27,0.04), 0 40px 80px -48px rgba(20,22,27,0.45)' }}>
+      style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 1px 0 rgba(15,23,42,0.04), 0 40px 80px -48px rgba(15,23,42,0.45)' }}>
       <div className="flex items-center justify-between px-6 md:px-7 py-3.5" style={{ borderBottom: `1px solid ${T.rule}` }}>
         <span className="lp-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: T.ink }}>Simulador de horas</span>
         <span className="lp-mono text-[11px]" style={{ color: T.mute }}>estimativa</span>
@@ -330,7 +330,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
     return (
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="py-4">
         <div className="w-11 h-11 rounded-[6px] flex items-center justify-center mb-6"
-          style={{ border: `1px solid ${T.darkRule}`, color: ok ? '#7FD1A0' : '#F0A27A' }}>
+          style={{ border: `1px solid ${T.darkRule}`, color: ok ? '#4ADE80' : '#FDBA74' }}>
           {ok ? <Check size={22} strokeWidth={2} /> : <MessageCircle size={20} strokeWidth={1.75} />}
         </div>
         <h3 className="lp-serif text-[30px] md:text-[34px] leading-[1.1] mb-3" style={{ color: T.darkText }}>
@@ -376,7 +376,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
         </Campo>
         <Campo label="Segmento">
           <div className="relative">
-            <select className={`${field} appearance-none pr-10`} style={{ color: segmento ? T.darkText : 'rgba(242,239,232,0.38)' }}
+            <select className={`${field} appearance-none pr-10`} style={{ color: segmento ? T.darkText : 'rgba(241,245,249,0.38)' }}
               value={segmento} onChange={e => setSegmento(e.target.value)}>
               <option value="" disabled>Selecione</option>
               {SEGMENTOS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -401,11 +401,11 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
               <button key={o.v} type="button" role="radio" aria-checked={on} onClick={() => setInteresse(o.v)}
                 className="w-full flex items-center gap-3.5 text-left rounded-[4px] px-4 py-3.5 transition-colors"
                 style={{
-                  background: on ? 'rgba(242,239,232,0.07)' : 'transparent',
+                  background: on ? 'rgba(241,245,249,0.07)' : 'transparent',
                   border: `1px solid ${on ? T.darkText : T.darkRule}`,
                 }}>
                 <span className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center"
-                  style={{ border: `1.5px solid ${on ? T.darkText : 'rgba(242,239,232,0.35)'}` }}>
+                  style={{ border: `1.5px solid ${on ? T.darkText : 'rgba(241,245,249,0.35)'}` }}>
                   {on && <span className="w-2 h-2 rounded-full" style={{ background: T.darkText }} />}
                 </span>
                 <span className="flex-1 text-[15px] font-medium" style={{ color: T.darkText }}>{o.t}</span>
@@ -425,7 +425,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
       <AnimatePresence>
         {erro && (
           <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="text-sm" style={{ color: '#F0A27A' }} role="alert">
+            className="text-sm" style={{ color: '#FDBA74' }} role="alert">
             {erro}
           </motion.p>
         )}
@@ -487,7 +487,7 @@ export default function Landing5x2() {
 
             <motion.h1 {...load(0.06)} className="lp-serif font-medium leading-[1.02] mb-8"
               style={{ fontSize: 'clamp(42px,5.8vw,76px)', letterSpacing: '-0.025em' }}>
-              Sua empresa vai perder horas com a <em className="font-normal" style={{ color: T.accent }}>escala 5×2</em>.
+              Sua empresa vai perder horas com a <em className="not-italic text-gradient">escala 5×2</em>.
               Você já sabe como cobrir?
             </motion.h1>
 
@@ -539,7 +539,7 @@ export default function Landing5x2() {
           <SectionLabel n="01">O problema</SectionLabel>
           <motion.h2 initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
             className="lp-serif font-medium leading-[1.08] max-w-[46rem] mb-14" style={{ fontSize: 'clamp(32px,4.2vw,52px)' }}>
-            Menos horas, mesmo salário. A maioria vai resolver do jeito <em className="font-normal" style={{ color: T.loss }}>mais caro</em>.
+            Menos horas, mesmo salário. A maioria vai resolver do jeito <em className="not-italic" style={{ color: T.loss }}>mais caro</em>.
           </motion.h2>
 
           <motion.ol initial="hidden" whileInView="show" viewport={vp}
@@ -597,7 +597,7 @@ export default function Landing5x2() {
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
             className="grid lg:grid-cols-[1.3fr_1fr] gap-8 lg:gap-20 items-end mb-14">
             <h2 className="lp-serif font-medium leading-[1.08]" style={{ fontSize: 'clamp(32px,4.2vw,52px)' }}>
-              IA na prática para atravessar a <em className="font-normal" style={{ color: T.accent }}>5×2</em>, sem precisar programar.
+              IA na prática para atravessar a <em className="not-italic text-gradient">5×2</em>, sem precisar programar.
             </h2>
             <p className="text-[17px] leading-[1.65]" style={{ color: T.ink2 }}>
               Feito para dono de empresa e equipe administrativa. Você sai com as automações montadas e um plano de
@@ -689,7 +689,7 @@ export default function Landing5x2() {
               <ul className="space-y-3.5">
                 {['Gratuito e sem compromisso', 'Novidades do curso antes de todo mundo', 'Condição especial de lançamento'].map(t => (
                   <li key={t} className="flex items-center gap-3 text-[15px]">
-                    <Check size={16} strokeWidth={2} color="#7FD1A0" /> {t}
+                    <Check size={16} strokeWidth={2} color="#4ADE80" /> {t}
                   </li>
                 ))}
               </ul>
@@ -768,7 +768,7 @@ export default function Landing5x2() {
         {showSticky && (
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} transition={{ duration: 0.35, ease }}
             className="fixed bottom-0 inset-x-0 z-40 p-3 md:hidden"
-            style={{ background: 'rgba(246,244,239,0.94)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
+            style={{ background: 'rgba(241,245,249,0.94)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
             <PrimaryBtn onClick={scrollToForm} full>Entrar na lista do curso <Arrow /></PrimaryBtn>
           </motion.div>
         )}

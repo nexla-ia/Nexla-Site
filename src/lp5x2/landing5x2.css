@@ -1,32 +1,32 @@
-/* ─── Landing 5×2 — estilo editorial ───────────────────────────── */
+/* ─── Landing 5×2 — visual do site nexla.com.br ───────────────────────────── */
 .lp {
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-.lp ::selection { background: #14161B; color: #F6F4EF; }
+.lp ::selection { background: #0F172A; color: #F1F5F9; }
 
 .lp-serif {
-  font-family: 'Newsreader', Georgia, serif;
-  font-optical-sizing: auto;
-  letter-spacing: -0.015em;
+  font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
-.lp-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+.lp-mono { font-family: 'Space Mono', ui-monospace, monospace; }
 .lp-num  { font-variant-numeric: tabular-nums lining-nums; }
 
 /* Botões */
-.lp-btn { transition: background-color 180ms ease, color 180ms ease; }
-.lp-btn[data-tone='accent']       { background: #4338CA; color: #FFFFFF; }
-.lp-btn[data-tone='accent']:hover { background: #3730A3; }
-.lp-btn[data-tone='light']        { background: #F2EFE8; color: #14161B; }
+.lp-btn { transition: background-color 180ms ease, color 180ms ease, filter 180ms ease, box-shadow 180ms ease; }
+.lp-btn[data-tone='accent']       { background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #FFFFFF; box-shadow: 0 8px 28px rgba(79,70,229,0.28); }
+.lp-btn[data-tone='accent']:hover { filter: brightness(1.08); box-shadow: 0 10px 32px rgba(79,70,229,0.38); }
+.lp-btn[data-tone='light']        { background: #F1F5F9; color: #0F172A; }
 .lp-btn[data-tone='light']:hover  { background: #FFFFFF; }
 .lp-btn .lp-arrow { transition: transform 200ms ease; }
 .lp-btn:hover .lp-arrow,
 .lp-link:hover .lp-arrow { transform: translateX(3px); }
 .lp-link .lp-arrow { transition: transform 200ms ease; }
 
-.lp :focus-visible { outline: 2px solid #4338CA; outline-offset: 3px; }
-.lp-dark :focus-visible { outline-color: #F2EFE8; }
+.lp :focus-visible { outline: 2px solid #4F46E5; outline-offset: 3px; }
+.lp-dark :focus-visible { outline-color: #F1F5F9; }
 
 /* Slider */
 .lp-range {
@@ -35,40 +35,40 @@
 }
 .lp-range::-webkit-slider-runnable-track {
   height: 2px;
-  background: linear-gradient(to right, #14161B var(--p), rgba(20,22,27,0.16) var(--p));
+  background: linear-gradient(to right, #0F172A var(--p), rgba(15,23,42,0.16) var(--p));
 }
 .lp-range::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 18px; height: 18px; margin-top: -8px; border-radius: 50%;
-  background: #FFFDF9; border: 2px solid #14161B;
+  background: #FFFFFF; border: 2px solid #0F172A;
   transition: transform 150ms ease;
 }
 .lp-range:active::-webkit-slider-thumb { transform: scale(1.12); }
-.lp-range::-moz-range-track    { height: 2px; background: rgba(20,22,27,0.16); }
-.lp-range::-moz-range-progress { height: 2px; background: #14161B; }
+.lp-range::-moz-range-track    { height: 2px; background: rgba(15,23,42,0.16); }
+.lp-range::-moz-range-progress { height: 2px; background: #0F172A; }
 .lp-range::-moz-range-thumb {
   width: 14px; height: 14px; border-radius: 50%;
-  background: #FFFDF9; border: 2px solid #14161B;
+  background: #FFFFFF; border: 2px solid #0F172A;
 }
 
 /* Hachura das horas perdidas */
 .lp-hatch {
-  background: repeating-linear-gradient(-45deg, #B4441C 0 1.5px, transparent 1.5px 5px);
-  background-color: rgba(180,68,28,0.08);
+  background: repeating-linear-gradient(-45deg, #F97316 0 1.5px, transparent 1.5px 5px);
+  background-color: rgba(249,115,22,0.08);
 }
 
 /* Campos do formulário (fundo escuro) */
 .lp-field {
-  background: rgba(242,239,232,0.04);
-  border: 1px solid rgba(242,239,232,0.16);
-  color: #F2EFE8;
+  background: rgba(241,245,249,0.04);
+  border: 1px solid rgba(241,245,249,0.16);
+  color: #F1F5F9;
   transition: border-color 160ms ease, background-color 160ms ease;
 }
-.lp-field::placeholder { color: rgba(242,239,232,0.38); }
-.lp-field:hover { border-color: rgba(242,239,232,0.28); }
-.lp-field:focus { border-color: #F2EFE8; background: rgba(242,239,232,0.07); outline: none; }
-.lp-field option { color: #14161B; }
+.lp-field::placeholder { color: rgba(241,245,249,0.38); }
+.lp-field:hover { border-color: rgba(241,245,249,0.28); }
+.lp-field:focus { border-color: #F1F5F9; background: rgba(241,245,249,0.07); outline: none; }
+.lp-field option { color: #0F172A; }
 .lp-field[type='number']::-webkit-inner-spin-button { opacity: 0.4; }
 
 .lp-row { transition: background-color 200ms ease; }
-.lp-row:hover { background: rgba(20,22,27,0.025); }
+.lp-row:hover { background: rgba(15,23,42,0.025); }
