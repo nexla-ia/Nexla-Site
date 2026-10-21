@@ -23,13 +23,13 @@ const ERROS: Record<string, string> = {
 };
 
 /* Chama a função do servidor que calcula o preço (e, ao pagar, cria o pedido no Mercado Pago) */
-type RespostaCheckout = Partial<Resumo> & { url?: string; erro?: string };
+type RespostaCheckout = Partial<Resumo> & { url?: string; erro?: string; detalhe?: string };
 async function checkout(corpo: Record<string, unknown>): Promise<RespostaCheckout> {
   const { data, error } = await supabase.functions.invoke('academy-checkout', { body: corpo });
   if (error) {
-    let codigo = 'erro';
-    try { codigo = (await (error as { context?: Response }).context?.json())?.erro ?? 'erro'; } catch { /* sem corpo */ }
-    return { erro: codigo };
+    let corpo: { erro?: string; detalhe?: string } = {};
+    try { corpo = (await (error as { context?: Response }).context?.json()) ?? {}; } catch { /* sem corpo */ }
+    return { erro: corpo.erro ?? 'erro', detalhe: corpo.detalhe };
   }
   return data as RespostaCheckout;
 }
@@ -62,7 +62,9 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
     const r = await checkout({ slug, acao: 'pagar', com_oferta: comOferta, cupom: resumo?.cupom ?? '' });
     if (r.url) { window.location.href = r.url; return; }
     setPagando(false);
-    setErro(ERROS[r.erro ?? ''] ?? 'Não foi possível iniciar o pagamento. Tente de novo.');
+    setErro(r.erro === 'mercado_pago' && r.detalhe
+      ? `O Mercado Pago recusou o pagamento: ${r.detalhe}`
+      : ERROS[r.erro ?? ''] ?? 'Não foi possível iniciar o pagamento. Tente de novo.');
   };
 
   if (!resumo && !erro) return <AppLayout nome={nome}><Carregando /></AppLayout>;

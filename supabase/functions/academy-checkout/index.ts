@@ -104,6 +104,8 @@ Deno.serve(async (req) => {
 
   const site = origem && ORIGENS_OK.includes(origem) ? origem : SITE_PADRAO;
   const retorno = `${site}/academy/compra/${pedido.id}`;
+  // O Mercado Pago recusa o retorno automático para endereços http://localhost (só aceita em https)
+  const local = site.startsWith('http://localhost');
   const mp = await fetch('https://api.mercadopago.com/checkout/preferences', {
     method: 'POST',
     headers: {
@@ -124,7 +126,7 @@ Deno.serve(async (req) => {
       metadata: { pedido: pedido.id, curso: curso.slug },
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/academy-webhook-mp`,
       back_urls: { success: retorno, pending: retorno, failure: retorno },
-      auto_return: 'approved',
+      ...(local ? {} : { auto_return: 'approved' }),
       payment_methods: { installments: PARCELAS_MAX },
       statement_descriptor: 'NEXLA ACADEMY',
     }),
@@ -133,7 +135,8 @@ Deno.serve(async (req) => {
   if (!mp.ok || !preferencia.init_point) {
     console.error('Mercado Pago recusou a preferência', mp.status, JSON.stringify(preferencia));
     await admin.from('academy_orders').update({ status: 'cancelado', atualizado_em: new Date().toISOString() }).eq('id', pedido.id);
-    return json({ erro: 'mercado_pago' }, 502);
+    const detalhe = String(preferencia?.message ?? preferencia?.error ?? `HTTP ${mp.status}`).slice(0, 200);
+    return json({ erro: 'mercado_pago', detalhe }, 502);
   }
   await admin.from('academy_orders').update({ mp_preference_id: preferencia.id, atualizado_em: new Date().toISOString() }).eq('id', pedido.id);
   return json({ url: preferencia.init_point, pedido: pedido.id });
