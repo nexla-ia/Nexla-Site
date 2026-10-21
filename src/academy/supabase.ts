@@ -21,6 +21,27 @@ export function useSessao() {
   return sessao;
 }
 
+/* A conta logada é admin (role = 'admin')? undefined = carregando. Consulta uma vez por usuário. */
+const cacheAdmin = new Map<string, Promise<boolean>>();
+export function useEhAdmin(sessao: Session | null | undefined) {
+  // Guarda de quem é a resposta: ao trocar de conta, volta a "carregando" em vez de usar a resposta antiga
+  const [resposta, setResposta] = useState<{ uid: string; admin: boolean } | null>(null);
+  const uid = sessao?.user.id;
+  useEffect(() => {
+    if (!uid) return;
+    if (!cacheAdmin.has(uid)) {
+      cacheAdmin.set(uid, Promise.resolve(supabase.from('academy_profiles').select('role').eq('id', uid).maybeSingle())
+        .then(({ data }) => data?.role === 'admin'));
+    }
+    let vivo = true;
+    cacheAdmin.get(uid)!.then(admin => { if (vivo) setResposta({ uid, admin }); });
+    return () => { vivo = false; };
+  }, [uid]);
+  if (sessao === null) return false;
+  if (!uid || resposta?.uid !== uid) return undefined;
+  return resposta.admin;
+}
+
 /* Mensagens do Supabase Auth em português */
 export function erroAuth(msg: string) {
   const m = msg.toLowerCase();

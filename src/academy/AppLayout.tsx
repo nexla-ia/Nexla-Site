@@ -3,20 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Award, BookOpen, ChevronDown, Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
 import { T, LOGO, display, ease } from './ui';
 import { Link, navegar, useRota } from './router';
-import { supabase, useSessao } from './supabase';
+import { supabase, useSessao, useEhAdmin } from './supabase';
 
 /* Menu do perfil (avatar + nome): Meus cursos, Meu perfil, Meus certificados e Sair */
-function MenuPerfil({ nome }: { nome: string }) {
+function MenuPerfil({ nome, admin, email }: { nome: string; admin: boolean; email: string }) {
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const sessao = useSessao();
-  const email = sessao?.user.email ?? '';
-  const [admin, setAdmin] = useState(false);
-  useEffect(() => {
-    if (!sessao) return;
-    supabase.from('academy_profiles').select('role').eq('id', sessao.user.id).maybeSingle()
-      .then(({ data }) => setAdmin(data?.role === 'admin'));
-  }, [sessao]);
   const inicial = (nome.trim()[0] || email[0] || '?').toUpperCase();
 
   useEffect(() => {
@@ -86,10 +78,14 @@ const NAV = [
   { para: '/painel', texto: 'Meus cursos',     ativo: (r: string) => r === '/painel' || r.startsWith('/curso/') },
   { para: '/cursos', texto: 'Explorar cursos', ativo: (r: string) => r === '/cursos' },
 ];
+const NAV_ADMIN = { para: '/admin', texto: 'Admin', ativo: (r: string) => r.startsWith('/admin') };
 
 /* Layout das telas do aluno (painel, curso, perfil...): topo com a marca, os links principais e o menu do perfil */
 export function AppLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
   const rota = useRota();
+  const sessao = useSessao();
+  const admin = !!useEhAdmin(sessao);
+  const links = admin ? [NAV_ADMIN, ...NAV] : NAV;
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
@@ -99,7 +95,7 @@ export function AppLayout({ nome, children }: { nome: string; children: React.Re
             <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
           </Link>
           <nav className="hidden md:flex items-center gap-1 mr-auto ml-6">
-            {NAV.map(n => {
+            {links.map(n => {
               const ativo = n.ativo(rota);
               return (
                 <Link key={n.para} para={n.para} className="px-3.5 h-9 inline-flex items-center rounded-lg text-[14px] font-medium transition-colors hover:bg-slate-100"
@@ -109,7 +105,7 @@ export function AppLayout({ nome, children }: { nome: string; children: React.Re
               );
             })}
           </nav>
-          <MenuPerfil nome={nome} />
+          <MenuPerfil nome={nome} admin={admin} email={sessao?.user.email ?? ''} />
         </div>
       </header>
       <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 md:py-12">{children}</main>

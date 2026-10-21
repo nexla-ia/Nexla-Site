@@ -12,7 +12,7 @@ import AdminCursos from './admin/AdminCursos';
 import AdminCurso from './admin/AdminCurso';
 import { Carregando } from './AppLayout';
 import { useRota, navegar } from './router';
-import { useSessao } from './supabase';
+import { useSessao, useEhAdmin } from './supabase';
 import '../index.css';
 import './academy.css';
 
@@ -33,12 +33,14 @@ function Academy() {
   const curso = rota.match(/^\/curso\/([\w-]+)$/)?.[1];
   const certificado = rota.match(/^\/certificado\/([\w-]+)$/)?.[1];
   const adminCurso = rota.match(/^\/admin\/curso\/([\w-]+)$/)?.[1];
+  const admin = useEhAdmin(sessao);
 
+  // Ao entrar: admin vai direto para o painel admin; aluno, para "Meus cursos"
   useEffect(() => {
     if (sessao === undefined) return;
-    if (sessao && publica) navegar('/painel', { substituir: true });
+    if (sessao && publica && admin !== undefined) navegar(admin ? '/admin' : '/painel', { substituir: true });
     if (!sessao && !publica) navegar('/', { substituir: true });
-  }, [sessao, publica]);
+  }, [sessao, publica, admin]);
 
   useEffect(() => {
     document.title = `${TITULOS[rota] ?? (curso ? 'Curso' : certificado ? 'Certificado' : 'Entrar')} | Nexla Academy`;
