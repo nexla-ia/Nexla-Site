@@ -17,9 +17,9 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
   return (
     <article className="rounded-2xl overflow-hidden flex flex-col" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <div className="h-28 px-6 flex items-end pb-4 bg-cover bg-center" style={capa(c.capa)}>
-        {c.gratis > 0 && (
+        {c.aulas.length > 0 && (
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.14)', color: '#E0E7FF' }}>
-            <PlayCircle size={13} strokeWidth={2} /> {c.gratis} aula{c.gratis > 1 ? 's' : ''} grátis
+            <PlayCircle size={13} strokeWidth={2} /> Aula de amostra
           </span>
         )}
       </div>
@@ -33,7 +33,7 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
         <div className="pt-5 mt-auto">
           <Link para={`/curso/${c.slug}`}
             className="acad-btn w-full inline-flex items-center justify-center gap-2 h-11 rounded-[10px] text-[14.5px] font-semibold text-white">
-            {c.gratis > 0 ? 'Assistir aula grátis' : 'Ver curso'} <ArrowRight size={16} strokeWidth={2} className="acad-arrow" />
+            Ver curso <ArrowRight size={16} strokeWidth={2} className="acad-arrow" />
           </Link>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function Explorar({ sessao }: { sessao: Session }) {
     <AppLayout nome={nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <TituloPagina titulo="Explorar cursos"
-          sub={`${total} curso${total === 1 ? '' : 's'} na Nexla Academy. Assista às aulas grátis antes de decidir.`} />
+          sub={`${total} curso${total === 1 ? '' : 's'} na Nexla Academy. Assista à aula de amostra de cada um antes de decidir.`} />
 
         {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
 

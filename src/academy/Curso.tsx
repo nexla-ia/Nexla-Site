@@ -8,12 +8,12 @@ import { Link, navegar, parametro } from './router';
 import { supabase, organizar, pct, minutos, CERTIFICADO_MIN, SELECT_CURSO, type Curso as CursoT } from './supabase';
 import Comunidade from './Comunidade';
 import Avaliacao from './Avaliacao';
+import PaginaCurso from './PaginaCurso';
 
 type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
 type Dados = {
   nome: string; curso: ReturnType<typeof organizar>; matriculado: boolean; feitas: Set<string>; sugestao: Sugestao | null;
   avaliacaoPendente: boolean; // concluiu e ainda não avaliou nem dispensou o pedido
-  preco: number | null;       // preço à venda (null = curso ainda sem preço: "Quero este curso" abre o WhatsApp)
 };
 
 /* Próximo curso sugerido: o primeiro curso publicado (na ordem da vitrine) que o aluno ainda não tem */
@@ -97,13 +97,12 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
       if (!vivo) return;
       if (!c) return setDados('nao-encontrado');
       const curso = organizar(c as unknown as CursoT);
-      const [perfil, mat, prog, sugestao, review, produto] = await Promise.all([
+      const [perfil, mat, prog, sugestao, review] = await Promise.all([
         supabase.from('academy_profiles').select('nome, role').eq('id', uid).maybeSingle(),
         supabase.from('academy_enrollments').select('ativo').eq('course_id', curso.id).eq('user_id', uid).maybeSingle(),
         supabase.from('academy_lesson_progress').select('lesson_id').eq('user_id', uid).eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
         buscarSugestao(curso.id, uid),
         supabase.from('academy_course_reviews').select('user_id').eq('course_id', curso.id).eq('user_id', uid).maybeSingle(),
-        supabase.from('academy_products').select('preco, preco_promocional').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle(),
       ]);
       if (!vivo) return;
       setDados({
@@ -113,7 +112,6 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
         feitas: new Set((prog.data ?? []).map(p => p.lesson_id as string)),
         sugestao,
         avaliacaoPendente: !review.error && !review.data, // sem a tabela (006 não rodado), não pergunta
-        preco: produto.data ? Number(produto.data.preco_promocional ?? produto.data.preco) : null,
       });
     })();
     return () => { vivo = false; };
@@ -144,7 +142,10 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
     );
   }
 
-  const { feitas, matriculado, nome, sugestao, avaliacaoPendente, preco } = dados;
+  const { feitas, matriculado, nome, sugestao, avaliacaoPendente } = dados;
+
+  // Quem não comprou vê a página de apresentação do curso, com só o 1º vídeo (amostra)
+  if (!matriculado) return <PaginaCurso sessao={sessao} curso={curso} nome={nome} />;
   const i = curso.aulas.findIndex(a => a.id === aula.id);
   const anterior = curso.aulas[i - 1];
   const proxima = curso.aulas[i + 1];
@@ -221,31 +222,6 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
               </Link>
             </div>
             {sugestao && <ProximoCurso s={sugestao} />}
-          </div>
-        )}
-
-        {/* Quem ainda não tem o curso: vê as aulas grátis e o convite para adquirir */}
-        {!matriculado && (
-          <div className="rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-4"
-            style={{ background: 'rgba(79,70,229,0.06)', border: '1px solid rgba(79,70,229,0.2)' }}>
-            <div className="flex-1">
-              <p className="font-semibold text-[15px]" style={{ color: T.ink }}>Você está vendo as aulas grátis deste curso</p>
-              <p className="text-[14px] mt-0.5" style={{ color: T.mute }}>
-                {curso.aulas.filter(a => a.gratuita).length} aula(s) liberada(s). O curso completo tem {curso.aulas.length} aulas e certificado.
-              </p>
-            </div>
-            {preco !== null ? (
-              <Link para={`/comprar/${slug}`}
-                className="acad-btn inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white shrink-0">
-                Comprar por {preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <ArrowRight size={16} strokeWidth={2} className="acad-arrow" />
-              </Link>
-            ) : (
-              <a href={`https://wa.me/556999300101?text=${encodeURIComponent(`Olá! Quero o curso "${curso.titulo}" da Nexla Academy.`)}`}
-                target="_blank" rel="noopener noreferrer"
-                className="acad-btn inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white shrink-0">
-                Quero este curso <ArrowRight size={16} strokeWidth={2} className="acad-arrow" />
-              </a>
-            )}
           </div>
         )}
 
