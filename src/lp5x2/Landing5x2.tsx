@@ -7,7 +7,7 @@ import { ArrowRight, ArrowLeft, Check, ChevronDown, Loader2, MessageCircle, Plus
  * META_PIXEL_ID → cole o ID do Pixel do Meta para medir os leads
  *                 dos anúncios (deixe vazio para desligar).        */
 const WEBHOOK_URL   = 'https://n8n.nexladesenvolvimento.com.br/webhook/5x2';
-const META_PIXEL_ID: string = '652674780847736';
+const META_PIXEL_ID: string = '1410172823723220';
 const WHATSAPP      = '556999300101';
 
 /* ─── Paleta (a mesma do site nexla.com.br) ─────────────────────────────────────────── */
