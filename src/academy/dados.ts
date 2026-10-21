@@ -42,8 +42,8 @@ export function useCursosAluno(sessao: Session) {
       const uid = sessao.user.id;
       const [perfil, matriculas, progresso, catalogo, notas, minhas] = await Promise.all([
         supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle(),
-        supabase.from('academy_enrollments').select(`criado_em, academy_courses(${SELECT_CURSO})`).eq('ativo', true),
-        supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('concluida', true),
+        supabase.from('academy_enrollments').select(`criado_em, academy_courses(${SELECT_CURSO})`).eq('user_id', uid).eq('ativo', true),
+        supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('user_id', uid).eq('concluida', true),
         supabase.from('academy_courses').select(SELECT_CURSO).eq('publicado', true),
         supabase.rpc('academy_media_cursos'), // se o 006 não rodou, volta erro e as médias ficam vazias
         supabase.from('academy_course_reviews').select('course_id, estrelas').eq('user_id', uid),

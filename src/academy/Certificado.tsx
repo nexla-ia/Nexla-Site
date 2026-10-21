@@ -29,7 +29,7 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
       const curso = organizar(c as unknown as CursoT);
       const [perfil, prog] = await Promise.all([
         supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle(),
-        supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
+        supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('user_id', uid).eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
       ]);
       if (!vivo) return;
       const nome = (perfil.data?.nome as string | undefined) || (sessao.user.user_metadata?.nome as string | undefined) || sessao.user.email || '';

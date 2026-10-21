@@ -67,7 +67,6 @@ function Lista({ nome }: { nome: string }) {
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
                   <h2 className="font-bold text-[17px] leading-snug" style={{ ...display, color: T.ink }}>{c.titulo}</h2>
-                  <p className="text-[12.5px] mt-1" style={{ color: T.mute }}>/{c.slug}</p>
                   <div className="grid grid-cols-3 gap-2 mt-auto pt-4 text-center">
                     {[{ v: c.modulos, l: 'módulos' }, { v: c.aulas, l: 'aulas' }, { v: c.alunos, l: 'alunos' }].map(n => (
                       <div key={n.l} className="rounded-lg py-2" style={{ background: '#F8FAFC' }}>

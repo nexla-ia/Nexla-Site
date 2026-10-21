@@ -16,10 +16,10 @@ type Dados = {
 };
 
 /* Próximo curso sugerido: o primeiro curso publicado (na ordem da vitrine) que o aluno ainda não tem */
-async function buscarSugestao(cursoAtual: string): Promise<Sugestao | null> {
+async function buscarSugestao(cursoAtual: string, uid: string): Promise<Sugestao | null> {
   const [cat, mats] = await Promise.all([
     supabase.from('academy_courses').select('id, slug, titulo, subtitulo, ordem').eq('publicado', true).order('ordem'),
-    supabase.from('academy_enrollments').select('course_id').eq('ativo', true),
+    supabase.from('academy_enrollments').select('course_id').eq('user_id', uid).eq('ativo', true),
   ]);
   const meus = new Set((mats.data ?? []).map(m => m.course_id as string));
   const c = (cat.data ?? []).find(x => x.id !== cursoAtual && !meus.has(x.id as string));
@@ -99,8 +99,8 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
       const [perfil, mat, prog, sugestao, review] = await Promise.all([
         supabase.from('academy_profiles').select('nome, role').eq('id', uid).maybeSingle(),
         supabase.from('academy_enrollments').select('ativo').eq('course_id', curso.id).eq('user_id', uid).maybeSingle(),
-        supabase.from('academy_lesson_progress').select('lesson_id').eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
-        buscarSugestao(curso.id),
+        supabase.from('academy_lesson_progress').select('lesson_id').eq('user_id', uid).eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
+        buscarSugestao(curso.id, uid),
         supabase.from('academy_course_reviews').select('user_id').eq('course_id', curso.id).eq('user_id', uid).maybeSingle(),
       ]);
       if (!vivo) return;
