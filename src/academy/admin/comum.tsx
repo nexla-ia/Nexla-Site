@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, BookOpen, LogOut, MessagesSquare, ShieldAlert } from 'lucide-react';
+import { BarChart3, BookOpen, LogOut, MessagesSquare, Receipt, ShieldAlert } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display } from '../ui';
 import { AppLayout, Carregando } from '../AppLayout';
@@ -10,6 +10,7 @@ import { supabase } from '../supabase';
 const SECOES = [
   { para: '/admin',            texto: 'Visão geral', icone: BarChart3,      ativo: (r: string) => r === '/admin' },
   { para: '/admin/cursos',     texto: 'Cursos',      icone: BookOpen,       ativo: (r: string) => r.startsWith('/admin/curso') },
+  { para: '/admin/vendas',     texto: 'Vendas',      icone: Receipt,        ativo: (r: string) => r === '/admin/vendas' },
   { para: '/admin/comunidade', texto: 'Comunidade',  icone: MessagesSquare, ativo: (r: string) => r === '/admin/comunidade' },
 ];
 

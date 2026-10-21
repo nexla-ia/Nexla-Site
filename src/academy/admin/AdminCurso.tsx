@@ -10,6 +10,7 @@ import { Carregando } from '../AppLayout';
 import { Link, navegar, parametro } from '../router';
 import { supabase } from '../supabase';
 import AbaAlunos from './AbaAlunos';
+import { CartaoVenda } from './Vendas';
 import { SoAdmin, AdminLayout, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario, CAPA_PADRAO } from './comum';
 
 /* ─── Tipos ─────────────────────────────────────────────────────── */
@@ -434,6 +435,8 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
           <div className="w-40"><Rotulo texto="Ordem na vitrine" dica="Menor aparece primeiro."><input type="number" className={inputCls} value={f.ordem} onChange={e => muda('ordem', e.target.value)} /></Rotulo></div>
         </div>
       </Cartao>
+
+      <CartaoVenda cursoId={curso.id} tituloCurso={curso.titulo} />
 
       <Cartao titulo="Certificado" sub="O certificado libera quando o aluno conclui 90% das aulas.">
         <div className="space-y-4">

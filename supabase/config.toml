@@ -1,0 +1,9 @@
+# Configuração mínima da Supabase CLI (usada só para publicar as Edge Functions)
+project_id = "lyvknbggtimdivywfeys"
+
+[functions.academy-checkout]
+verify_jwt = true
+
+# O Mercado Pago não envia login: a função confere o pagamento direto na API do Mercado Pago
+[functions.academy-webhook-mp]
+verify_jwt = false

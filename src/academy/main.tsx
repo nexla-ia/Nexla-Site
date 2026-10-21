@@ -8,10 +8,12 @@ import Certificado from './Certificado';
 import Certificados from './Certificados';
 import Perfil from './Perfil';
 import Explorar from './Explorar';
+import { Comprar, RetornoCompra } from './Compra';
 import AdminCursos from './admin/AdminCursos';
 import AdminCurso from './admin/AdminCurso';
 import VisaoGeral from './admin/VisaoGeral';
 import AdminComunidade from './admin/AdminComunidade';
+import AdminVendas from './admin/Vendas';
 import { Carregando } from './AppLayout';
 import { useRota, navegar } from './router';
 import { useSessao, useEhAdmin, supabaseConfigurado } from './supabase';
@@ -27,7 +29,8 @@ import './academy.css';
 const TITULOS: Record<string, string> = {
   '/': 'Entrar', '/criar-conta': 'Criar conta', '/painel': 'Meus cursos',
   '/perfil': 'Meu perfil', '/certificados': 'Meus certificados', '/cursos': 'Explorar cursos',
-  '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin',
+  '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin', '/admin/vendas': 'Vendas · Admin',
+  '/comprar': 'Comprar',
 };
 
 function Academy() {
@@ -36,6 +39,8 @@ function Academy() {
   const publica = rota === '/' || rota === '/criar-conta';
   const curso = rota.match(/^\/curso\/([\w-]+)$/)?.[1];
   const certificado = rota.match(/^\/certificado\/([\w-]+)$/)?.[1];
+  const comprar = rota.match(/^\/comprar\/([\w-]+)$/)?.[1];
+  const retornoCompra = rota.match(/^\/compra\/([\w-]+)$/)?.[1];
   const adminCurso = rota.match(/^\/admin\/curso\/([\w-]+)$/)?.[1];
   const admin = useEhAdmin(sessao);
 
@@ -58,8 +63,11 @@ function Academy() {
   if (admin && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) return <Carregando />;
   if (rota === '/admin') return <VisaoGeral sessao={sessao} />;
   if (rota === '/admin/cursos') return <AdminCursos sessao={sessao} />;
+  if (rota === '/admin/vendas') return <AdminVendas sessao={sessao} />;
   if (rota === '/admin/comunidade') return <AdminComunidade sessao={sessao} />;
   if (adminCurso) return <AdminCurso key={adminCurso} sessao={sessao} id={adminCurso} />;
+  if (comprar) return <Comprar key={comprar} sessao={sessao} slug={comprar} />;
+  if (retornoCompra) return <RetornoCompra key={retornoCompra} sessao={sessao} id={retornoCompra} />;
   if (rota === '/cursos') return <Explorar sessao={sessao} />;
   if (rota === '/perfil') return <Perfil sessao={sessao} />;
   if (rota === '/certificados') return <Certificados sessao={sessao} />;
