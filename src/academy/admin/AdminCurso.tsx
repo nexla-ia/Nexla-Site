@@ -1,28 +1,41 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, Paperclip, Pencil, Plus, Trash2, Upload, Video, X } from 'lucide-react';
+import {
+  ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, ImageIcon, Layers, ListVideo, Paperclip, Pencil, Plus,
+  Settings, Trash2, Upload, Video, X,
+} from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
-import { AppLayout, Carregando } from '../AppLayout';
-import { Link, navegar } from '../router';
+import { Carregando } from '../AppLayout';
+import { Link, navegar, parametro } from '../router';
 import { supabase } from '../supabase';
-import { SoAdmin, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario } from './comum';
+import { SoAdmin, AdminLayout, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario, CAPA_PADRAO } from './comum';
 
 /* ─── Tipos ─────────────────────────────────────────────────────── */
 type Material = { id: string; nome: string; arquivo: string; tamanho: number | null };
 type AulaA = { id: string; titulo: string; descricao: string | null; ordem: number; duracao_seg: number; gratuita: boolean; video_id: string | null; academy_lesson_materials: Material[] };
 type ModuloA = { id: string; titulo: string; ordem: number; academy_lessons: AulaA[] };
-type CursoA = { id: string; slug: string; titulo: string; subtitulo: string | null; publicado: boolean; ordem: number; academy_modules: ModuloA[] };
+type CursoA = {
+  id: string; slug: string; titulo: string; subtitulo: string | null; descricao: string | null; capa: string | null;
+  publicado: boolean; ordem: number; destaque: boolean; categoria: string | null; nivel: string | null; instrutor: string | null;
+  aprendizados: string[]; certificado: boolean; carga_horaria_h: number | null; academy_modules: ModuloA[];
+};
 
-const BUCKET = 'academy-materiais';
-const SELECT = 'id, slug, titulo, subtitulo, publicado, ordem, academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita, video_id, academy_lesson_materials(id, nome, arquivo, tamanho)))';
+const MATERIAIS = 'academy-materiais';
+const CAPAS = 'academy-capas';
+const SELECT = 'id, slug, titulo, subtitulo, descricao, capa, publicado, ordem, destaque, categoria, nivel, instrutor, aprendizados, certificado, carga_horaria_h, '
+  + 'academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita, video_id, academy_lesson_materials(id, nome, arquivo, tamanho)))';
+const NIVEIS = [{ v: '', t: 'Não informar' }, { v: 'iniciante', t: 'Iniciante' }, { v: 'intermediario', t: 'Intermediário' }, { v: 'avancado', t: 'Avançado' }];
 
 const ordenar = (c: CursoA): CursoA => ({
   ...c,
+  aprendizados: c.aprendizados ?? [],
   academy_modules: [...c.academy_modules].sort((a, b) => a.ordem - b.ordem)
     .map(m => ({ ...m, academy_lessons: [...m.academy_lessons].sort((a, b) => a.ordem - b.ordem) })),
 });
 const kb = (n: number | null) => (n == null ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const totalAulas = (c: CursoA) => c.academy_modules.reduce((s, m) => s + m.academy_lessons.length, 0);
+const horasAulas = (c: CursoA) => Math.max(1, Math.round(c.academy_modules.reduce((s, m) => s + m.academy_lessons.reduce((x, a) => x + a.duracao_seg, 0), 0) / 3600));
 
 /* Reordena: troca o item de posição e regrava a ordem 1..n de quem mudou */
 async function mover<X extends { id: string; ordem: number }>(tabela: string, itens: X[], i: number, delta: number) {
@@ -33,65 +46,64 @@ async function mover<X extends { id: string; ordem: number }>(tabela: string, it
   await Promise.all(nova.map((x, k) => (x.ordem !== k + 1 ? supabase.from(tabela).update({ ordem: k + 1 }).eq('id', x.id) : null)));
 }
 
-/* ─── Dados do curso (novo ou existente) ─────────────────────────── */
-function FormCurso({ curso, onSalvo }: { curso: CursoA | null; onSalvo: (id: string) => void }) {
-  const [titulo, setTitulo] = useState(curso?.titulo ?? '');
-  const [slug, setSlug] = useState(curso?.slug ?? '');
-  const [slugManual, setSlugManual] = useState(!!curso);
-  const [subtitulo, setSubtitulo] = useState(curso?.subtitulo ?? '');
-  const [ordem, setOrdem] = useState(String(curso?.ordem ?? 10));
-  const [publicado, setPublicado] = useState(curso?.publicado ?? false);
-  const [salvando, setSalvando] = useState(false);
-  const [msg, setMsg] = useState({ erro: '', ok: '' });
+function Cartao({ titulo, sub, children, perigo = false }: { titulo: string; sub?: string; children: React.ReactNode; perigo?: boolean }) {
+  return (
+    <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8"
+      style={{ background: T.card, border: `1px solid ${perigo ? 'rgba(185,28,28,0.25)' : T.rule}` }}>
+      <div>
+        <h3 className="font-bold text-[16.5px]" style={{ ...display, color: perigo ? '#B91C1C' : T.ink }}>{titulo}</h3>
+        {sub && <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>{sub}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </section>
+  );
+}
 
-  const salvar = async (e: React.FormEvent) => {
+/* ─── Novo curso: só nome e endereço, o resto é na aba Configurações ── */
+function NovoCurso() {
+  const [titulo, setTitulo] = useState('');
+  const [slug, setSlug] = useState('');
+  const [manual, setManual] = useState(false);
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const criar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo.trim()) return setMsg({ erro: 'Informe o título do curso.', ok: '' });
-    if (!slug) return setMsg({ erro: 'Informe o endereço (slug) do curso.', ok: '' });
-    setSalvando(true); setMsg({ erro: '', ok: '' });
-    const dados = { titulo: titulo.trim(), slug, subtitulo: subtitulo.trim() || null, ordem: Number(ordem) || 0, publicado };
-    const r = curso
-      ? await supabase.from('academy_courses').update(dados).eq('id', curso.id).select('id').single()
-      : await supabase.from('academy_courses').insert(dados).select('id').single();
+    if (!titulo.trim() || !slug) return setErro('Informe o nome do curso.');
+    setSalvando(true); setErro('');
+    const { data, error } = await supabase.from('academy_courses').insert({ titulo: titulo.trim(), slug, publicado: false, ordem: 99 }).select('id').single();
+    if (!error && data) await supabase.from('academy_modules').insert({ course_id: data.id, titulo: 'Módulo 1', ordem: 1 });
     setSalvando(false);
-    if (r.error) return setMsg({ erro: r.error.code === '23505' ? 'Já existe um curso com esse endereço. Troque o slug.' : 'Não foi possível salvar.', ok: '' });
-    setMsg({ erro: '', ok: 'Curso salvo.' });
-    onSalvo(r.data.id as string);
+    if (error) return setErro(error.code === '23505' ? 'Já existe um curso com esse endereço.' : 'Não foi possível criar o curso.');
+    navegar(`/admin/curso/${data.id}?aba=config`, { substituir: true });
   };
 
   return (
-    <form onSubmit={salvar} className="rounded-2xl p-6 md:p-7 space-y-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <h2 className="font-bold text-[18px]" style={display}>Dados do curso</h2>
-      <div className="grid md:grid-cols-2 gap-5">
-        <Rotulo texto="Título">
-          <input className={inputCls} value={titulo} placeholder="Ex.: Planilha no Automático"
-            onChange={e => { setTitulo(e.target.value); if (!slugManual) setSlug(gerarSlug(e.target.value)); }} />
-        </Rotulo>
-        <Rotulo texto="Endereço (slug)" dica={`nexla.com.br/academy/curso/${slug || '...'}`}>
-          <input className={inputCls} value={slug} onChange={e => { setSlugManual(true); setSlug(gerarSlug(e.target.value)); }} />
-        </Rotulo>
-      </div>
-      <Rotulo texto="Subtítulo (promessa curta)">
-        <input className={inputCls} value={subtitulo} placeholder="Ex.: Planilhas e relatórios que se atualizam sozinhos" onChange={e => setSubtitulo(e.target.value)} />
+    <form onSubmit={criar} className="max-w-xl rounded-2xl p-6 md:p-7 space-y-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+      <Rotulo texto="Nome do curso">
+        <input className={inputCls} value={titulo} autoFocus placeholder="Ex.: Planilha no Automático"
+          onChange={e => { setTitulo(e.target.value); if (!manual) setSlug(gerarSlug(e.target.value)); }} />
       </Rotulo>
-      <div className="flex flex-wrap items-end gap-6">
-        <div className="w-32"><Rotulo texto="Ordem na vitrine"><input type="number" className={inputCls} value={ordem} onChange={e => setOrdem(e.target.value)} /></Rotulo></div>
-        <div className="pb-2.5"><Chave ligado={publicado} onChange={setPublicado} texto={publicado ? 'Publicado (aparece para os alunos)' : 'Rascunho (só o admin vê)'} /></div>
-      </div>
-      {msg.erro && <p className="text-[13.5px]" style={{ color: '#B91C1C' }}>{msg.erro}</p>}
-      {msg.ok && <p className="text-[13.5px]" style={{ color: '#15803D' }}>{msg.ok}</p>}
-      <button type="submit" disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : curso ? 'Salvar curso' : 'Criar curso'}</button>
+      <Rotulo texto="Endereço" dica={`nexla.com.br/academy/curso/${slug || '...'}`}>
+        <input className={inputCls} value={slug} onChange={e => { setManual(true); setSlug(gerarSlug(e.target.value)); }} />
+      </Rotulo>
+      <p className="text-[13px]" style={{ color: T.mute }}>O curso nasce como rascunho, com um módulo. Depois você completa foto, descrição e módulos em Configurações.</p>
+      {erro && <p className="text-[13.5px]" style={{ color: '#B91C1C' }}>{erro}</p>}
+      <button type="submit" disabled={salvando} className={botaoPrimario}>{salvando ? 'Criando…' : 'Criar curso'}</button>
     </form>
   );
 }
 
 /* ─── Editor de aula (janela) ────────────────────────────────────── */
-function EditorAula({ aula, onFechar, onSalvo }: { aula: AulaA; onFechar: () => void; onSalvo: () => void }) {
+function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
+  aula: AulaA; modulos: ModuloA[]; moduloAtual: string; onFechar: () => void; onSalvo: () => void;
+}) {
   const [titulo, setTitulo] = useState(aula.titulo);
   const [descricao, setDescricao] = useState(aula.descricao ?? '');
   const [minutos, setMinutos] = useState(String(Math.round(aula.duracao_seg / 60)));
   const [gratuita, setGratuita] = useState(aula.gratuita);
   const [videoId, setVideoId] = useState(aula.video_id ?? '');
+  const [moduloId, setModuloId] = useState(moduloAtual);
   const [materiais, setMateriais] = useState(aula.academy_lesson_materials);
   const [enviando, setEnviando] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -100,10 +112,12 @@ function EditorAula({ aula, onFechar, onSalvo }: { aula: AulaA; onFechar: () => 
   const salvar = async () => {
     if (!titulo.trim()) return setErro('Informe o título da aula.');
     setSalvando(true); setErro('');
+    const destino = modulos.find(m => m.id === moduloId);
     const { error } = await supabase.from('academy_lessons').update({
       titulo: titulo.trim(), descricao: descricao.trim() || null,
       duracao_seg: Math.max(0, Math.round(Number(minutos.replace(',', '.')) * 60) || 0),
       gratuita, video_id: videoId.trim() || null,
+      ...(moduloId !== moduloAtual && destino ? { module_id: moduloId, ordem: destino.academy_lessons.length + 1 } : {}),
     }).eq('id', aula.id);
     setSalvando(false);
     if (error) return setErro('Não foi possível salvar a aula.');
@@ -115,11 +129,11 @@ function EditorAula({ aula, onFechar, onSalvo }: { aula: AulaA; onFechar: () => 
     setEnviando(true); setErro('');
     for (const f of Array.from(arquivos)) {
       const caminho = `${aula.id}/${Date.now()}-${f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_')}`;
-      const up = await supabase.storage.from(BUCKET).upload(caminho, f, { upsert: false });
+      const up = await supabase.storage.from(MATERIAIS).upload(caminho, f, { upsert: false });
       if (up.error) { setErro(`Falha ao enviar "${f.name}" (limite de 50 MB).`); continue; }
       const { data, error } = await supabase.from('academy_lesson_materials')
         .insert({ lesson_id: aula.id, nome: f.name, arquivo: caminho, tamanho: f.size }).select('id, nome, arquivo, tamanho').single();
-      if (error) { await supabase.storage.from(BUCKET).remove([caminho]); setErro(`Falha ao registrar "${f.name}".`); continue; }
+      if (error) { await supabase.storage.from(MATERIAIS).remove([caminho]); setErro(`Falha ao registrar "${f.name}".`); continue; }
       setMateriais(m => [...m, data as Material]);
     }
     setEnviando(false);
@@ -127,7 +141,7 @@ function EditorAula({ aula, onFechar, onSalvo }: { aula: AulaA; onFechar: () => 
 
   const remover = async (m: Material) => {
     if (!window.confirm(`Apagar o material "${m.nome}"?`)) return;
-    await supabase.storage.from(BUCKET).remove([m.arquivo]);
+    await supabase.storage.from(MATERIAIS).remove([m.arquivo]);
     await supabase.from('academy_lesson_materials').delete().eq('id', m.id);
     setMateriais(ms => ms.filter(x => x.id !== m.id));
   };
@@ -143,15 +157,20 @@ function EditorAula({ aula, onFechar, onSalvo }: { aula: AulaA; onFechar: () => 
         <h2 className="font-bold text-[20px] mb-5" style={display}>Editar aula</h2>
         <div className="space-y-5">
           <Rotulo texto="Título da aula"><input className={inputCls} value={titulo} onChange={e => setTitulo(e.target.value)} /></Rotulo>
+          <div className="grid sm:grid-cols-[1fr_9rem] gap-5">
+            <Rotulo texto="Módulo">
+              <select className={inputCls} value={moduloId} onChange={e => setModuloId(e.target.value)}>
+                {modulos.map((m, i) => <option key={m.id} value={m.id}>{i + 1}. {m.titulo}</option>)}
+              </select>
+            </Rotulo>
+            <Rotulo texto="Duração (min)"><input className={inputCls} inputMode="decimal" value={minutos} onChange={e => setMinutos(e.target.value)} /></Rotulo>
+          </div>
+          <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo da biblioteca. O player entra quando o serviço de vídeo for definido.">
+            <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
+          </Rotulo>
           <Rotulo texto="Descrição (aparece abaixo do vídeo)">
             <textarea className="acad-field w-full rounded-[10px] px-3.5 py-3 text-[14.5px] leading-relaxed" rows={4} value={descricao} onChange={e => setDescricao(e.target.value)} />
           </Rotulo>
-          <div className="grid sm:grid-cols-[9rem_1fr] gap-5">
-            <Rotulo texto="Duração (min)"><input className={inputCls} inputMode="decimal" value={minutos} onChange={e => setMinutos(e.target.value)} /></Rotulo>
-            <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo da biblioteca. O player entra quando o serviço de vídeo for definido.">
-              <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
-            </Rotulo>
-          </div>
           <Chave ligado={gratuita} onChange={setGratuita} texto={gratuita ? 'Aula grátis (qualquer conta assiste)' : 'Só para alunos matriculados'} />
 
           <div className="pt-5" style={{ borderTop: `1px solid ${T.rule}` }}>
@@ -186,163 +205,354 @@ function EditorAula({ aula, onFechar, onSalvo }: { aula: AulaA; onFechar: () => 
   );
 }
 
-/* ─── Conteúdo: módulos e aulas ──────────────────────────────────── */
-function Conteudo({ curso, recarregar }: { curso: CursoA; recarregar: () => Promise<void> }) {
-  const [editando, setEditando] = useState<AulaA | null>(null);
+/* ─── Aba Aulas: os vídeos do curso separados por módulo ─────────── */
+function AbaAulas({ curso, recarregar, irConfig }: { curso: CursoA; recarregar: () => Promise<void>; irConfig: () => void }) {
+  const [editando, setEditando] = useState<{ aula: AulaA; modulo: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
-
   const acao = async (fn: () => PromiseLike<unknown>) => { setOcupado(true); await fn(); await recarregar(); setOcupado(false); };
 
-  const novoModulo = () => acao(() => supabase.from('academy_modules').insert({ course_id: curso.id, titulo: 'Novo módulo', ordem: curso.academy_modules.length + 1 }));
-  const renomearModulo = (m: ModuloA, titulo: string) => titulo.trim() && titulo.trim() !== m.titulo
-    && acao(() => supabase.from('academy_modules').update({ titulo: titulo.trim() }).eq('id', m.id));
-  const apagarModulo = (m: ModuloA) => window.confirm(`Apagar o módulo "${m.titulo}" e todas as ${m.academy_lessons.length} aulas dele? O progresso dos alunos nessas aulas também será apagado.`)
-    && acao(() => supabase.from('academy_modules').delete().eq('id', m.id));
   const novaAula = async (m: ModuloA) => {
     setOcupado(true);
     const { data } = await supabase.from('academy_lessons')
       .insert({ module_id: m.id, titulo: 'Nova aula', ordem: m.academy_lessons.length + 1 })
       .select('id, titulo, descricao, ordem, duracao_seg, gratuita, video_id').single();
     await recarregar(); setOcupado(false);
-    if (data) setEditando({ ...(data as Omit<AulaA, 'academy_lesson_materials'>), academy_lesson_materials: [] });
+    if (data) setEditando({ aula: { ...(data as Omit<AulaA, 'academy_lesson_materials'>), academy_lesson_materials: [] }, modulo: m.id });
   };
   const apagarAula = (a: AulaA) => window.confirm(`Apagar a aula "${a.titulo}"? O progresso e os comentários dos alunos nela também serão apagados.`)
     && acao(() => supabase.from('academy_lessons').delete().eq('id', a.id));
 
   const iconeBtn = 'w-8 h-8 rounded-md flex items-center justify-center hover:bg-slate-100 disabled:opacity-30';
 
+  if (curso.academy_modules.length === 0) {
+    return (
+      <div className="rounded-2xl p-10 text-center" style={{ background: T.card, border: `1px dashed ${T.rule}` }}>
+        <Layers size={28} strokeWidth={1.5} className="mx-auto" style={{ color: T.mute }} />
+        <p className="font-semibold mt-3">Crie os módulos do curso primeiro</p>
+        <p className="text-[14px] mt-1" style={{ color: T.mute }}>As aulas ficam organizadas dentro dos módulos.</p>
+        <button onClick={irConfig} className={`${botaoPrimario} mt-5`}><Settings size={16} /> Ir para Configurações → Módulos</button>
+      </div>
+    );
+  }
+
   return (
-    <section className="rounded-2xl p-6 md:p-7" style={{ background: T.card, border: `1px solid ${T.rule}`, opacity: ocupado ? 0.7 : 1 }}>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <h2 className="font-bold text-[18px]" style={display}>Conteúdo</h2>
-        <span className="text-[13px]" style={{ color: T.mute }}>
-          {curso.academy_modules.length} módulos · {curso.academy_modules.reduce((s, m) => s + m.academy_lessons.length, 0)} aulas
-        </span>
-      </div>
-
-      <div className="space-y-4">
-        {curso.academy_modules.map((m, mi) => (
-          <div key={m.id} className="rounded-xl" style={{ border: `1px solid ${T.rule}` }}>
-            <div className="flex items-center gap-2 px-3 py-2.5" style={{ background: '#F8FAFC', borderBottom: `1px solid ${T.rule}` }}>
-              <span className="text-[12.5px] font-semibold w-6 text-center" style={{ color: T.mute }}>{mi + 1}</span>
-              <input defaultValue={m.titulo} key={m.titulo} onBlur={e => renomearModulo(m, e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                className="flex-1 min-w-0 bg-transparent font-semibold text-[15px] px-2 h-9 rounded-md hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                aria-label="Nome do módulo" />
-              <button className={iconeBtn} disabled={mi === 0 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, mi, -1))} aria-label="Subir módulo"><ArrowUp size={15} /></button>
-              <button className={iconeBtn} disabled={mi === curso.academy_modules.length - 1 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, mi, 1))} aria-label="Descer módulo"><ArrowDown size={15} /></button>
-              <button className={iconeBtn} disabled={ocupado} onClick={() => apagarModulo(m)} aria-label="Apagar módulo" style={{ color: '#B91C1C' }}><Trash2 size={15} /></button>
+    <div className="space-y-5" style={{ opacity: ocupado ? 0.7 : 1 }}>
+      {curso.academy_modules.map((m, mi) => (
+        <section key={m.id} className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5" style={{ background: '#F8FAFC', borderBottom: `1px solid ${T.rule}` }}>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: T.accent }}>Módulo {mi + 1}</p>
+              <h3 className="font-bold text-[16px] truncate" style={display}>{m.titulo}</h3>
             </div>
-
-            <ul>
-              {m.academy_lessons.map((a, ai) => (
-                <li key={a.id} className="flex items-center gap-2 px-3 py-2" style={ai ? { borderTop: `1px solid ${T.rule}` } : undefined}>
-                  <span className="text-[12px] w-6 text-center" style={{ color: '#94A3B8' }}>{mi + 1}.{ai + 1}</span>
-                  <button onClick={() => setEditando(a)} className="flex-1 min-w-0 text-left px-2 py-1 rounded-md hover:bg-slate-50">
-                    <span className="block text-[14px] truncate" style={{ color: T.ink }}>{a.titulo}</span>
-                    <span className="flex flex-wrap items-center gap-x-2.5 text-[12px]" style={{ color: T.mute }}>
-                      {Math.round(a.duracao_seg / 60)} min
-                      {a.gratuita && <span style={{ color: T.accent }}>grátis</span>}
-                      <span className="inline-flex items-center gap-1" style={{ color: a.video_id ? '#15803D' : '#B45309' }}>
-                        <Video size={12} /> {a.video_id ? 'com vídeo' : 'sem vídeo'}
-                      </span>
-                      {a.academy_lesson_materials.length > 0 && <span className="inline-flex items-center gap-1"><Paperclip size={12} /> {a.academy_lesson_materials.length}</span>}
-                    </span>
-                  </button>
-                  <button className={iconeBtn} disabled={ai === 0 || ocupado} onClick={() => acao(() => mover('academy_lessons', m.academy_lessons, ai, -1))} aria-label="Subir aula"><ArrowUp size={15} /></button>
-                  <button className={iconeBtn} disabled={ai === m.academy_lessons.length - 1 || ocupado} onClick={() => acao(() => mover('academy_lessons', m.academy_lessons, ai, 1))} aria-label="Descer aula"><ArrowDown size={15} /></button>
-                  <button className={iconeBtn} onClick={() => setEditando(a)} aria-label="Editar aula" style={{ color: T.accent }}><Pencil size={14} /></button>
-                  <button className={iconeBtn} disabled={ocupado} onClick={() => apagarAula(a)} aria-label="Apagar aula" style={{ color: '#B91C1C' }}><Trash2 size={15} /></button>
-                </li>
-              ))}
-            </ul>
-            <div className="px-3 py-2.5" style={{ borderTop: `1px solid ${T.rule}` }}>
-              <button disabled={ocupado} onClick={() => novaAula(m)} className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold px-2 h-8 rounded-md hover:bg-slate-50" style={{ color: T.accent }}>
-                <Plus size={15} strokeWidth={2} /> Adicionar aula
-              </button>
-            </div>
+            <span className="text-[12.5px] shrink-0" style={{ color: T.mute }}>{m.academy_lessons.length} aula{m.academy_lessons.length === 1 ? '' : 's'}</span>
           </div>
-        ))}
-      </div>
 
-      <button disabled={ocupado} onClick={novoModulo} className={`${botaoSecundario} mt-4 w-full`} style={{ color: T.accent, border: '1px dashed rgba(79,70,229,0.4)' }}>
-        <Plus size={16} strokeWidth={2} /> Adicionar módulo
-      </button>
+          {m.academy_lessons.length === 0 && <p className="px-5 py-4 text-[13.5px]" style={{ color: T.mute }}>Nenhuma aula neste módulo.</p>}
+          <ul>
+            {m.academy_lessons.map((a, ai) => (
+              <li key={a.id} className="flex items-center gap-3 px-4 py-2.5" style={ai ? { borderTop: `1px solid ${T.rule}` } : undefined}>
+                <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: a.video_id ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.12)', color: a.video_id ? '#15803D' : '#B45309' }}
+                  title={a.video_id ? 'Com vídeo' : 'Sem vídeo'}>
+                  <Video size={16} strokeWidth={1.75} />
+                </span>
+                <button onClick={() => setEditando({ aula: a, modulo: m.id })} className="flex-1 min-w-0 text-left">
+                  <span className="block text-[14.5px] font-medium truncate" style={{ color: T.ink }}>{ai + 1}. {a.titulo}</span>
+                  <span className="flex flex-wrap items-center gap-x-2.5 text-[12px]" style={{ color: T.mute }}>
+                    {Math.round(a.duracao_seg / 60)} min
+                    {a.gratuita && <span className="font-semibold" style={{ color: T.accent }}>grátis</span>}
+                    {!a.video_id && <span style={{ color: '#B45309' }}>sem vídeo</span>}
+                    {a.academy_lesson_materials.length > 0 && <span className="inline-flex items-center gap-1"><Paperclip size={12} /> {a.academy_lesson_materials.length}</span>}
+                  </span>
+                </button>
+                <button className={iconeBtn} disabled={ai === 0 || ocupado} onClick={() => acao(() => mover('academy_lessons', m.academy_lessons, ai, -1))} aria-label="Subir aula"><ArrowUp size={15} /></button>
+                <button className={iconeBtn} disabled={ai === m.academy_lessons.length - 1 || ocupado} onClick={() => acao(() => mover('academy_lessons', m.academy_lessons, ai, 1))} aria-label="Descer aula"><ArrowDown size={15} /></button>
+                <button className={iconeBtn} onClick={() => setEditando({ aula: a, modulo: m.id })} aria-label="Editar aula" style={{ color: T.accent }}><Pencil size={14} /></button>
+                <button className={iconeBtn} disabled={ocupado} onClick={() => apagarAula(a)} aria-label="Apagar aula" style={{ color: '#B91C1C' }}><Trash2 size={15} /></button>
+              </li>
+            ))}
+          </ul>
+          <div className="px-4 py-3" style={{ borderTop: `1px solid ${T.rule}` }}>
+            <button disabled={ocupado} onClick={() => novaAula(m)} className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold px-2 h-8 rounded-md hover:bg-slate-50" style={{ color: T.accent }}>
+              <Plus size={15} strokeWidth={2} /> Adicionar aula neste módulo
+            </button>
+          </div>
+        </section>
+      ))}
 
       <AnimatePresence>
-        {editando && <EditorAula key={editando.id} aula={editando} onFechar={() => setEditando(null)}
-          onSalvo={async () => { setEditando(null); await recarregar(); }} />}
+        {editando && <EditorAula key={editando.aula.id} aula={editando.aula} modulos={curso.academy_modules} moduloAtual={editando.modulo}
+          onFechar={() => setEditando(null)} onSalvo={async () => { setEditando(null); await recarregar(); }} />}
       </AnimatePresence>
-    </section>
+    </div>
   );
 }
 
-/* ─── Página ─────────────────────────────────────────────────────── */
-function Editor({ nome, id }: { nome: string; id: string }) {
-  const novo = id === 'novo';
-  const [curso, setCurso] = useState<CursoA | null | 'erro'>(null);
-  const [carregando, setCarregando] = useState(!novo);
+/* ─── Aba Configurações ──────────────────────────────────────────── */
+function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Promise<void> }) {
+  const [f, setF] = useState({
+    titulo: curso.titulo, slug: curso.slug, subtitulo: curso.subtitulo ?? '', descricao: curso.descricao ?? '',
+    categoria: curso.categoria ?? '', nivel: curso.nivel ?? '', instrutor: curso.instrutor ?? '',
+    aprendizados: curso.aprendizados.join('\n'), publicado: curso.publicado, destaque: curso.destaque,
+    ordem: String(curso.ordem), certificado: curso.certificado, carga: curso.carga_horaria_h ? String(curso.carga_horaria_h) : '',
+  });
+  const [salvando, setSalvando] = useState(false);
+  const [msg, setMsg] = useState({ erro: '', ok: '' });
+  const [enviandoCapa, setEnviandoCapa] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const muda = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }));
 
-  const recarregar = useCallback(async () => {
-    if (novo) return;
-    const { data, error } = await supabase.from('academy_courses').select(SELECT).eq('id', id).maybeSingle();
-    setCurso(error || !data ? 'erro' : ordenar(data as unknown as CursoA));
-    setCarregando(false);
-  }, [id, novo]);
+  const salvar = async () => {
+    if (!f.titulo.trim() || !f.slug) return setMsg({ erro: 'Nome e endereço são obrigatórios.', ok: '' });
+    setSalvando(true); setMsg({ erro: '', ok: '' });
+    const { error } = await supabase.from('academy_courses').update({
+      titulo: f.titulo.trim(), slug: f.slug, subtitulo: f.subtitulo.trim() || null, descricao: f.descricao.trim() || null,
+      categoria: f.categoria.trim() || null, nivel: f.nivel || null, instrutor: f.instrutor.trim() || null,
+      aprendizados: f.aprendizados.split('\n').map(s => s.trim()).filter(Boolean),
+      publicado: f.publicado, destaque: f.destaque, ordem: Number(f.ordem) || 0,
+      certificado: f.certificado, carga_horaria_h: Number(f.carga) > 0 ? Math.round(Number(f.carga)) : null,
+    }).eq('id', curso.id);
+    setSalvando(false);
+    if (error) return setMsg({ erro: error.code === '23505' ? 'Já existe outro curso com esse endereço.' : 'Não foi possível salvar. Confira se o 010_config_curso.sql foi rodado.', ok: '' });
+    setMsg({ erro: '', ok: 'Configurações salvas.' });
+    await recarregar();
+  };
 
-  useEffect(() => { recarregar(); }, [recarregar]);
+  const trocarCapa = async (arquivo: File | undefined) => {
+    if (!arquivo) return;
+    if (arquivo.size > 5 * 1024 * 1024) return setMsg({ erro: 'A foto pode ter no máximo 5 MB.', ok: '' });
+    setEnviandoCapa(true); setMsg({ erro: '', ok: '' });
+    const ext = arquivo.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const caminho = `${curso.id}/capa-${Date.now()}.${ext}`;
+    const up = await supabase.storage.from(CAPAS).upload(caminho, arquivo, { upsert: true, contentType: arquivo.type });
+    if (up.error) { setEnviandoCapa(false); return setMsg({ erro: 'Não foi possível enviar a foto (JPG, PNG ou WebP até 5 MB).', ok: '' }); }
+    const url = supabase.storage.from(CAPAS).getPublicUrl(caminho).data.publicUrl;
+    await supabase.from('academy_courses').update({ capa: url }).eq('id', curso.id);
+    if (curso.capa?.includes(`/${CAPAS}/`)) await supabase.storage.from(CAPAS).remove([curso.capa.split(`/${CAPAS}/`)[1]]);
+    setEnviandoCapa(false);
+    await recarregar();
+  };
+  const tirarCapa = async () => {
+    if (!curso.capa || !window.confirm('Remover a foto do curso?')) return;
+    if (curso.capa.includes(`/${CAPAS}/`)) await supabase.storage.from(CAPAS).remove([curso.capa.split(`/${CAPAS}/`)[1]]);
+    await supabase.from('academy_courses').update({ capa: null }).eq('id', curso.id);
+    await recarregar();
+  };
+
+  // Módulos
+  const acao = async (fn: () => PromiseLike<unknown>) => { setOcupado(true); await fn(); await recarregar(); setOcupado(false); };
+  const novoModulo = () => acao(() => supabase.from('academy_modules').insert({ course_id: curso.id, titulo: `Módulo ${curso.academy_modules.length + 1}`, ordem: curso.academy_modules.length + 1 }));
+  const renomear = (m: ModuloA, t: string) => t.trim() && t.trim() !== m.titulo && acao(() => supabase.from('academy_modules').update({ titulo: t.trim() }).eq('id', m.id));
+  const apagarModulo = (m: ModuloA) => window.confirm(m.academy_lessons.length
+    ? `Apagar o módulo "${m.titulo}" e as ${m.academy_lessons.length} aulas dele? O progresso dos alunos nessas aulas também será apagado.`
+    : `Apagar o módulo "${m.titulo}"?`) && acao(() => supabase.from('academy_modules').delete().eq('id', m.id));
 
   const apagarCurso = async () => {
-    if (!curso || curso === 'erro') return;
     const conf = window.prompt(`Isso apaga o curso, todas as aulas, matrículas e o progresso dos alunos.\nPara confirmar, digite o endereço do curso: ${curso.slug}`);
     if (conf !== curso.slug) return;
     await supabase.from('academy_courses').delete().eq('id', curso.id);
-    navegar('/admin');
+    navegar('/admin/cursos');
   };
 
+  const iconeBtn = 'w-8 h-8 rounded-md flex items-center justify-center hover:bg-slate-100 disabled:opacity-30';
+
   return (
-    <AppLayout nome={nome}>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="space-y-6">
-        <div>
-          <Link para="/admin" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-4 hover:underline underline-offset-4" style={{ color: T.mute }}>
-            <ArrowLeft size={15} strokeWidth={1.75} /> Todos os cursos
-          </Link>
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-            <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(24px,3vw,32px)' }}>
-              {novo ? 'Novo curso' : curso && curso !== 'erro' ? curso.titulo : 'Editar curso'}
-            </h1>
-            {curso && curso !== 'erro' && (
-              <Link para={`/curso/${curso.slug}`} className="inline-flex items-center gap-1.5 text-[14px] font-semibold" style={{ color: T.accent }}>
-                <Eye size={15} strokeWidth={1.75} /> Ver como aluno
-              </Link>
-            )}
+    <div className="space-y-5">
+      <Cartao titulo="Foto do curso" sub="Aparece nos blocos da vitrine e do painel. Use uma imagem horizontal (16:9), JPG, PNG ou WebP até 5 MB.">
+        <div className="flex flex-col sm:flex-row gap-5 items-start">
+          <div className="w-full sm:w-72 aspect-[16/9] rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ background: CAPA_PADRAO }}>
+            {curso.capa ? <img src={curso.capa} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={28} strokeWidth={1.5} style={{ color: 'rgba(224,231,255,0.5)' }} />}
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <label className={`${botaoSecundario} cursor-pointer`} style={{ color: T.ink, border: `1px solid ${T.rule}` }}>
+              <Upload size={16} strokeWidth={1.75} /> {enviandoCapa ? 'Enviando…' : curso.capa ? 'Trocar foto' : 'Enviar foto'}
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={enviandoCapa}
+                onChange={e => { trocarCapa(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
+            {curso.capa && <button onClick={tirarCapa} className="text-[13.5px] font-medium text-left px-1 hover:underline underline-offset-4" style={{ color: '#B91C1C' }}>Remover foto</button>}
           </div>
         </div>
+      </Cartao>
 
-        {carregando ? <Carregando /> : curso === 'erro' ? (
-          <p className="text-[14.5px]" style={{ color: '#B91C1C' }}>Curso não encontrado.</p>
-        ) : (
-          <>
-            <FormCurso key={curso?.id ?? 'novo'} curso={curso} onSalvo={nid => (novo ? navegar(`/admin/curso/${nid}`, { substituir: true }) : recarregar())} />
-            {curso && <Conteudo curso={curso} recarregar={recarregar} />}
-            {curso && (
-              <section className="rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ border: '1px solid rgba(185,28,28,0.25)' }}>
-                <div>
-                  <p className="font-semibold text-[15px]" style={{ color: '#B91C1C' }}>Apagar curso</p>
-                  <p className="text-[13.5px]" style={{ color: T.mute }}>Remove o curso, as aulas, as matrículas e o progresso dos alunos. Para só esconder, deixe como rascunho.</p>
-                </div>
-                <button onClick={apagarCurso} className={botaoSecundario} style={{ color: '#B91C1C', border: '1px solid rgba(185,28,28,0.3)' }}>
-                  <Trash2 size={15} strokeWidth={1.75} /> Apagar curso
-                </button>
-              </section>
-            )}
-          </>
-        )}
+      <Cartao titulo="Informações" sub="Nome, endereço e os textos que o aluno lê sobre o curso.">
+        <div className="space-y-5">
+          <div className="grid md:grid-cols-2 gap-5">
+            <Rotulo texto="Nome do curso"><input className={inputCls} value={f.titulo} onChange={e => muda('titulo', e.target.value)} /></Rotulo>
+            <Rotulo texto="Endereço" dica={`nexla.com.br/academy/curso/${f.slug}`}>
+              <input className={inputCls} value={f.slug} onChange={e => muda('slug', gerarSlug(e.target.value))} />
+            </Rotulo>
+          </div>
+          <Rotulo texto="Promessa curta (subtítulo)" dica="Uma frase. Aparece embaixo do nome nos blocos.">
+            <input className={inputCls} value={f.subtitulo} onChange={e => muda('subtitulo', e.target.value)} />
+          </Rotulo>
+          <Rotulo texto="Sobre o curso" dica="Texto completo: para quem é, o que resolve, como funciona.">
+            <textarea className="acad-field w-full rounded-[10px] px-3.5 py-3 text-[14.5px] leading-relaxed" rows={5} value={f.descricao} onChange={e => muda('descricao', e.target.value)} />
+          </Rotulo>
+          <Rotulo texto="O que o aluno vai aprender" dica="Um item por linha.">
+            <textarea className="acad-field w-full rounded-[10px] px-3.5 py-3 text-[14.5px] leading-relaxed" rows={4} value={f.aprendizados}
+              placeholder={'Montar um agente de atendimento no WhatsApp\nAutomatizar confirmações de agenda'} onChange={e => muda('aprendizados', e.target.value)} />
+          </Rotulo>
+          <div className="grid md:grid-cols-3 gap-5">
+            <Rotulo texto="Categoria"><input className={inputCls} value={f.categoria} placeholder="Ex.: Atendimento" onChange={e => muda('categoria', e.target.value)} /></Rotulo>
+            <Rotulo texto="Nível">
+              <select className={inputCls} value={f.nivel} onChange={e => muda('nivel', e.target.value)}>
+                {NIVEIS.map(n => <option key={n.v} value={n.v}>{n.t}</option>)}
+              </select>
+            </Rotulo>
+            <Rotulo texto="Instrutor"><input className={inputCls} value={f.instrutor} onChange={e => muda('instrutor', e.target.value)} /></Rotulo>
+          </div>
+        </div>
+      </Cartao>
+
+      <Cartao titulo="Módulos" sub="As partes do curso. As aulas de cada módulo você organiza na aba Aulas.">
+        <ul className="space-y-2" style={{ opacity: ocupado ? 0.6 : 1 }}>
+          {curso.academy_modules.map((m, i) => (
+            <li key={m.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5" style={{ border: `1px solid ${T.rule}` }}>
+              <span className="text-[12.5px] font-semibold w-7 text-center" style={{ color: T.mute }}>{i + 1}</span>
+              <input defaultValue={m.titulo} key={m.titulo} onBlur={e => renomear(m, e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                className="flex-1 min-w-0 bg-transparent font-medium text-[14.5px] px-2 h-9 rounded-md hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                aria-label="Nome do módulo" />
+              <span className="text-[12px] shrink-0 hidden sm:block" style={{ color: T.mute }}>{m.academy_lessons.length} aulas</span>
+              <button className={iconeBtn} disabled={i === 0 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, i, -1))} aria-label="Subir módulo"><ArrowUp size={15} /></button>
+              <button className={iconeBtn} disabled={i === curso.academy_modules.length - 1 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, i, 1))} aria-label="Descer módulo"><ArrowDown size={15} /></button>
+              <button className={iconeBtn} disabled={ocupado} onClick={() => apagarModulo(m)} aria-label="Apagar módulo" style={{ color: '#B91C1C' }}><Trash2 size={15} /></button>
+            </li>
+          ))}
+        </ul>
+        <button disabled={ocupado} onClick={novoModulo} className={`${botaoSecundario} mt-3`} style={{ color: T.accent, border: '1px dashed rgba(79,70,229,0.4)' }}>
+          <Plus size={16} strokeWidth={2} /> Adicionar módulo
+        </button>
+        <p className="text-[12.5px] mt-2" style={{ color: T.mute }}>Clique no nome para renomear. Salva sozinho ao sair do campo.</p>
+      </Cartao>
+
+      <Cartao titulo="Vitrine e publicação" sub="Rascunho: só o admin vê. Publicado: aparece em Explorar cursos.">
+        <div className="space-y-4">
+          <Chave ligado={f.publicado} onChange={v => muda('publicado', v)} texto={f.publicado ? 'Publicado' : 'Rascunho'} />
+          <Chave ligado={f.destaque} onChange={v => muda('destaque', v)} texto="Curso em destaque (selo na vitrine)" />
+          <div className="w-40"><Rotulo texto="Ordem na vitrine" dica="Menor aparece primeiro."><input type="number" className={inputCls} value={f.ordem} onChange={e => muda('ordem', e.target.value)} /></Rotulo></div>
+        </div>
+      </Cartao>
+
+      <Cartao titulo="Certificado" sub="O certificado libera quando o aluno conclui 90% das aulas.">
+        <div className="space-y-4">
+          <Chave ligado={f.certificado} onChange={v => muda('certificado', v)} texto={f.certificado ? 'Este curso emite certificado' : 'Sem certificado'} />
+          {f.certificado && (
+            <div className="w-56">
+              <Rotulo texto="Carga horária (horas)" dica={`Vazio = soma das aulas (${horasAulas(curso)}h).`}>
+                <input type="number" min={1} className={inputCls} value={f.carga} placeholder={String(horasAulas(curso))} onChange={e => muda('carga', e.target.value)} />
+              </Rotulo>
+            </div>
+          )}
+        </div>
+      </Cartao>
+
+      <div className="sticky bottom-4 z-10 rounded-2xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        style={{ background: 'rgba(255,255,255,0.95)', border: `1px solid ${T.rule}`, boxShadow: '0 12px 30px -16px rgba(15,23,42,0.35)', backdropFilter: 'blur(8px)' }}>
+        <span className="text-[13.5px]" style={{ color: msg.erro ? '#B91C1C' : msg.ok ? '#15803D' : T.mute }}>
+          {msg.erro || msg.ok || 'Informações, vitrine e certificado são salvos neste botão. Foto e módulos salvam na hora.'}
+        </span>
+        <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar configurações'}</button>
+      </div>
+
+      <Cartao titulo="Apagar curso" sub="Remove o curso, as aulas, as matrículas e o progresso dos alunos. Para só esconder, deixe como rascunho." perigo>
+        <button onClick={apagarCurso} className={botaoSecundario} style={{ color: '#B91C1C', border: '1px solid rgba(185,28,28,0.3)' }}>
+          <Trash2 size={15} strokeWidth={1.75} /> Apagar curso
+        </button>
+      </Cartao>
+    </div>
+  );
+}
+
+/* ─── Página do curso no admin: cabeçalho + abas ─────────────────── */
+function Editor({ nome, id }: { nome: string; id: string }) {
+  const [curso, setCurso] = useState<CursoA | 'erro' | null>(null);
+  const [aba, setAba] = useState<'aulas' | 'config'>(parametro('aba') === 'config' ? 'config' : 'aulas');
+
+  const recarregar = useCallback(async () => {
+    const { data, error } = await supabase.from('academy_courses').select(SELECT).eq('id', id).maybeSingle();
+    setCurso(error || !data ? 'erro' : ordenar(data as unknown as CursoA));
+  }, [id]);
+  useEffect(() => { recarregar(); }, [recarregar]);
+
+  const trocarAba = (a: 'aulas' | 'config') => { setAba(a); navegar(`/admin/curso/${id}${a === 'config' ? '?aba=config' : ''}`, { substituir: true }); };
+
+  if (!curso) return <AdminLayout nome={nome}><Carregando /></AdminLayout>;
+  if (curso === 'erro') {
+    return (
+      <AdminLayout nome={nome}>
+        <p className="text-[14.5px]" style={{ color: '#B91C1C' }}>Não foi possível abrir o curso. Confira se o <strong>010_config_curso.sql</strong> foi rodado no Supabase.</p>
+        <Link para="/admin/cursos" className="inline-block mt-4 font-semibold" style={{ color: T.accent }}>Voltar para os cursos</Link>
+      </AdminLayout>
+    );
+  }
+
+  const ABAS = [
+    { id: 'aulas' as const,  icone: ListVideo, texto: `Aulas (${totalAulas(curso)})` },
+    { id: 'config' as const, icone: Settings,  texto: 'Configurações' },
+  ];
+
+  return (
+    <AdminLayout nome={nome}>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
+        <Link para="/admin/cursos" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-5 hover:underline underline-offset-4" style={{ color: T.mute }}>
+          <ArrowLeft size={15} strokeWidth={1.75} /> Todos os cursos
+        </Link>
+
+        {/* Cabeçalho do curso */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 mb-6">
+          <div className="w-full sm:w-44 aspect-[16/9] rounded-xl overflow-hidden flex items-center justify-center shrink-0" style={{ background: CAPA_PADRAO }}>
+            {curso.capa ? <img src={curso.capa} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={22} strokeWidth={1.5} style={{ color: 'rgba(224,231,255,0.5)' }} />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(22px,2.8vw,30px)' }}>{curso.titulo}</h1>
+              <span className="text-[11.5px] font-bold px-2.5 py-1 rounded-full"
+                style={curso.publicado ? { background: '#DCFCE7', color: '#15803D' } : { background: 'rgba(15,23,42,0.06)', color: T.mute }}>
+                {curso.publicado ? 'Publicado' : 'Rascunho'}
+              </span>
+            </div>
+            <p className="text-[13.5px] mt-1" style={{ color: T.mute }}>
+              {curso.academy_modules.length} módulos · {totalAulas(curso)} aulas · {horasAulas(curso)}h de conteúdo
+            </p>
+          </div>
+          <Link para={`/curso/${curso.slug}`} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold shrink-0 hover:bg-white"
+            style={{ color: T.accent, border: '1px solid rgba(79,70,229,0.3)' }}>
+            <Eye size={15} strokeWidth={1.75} /> Ver como aluno
+          </Link>
+        </div>
+
+        {/* Abas */}
+        <div className="flex gap-1 mb-6" role="tablist" style={{ borderBottom: `1px solid ${T.rule}` }}>
+          {ABAS.map(a => (
+            <button key={a.id} role="tab" aria-selected={aba === a.id} onClick={() => trocarAba(a.id)}
+              className="inline-flex items-center gap-2 px-4 h-11 text-[14.5px] font-semibold -mb-px transition-colors"
+              style={{ color: aba === a.id ? T.accent : T.mute, borderBottom: `2px solid ${aba === a.id ? T.accent : 'transparent'}` }}>
+              <a.icone size={16} strokeWidth={1.75} /> {a.texto}
+            </button>
+          ))}
+        </div>
+
+        {aba === 'aulas'
+          ? <AbaAulas curso={curso} recarregar={recarregar} irConfig={() => trocarAba('config')} />
+          : <AbaConfig key={curso.id} curso={curso} recarregar={recarregar} />}
       </motion.div>
-    </AppLayout>
+    </AdminLayout>
   );
 }
 
 export default function AdminCurso({ sessao, id }: { sessao: Session; id: string }) {
-  return <SoAdmin sessao={sessao}>{nome => <Editor key={id} nome={nome} id={id} />}</SoAdmin>;
+  return (
+    <SoAdmin sessao={sessao}>
+      {nome => id === 'novo' ? (
+        <AdminLayout nome={nome}>
+          <Link para="/admin/cursos" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-5 hover:underline underline-offset-4" style={{ color: T.mute }}>
+            <ArrowLeft size={15} strokeWidth={1.75} /> Todos os cursos
+          </Link>
+          <h1 className="font-bold leading-tight mb-6" style={{ ...display, fontSize: 'clamp(24px,3vw,32px)' }}>Novo curso</h1>
+          <NovoCurso />
+        </AdminLayout>
+      ) : <Editor key={id} nome={nome} id={id} />}
+    </SoAdmin>
+  );
 }

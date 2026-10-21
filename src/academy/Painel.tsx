@@ -108,8 +108,8 @@ export default function Painel({ sessao }: { sessao: Session }) {
                 const concluido = c.percentual >= 100;
                 return (
                   <article key={c.id} className="rounded-2xl overflow-hidden flex flex-col" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-                    <div className="h-28 px-6 flex items-end pb-4 relative"
-                      style={{ background: `linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})` }}>
+                    <div className="h-28 px-6 flex items-end pb-4 relative bg-cover bg-center"
+                      style={{ backgroundImage: c.capa ? `linear-gradient(to top, rgba(15,23,42,0.55), transparent 60%), url("${c.capa}")` : `linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})` }}>
                       <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.14)', color: '#E0E7FF' }}>
                         {c.academy_modules.length} módulos · {c.aulas.length} aulas
                       </span>

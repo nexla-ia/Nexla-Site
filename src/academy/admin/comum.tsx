@@ -1,10 +1,75 @@
 import { useEffect, useState } from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { BarChart3, BookOpen, LogOut, MessagesSquare, ShieldAlert } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
-import { T, display } from '../ui';
+import { T, LOGO, display } from '../ui';
 import { AppLayout, Carregando } from '../AppLayout';
-import { Link } from '../router';
+import { Link, navegar, useRota } from '../router';
 import { supabase } from '../supabase';
+
+/* Seções da área admin */
+const SECOES = [
+  { para: '/admin',            texto: 'Visão geral', icone: BarChart3,      ativo: (r: string) => r === '/admin' },
+  { para: '/admin/cursos',     texto: 'Cursos',      icone: BookOpen,       ativo: (r: string) => r.startsWith('/admin/curso') },
+  { para: '/admin/comunidade', texto: 'Comunidade',  icone: MessagesSquare, ativo: (r: string) => r === '/admin/comunidade' },
+];
+
+/* Layout da área admin: topo próprio (sem as telas de aluno) com as 3 seções */
+export function AdminLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
+  const rota = useRota();
+  const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
+  return (
+    <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center gap-4">
+          <Link para="/admin" className="inline-flex items-center gap-2.5 shrink-0">
+            <img src={LOGO} alt="" className="w-8 h-8 object-contain" />
+            <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
+            <span className="text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md" style={{ background: T.dark, color: '#FFFFFF' }}>Admin</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-1 ml-6">
+            {SECOES.map(s => {
+              const ativo = s.ativo(rota);
+              return (
+                <Link key={s.para} para={s.para} className="inline-flex items-center gap-2 px-3.5 h-9 rounded-lg text-[14px] font-medium transition-colors hover:bg-slate-100"
+                  style={{ color: ativo ? T.ink : T.mute, background: ativo ? 'rgba(79,70,229,0.08)' : undefined }}>
+                  <s.icone size={16} strokeWidth={1.75} /> {s.texto}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden sm:block text-[14px] font-medium max-w-[12rem] truncate" style={{ color: T.ink2 }}>{nome}</span>
+            <button onClick={sair} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-red-50" style={{ color: '#B91C1C' }}>
+              <LogOut size={15} strokeWidth={1.75} /> Sair
+            </button>
+          </div>
+        </div>
+        {/* Celular: seções numa faixa logo abaixo do topo */}
+        <nav className="md:hidden flex gap-1 px-4 pb-2 overflow-x-auto">
+          {SECOES.map(s => (
+            <Link key={s.para} para={s.para} className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[13.5px] font-medium whitespace-nowrap"
+              style={{ color: s.ativo(rota) ? T.ink : T.mute, background: s.ativo(rota) ? 'rgba(79,70,229,0.08)' : undefined }}>
+              <s.icone size={15} strokeWidth={1.75} /> {s.texto}
+            </Link>
+          ))}
+        </nav>
+      </header>
+      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 md:py-10">{children}</main>
+    </div>
+  );
+}
+
+export function TituloAdmin({ titulo, sub, acao }: { titulo: string; sub?: string; acao?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <div>
+        <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(26px,3.2vw,34px)' }}>{titulo}</h1>
+        {sub && <p className="text-[15px] mt-1.5" style={{ color: T.mute }}>{sub}</p>}
+      </div>
+      {acao}
+    </div>
+  );
+}
 
 /* Papel do usuário logado: undefined = carregando */
 export function usePapel(sessao: Session | null | undefined) {
@@ -40,7 +105,10 @@ export function SoAdmin({ sessao, children }: { sessao: Session; children: (nome
 export const gerarSlug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/×/g, 'x').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
-export const inputCls = 'acad-field w-full h-11 rounded-[10px] px-3.5 text-[14.5px]';
+/* Fundo usado quando o curso ainda não tem foto de capa */
+export const CAPA_PADRAO = `linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})`;
+
+export const inputCls ='acad-field w-full h-11 rounded-[10px] px-3.5 text-[14.5px]';
 
 export function Rotulo({ texto, children, dica }: { texto: string; children: React.ReactNode; dica?: string }) {
   return (

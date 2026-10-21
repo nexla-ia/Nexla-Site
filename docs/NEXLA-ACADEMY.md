@@ -29,7 +29,7 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 | `Explorar.tsx` | Vitrine de todos os cursos publicados |
 | `Perfil.tsx` | Dados pessoais, senha e pedido de exclusão (LGPD) |
 | `Comunidade.tsx`, `Avaliacao.tsx` | Comentários por aula e avaliação do curso com estrelas |
-| `admin/` | Painel admin: lista de cursos e editor de curso, módulos, aulas e materiais |
+| `admin/` | Área admin (só para `role = 'admin'`): **Visão geral** (alunos por curso, progresso, notas, cadastros), **Cursos** (blocos; cada curso com as abas Aulas e Configurações: foto, textos, módulos, vitrine, certificado) e **Comunidade** (comentários das aulas, com resposta como instrutor, e avaliações dos cursos) |
 
 ### Regras importantes (seguem o briefing)
 
@@ -38,6 +38,7 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 - O certificado libera com **90% das aulas concluídas** (regra ainda em definição no briefing).
 - Comentários: **só quem escreveu pode apagar**, nem o admin.
 - Avaliação: aparece **uma vez por curso**, ao concluir. Fechar no X não pergunta de novo.
+- **Conta admin usa só a área admin** (`/academy/admin`). Ao entrar, vai direto para lá; a única tela de aluno liberada é o "Ver como aluno" (`/curso/:slug`), com todas as aulas abertas. Admin não conta como aluno nos números.
 
 ## Como rodar no computador
 
@@ -57,8 +58,10 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 | `004_cursos_demo.sql` | 7 cursos `demo-*` só para ver a vitrine cheia. **Apagar antes de lançar:** `delete from public.academy_courses where slug like 'demo-%';` | rodado |
 | `005_comunidade.sql` | Comentários e respostas por aula | rodado |
 | `006_avaliacoes.sql` | Avaliações com estrelas e média por curso | rodado |
-| `007_admin.sql` | Permissões de admin, tabela de materiais e bucket `academy-materiais` | **falta rodar** |
-| `008_tornar_admin.sql` / `009_tornar_aluno.sql` | Alterna a conta de teste entre admin e aluno | **falta rodar o 008** para testar o admin |
+| `007_admin.sql` | Permissões de admin, tabela de materiais e bucket `academy-materiais` | rodado |
+| `008_tornar_admin.sql` / `009_tornar_aluno.sql` | Alterna a conta de teste entre admin e aluno | rodado (conta de teste está como admin) |
+| `010_config_curso.sql` | Campos de configuração do curso (descrição, categoria, nível, destaque, certificado, carga horária) e bucket `academy-capas` | rodado |
+| `011_admin_visao.sql` | Admin passa a ler perfis, progresso, matrículas e avaliações (Visão geral e Comunidade) | **conferir se foi rodado** |
 
 Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" reflete o que foi informado nesta etapa. Confira no Supabase antes de seguir.
 
@@ -132,7 +135,7 @@ Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" ref
 
 ## Próximo passo sugerido
 
-1. Rodar o `007` e o `008` e testar o painel admin.
+1. Conferir se o `011` foi rodado (a Visão geral só mostra os números de todos os alunos depois dele).
 2. Fazer as configurações pendentes (Vercel e Redirect URLs).
 3. Decidir o serviço de vídeo e montar o player com link assinado (fase 2).
 4. Seguir para a venda com o Asaas (fase 4).

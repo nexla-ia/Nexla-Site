@@ -97,7 +97,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
       if (!c) return setDados('nao-encontrado');
       const curso = organizar(c as unknown as CursoT);
       const [perfil, mat, prog, sugestao, review] = await Promise.all([
-        supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle(),
+        supabase.from('academy_profiles').select('nome, role').eq('id', uid).maybeSingle(),
         supabase.from('academy_enrollments').select('ativo').eq('course_id', curso.id).eq('user_id', uid).maybeSingle(),
         supabase.from('academy_lesson_progress').select('lesson_id').eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
         buscarSugestao(curso.id),
@@ -107,7 +107,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
       setDados({
         nome: (perfil.data?.nome as string | undefined) || sessao.user.email || '',
         curso,
-        matriculado: !!mat.data?.ativo,
+        matriculado: !!mat.data?.ativo || perfil.data?.role === 'admin', // admin vê tudo no "Ver como aluno"
         feitas: new Set((prog.data ?? []).map(p => p.lesson_id as string)),
         sugestao,
         avaliacaoPendente: !review.error && !review.data, // sem a tabela (006 não rodado), não pergunta

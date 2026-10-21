@@ -7,13 +7,16 @@ import { Link } from './router';
 import { useCursosAluno, type CursoAluno, type CursoVitrine } from './dados';
 import { MediaEstrelas } from './Avaliacao';
 
-const CAPA = `linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})`;
+/* Fundo da capa: foto do curso (com leve escurecido para o selo ler bem) ou o gradiente da marca */
+const capa = (url: string | null) => url
+  ? { backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.55), transparent 60%), url("${url}")` }
+  : { background: `linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})` };
 
 /* Card de um curso que o aluno ainda não tem */
 export function CardVitrine({ c }: { c: CursoVitrine }) {
   return (
     <article className="rounded-2xl overflow-hidden flex flex-col" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <div className="h-24 px-6 flex items-end pb-4" style={{ background: CAPA }}>
+      <div className="h-28 px-6 flex items-end pb-4 bg-cover bg-center" style={capa(c.capa)}>
         {c.gratis > 0 && (
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.14)', color: '#E0E7FF' }}>
             <PlayCircle size={13} strokeWidth={2} /> {c.gratis} aula{c.gratis > 1 ? 's' : ''} grátis
@@ -42,7 +45,7 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
 function CardMeu({ c }: { c: CursoAluno }) {
   return (
     <article className="rounded-2xl overflow-hidden flex flex-col" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <div className="h-24 px-6 flex items-end pb-4" style={{ background: CAPA }}>
+      <div className="h-28 px-6 flex items-end pb-4 bg-cover bg-center" style={capa(c.capa)}>
         <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.9)', color: '#FFFFFF' }}>
           <CheckCircle2 size={13} strokeWidth={2.25} /> Você já tem
         </span>

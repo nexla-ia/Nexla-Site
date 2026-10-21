@@ -23,12 +23,13 @@ function MenuPerfil({ nome, admin, email }: { nome: string; admin: boolean; emai
   const ir = (para: string) => { setAberto(false); navegar(para); };
   const sair = async () => { setAberto(false); await supabase.auth.signOut(); navegar('/'); };
 
-  const itens = [
+  const itens = admin ? [
+    { icon: LayoutDashboard, texto: 'Voltar ao painel admin', acao: () => ir('/admin') },
+  ] : [
     { icon: BookOpen,   texto: 'Meus cursos',       acao: () => ir('/painel') },
     { icon: Compass,    texto: 'Explorar cursos',   acao: () => ir('/cursos') },
     { icon: UserRound,  texto: 'Meu perfil',        acao: () => ir('/perfil') },
     { icon: Award,      texto: 'Meus certificados', acao: () => ir('/certificados') },
-    ...(admin ? [{ icon: LayoutDashboard, texto: 'Painel admin', acao: () => ir('/admin') }] : []),
   ];
 
   return (
@@ -78,14 +79,14 @@ const NAV = [
   { para: '/painel', texto: 'Meus cursos',     ativo: (r: string) => r === '/painel' || r.startsWith('/curso/') },
   { para: '/cursos', texto: 'Explorar cursos', ativo: (r: string) => r === '/cursos' },
 ];
-const NAV_ADMIN = { para: '/admin', texto: 'Admin', ativo: (r: string) => r.startsWith('/admin') };
+const NAV_ADMIN = [{ para: '/admin/cursos', texto: '← Voltar ao admin', ativo: () => false }]; // admin vendo um curso como aluno
 
 /* Layout das telas do aluno (painel, curso, perfil...): topo com a marca, os links principais e o menu do perfil */
 export function AppLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
   const rota = useRota();
   const sessao = useSessao();
   const admin = !!useEhAdmin(sessao);
-  const links = admin ? [NAV_ADMIN, ...NAV] : NAV;
+  const links = admin ? NAV_ADMIN : NAV;
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
