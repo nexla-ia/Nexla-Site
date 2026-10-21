@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, ImageIcon, Layers, ListVideo, Paperclip, Pencil, Plus,
-  Settings, Trash2, Upload, Video, X,
+  Settings, Trash2, Upload, Users, Video, X,
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
 import { Link, navegar, parametro } from '../router';
 import { supabase } from '../supabase';
+import AbaAlunos from './AbaAlunos';
 import { SoAdmin, AdminLayout, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario, CAPA_PADRAO } from './comum';
 
 /* ─── Tipos ─────────────────────────────────────────────────────── */
@@ -467,7 +468,8 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
 /* ─── Página do curso no admin: cabeçalho + abas ─────────────────── */
 function Editor({ nome, id }: { nome: string; id: string }) {
   const [curso, setCurso] = useState<CursoA | 'erro' | null>(null);
-  const [aba, setAba] = useState<'aulas' | 'config'>(parametro('aba') === 'config' ? 'config' : 'aulas');
+  type Aba = 'aulas' | 'alunos' | 'config';
+  const [aba, setAba] = useState<Aba>(() => { const a = parametro('aba'); return a === 'config' || a === 'alunos' ? a : 'aulas'; });
 
   const recarregar = useCallback(async () => {
     const { data, error } = await supabase.from('academy_courses').select(SELECT).eq('id', id).maybeSingle();
@@ -475,7 +477,7 @@ function Editor({ nome, id }: { nome: string; id: string }) {
   }, [id]);
   useEffect(() => { recarregar(); }, [recarregar]);
 
-  const trocarAba = (a: 'aulas' | 'config') => { setAba(a); navegar(`/admin/curso/${id}${a === 'config' ? '?aba=config' : ''}`, { substituir: true }); };
+  const trocarAba = (a: Aba) => { setAba(a); navegar(`/admin/curso/${id}${a === 'aulas' ? '' : `?aba=${a}`}`, { substituir: true }); };
 
   if (!curso) return <AdminLayout nome={nome}><Carregando /></AdminLayout>;
   if (curso === 'erro') {
@@ -489,6 +491,7 @@ function Editor({ nome, id }: { nome: string; id: string }) {
 
   const ABAS = [
     { id: 'aulas' as const,  icone: ListVideo, texto: `Aulas (${totalAulas(curso)})` },
+    { id: 'alunos' as const, icone: Users,     texto: 'Alunos' },
     { id: 'config' as const, icone: Settings,  texto: 'Configurações' },
   ];
 
@@ -533,9 +536,9 @@ function Editor({ nome, id }: { nome: string; id: string }) {
           ))}
         </div>
 
-        {aba === 'aulas'
-          ? <AbaAulas curso={curso} recarregar={recarregar} irConfig={() => trocarAba('config')} />
-          : <AbaConfig key={curso.id} curso={curso} recarregar={recarregar} />}
+        {aba === 'aulas' && <AbaAulas curso={curso} recarregar={recarregar} irConfig={() => trocarAba('config')} />}
+        {aba === 'alunos' && <AbaAlunos cursoId={curso.id} />}
+        {aba === 'config' && <AbaConfig key={curso.id} curso={curso} recarregar={recarregar} />}
       </motion.div>
     </AdminLayout>
   );

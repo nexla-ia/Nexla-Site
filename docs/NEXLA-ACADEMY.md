@@ -29,7 +29,7 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 | `Explorar.tsx` | Vitrine de todos os cursos publicados |
 | `Perfil.tsx` | Dados pessoais, senha e pedido de exclusão (LGPD) |
 | `Comunidade.tsx`, `Avaliacao.tsx` | Comentários por aula e avaliação do curso com estrelas |
-| `admin/` | Área admin (só para `role = 'admin'`): **Visão geral** (alunos por curso, progresso, notas, cadastros), **Cursos** (blocos; cada curso com as abas Aulas e Configurações: foto, textos, módulos, vitrine, certificado) e **Comunidade** (comentários das aulas, com resposta como instrutor, e avaliações dos cursos) |
+| `admin/` | Área admin (só para `role = 'admin'`): **Visão geral** (alunos por curso, progresso, notas, cadastros), **Cursos** (blocos; cada curso com as abas Aulas e Configurações: foto, textos, módulos, vitrine, certificado) e **Comunidade** (comentários das aulas, com resposta como instrutor, e avaliações dos cursos). Cada curso tem as abas **Aulas**, **Alunos** (liberar/remover acesso por e-mail) e **Configurações** |
 
 ### Regras importantes (seguem o briefing)
 
@@ -62,6 +62,8 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 | `008_tornar_admin.sql` / `009_tornar_aluno.sql` | Alterna a conta de teste entre admin e aluno | rodado (conta de teste está como admin) |
 | `010_config_curso.sql` | Campos de configuração do curso (descrição, categoria, nível, destaque, certificado, carga horária) e bucket `academy-capas` | rodado |
 | `011_admin_visao.sql` | Admin passa a ler perfis, progresso, matrículas e avaliações (Visão geral e Comunidade) | **conferir se foi rodado** |
+| `012_seguranca.sql` | Datas definidas pelo servidor, avaliação só após concluir, limite de 5 comentários/minuto, ID do vídeo fora do acesso público | **conferir se foi rodado** |
+| `013_matricula_manual.sql` | Admin libera acesso por e-mail (ou deixa convite para quem ainda não tem conta), remove e reativa acesso | **conferir se foi rodado** |
 
 Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" reflete o que foi informado nesta etapa. Confira no Supabase antes de seguir.
 
@@ -105,7 +107,8 @@ Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" ref
 - [ ] Gravar a **UTM** da primeira visita no cadastro (a coluna `academy_profiles.utm` já existe e está vazia)
 - [ ] Tabela `events`, Meta Pixel com API de Conversões e GA4
 - [ ] Painel de métricas do briefing (funil, conversões, ticket médio, vendas por origem)
-- [ ] Admin: lista de alunos e leads com filtros e CSV, e liberar ou remover acesso manualmente
+- [x] Admin: liberar ou remover acesso manualmente por e-mail (aba Alunos do curso)
+- [ ] Admin: lista de leads com filtros e exportação em CSV
 
 ### Fase 7: Lançamento
 - [ ] Páginas de **Termos de uso** e **Política de privacidade** (hoje são só texto no cadastro)
