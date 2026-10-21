@@ -14,7 +14,7 @@ import VisaoGeral from './admin/VisaoGeral';
 import AdminComunidade from './admin/AdminComunidade';
 import { Carregando } from './AppLayout';
 import { useRota, navegar } from './router';
-import { useSessao, useEhAdmin } from './supabase';
+import { useSessao, useEhAdmin, supabaseConfigurado } from './supabase';
 import '../index.css';
 import './academy.css';
 
@@ -68,8 +68,21 @@ function Academy() {
   return <Painel sessao={sessao} />;
 }
 
+/* Aviso quando faltam VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY no deploy */
+function NaoConfigurado() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#F1F5F9', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      <div className="max-w-md text-center rounded-2xl p-8" style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.10)' }}>
+        <p className="font-bold text-[20px]" style={{ color: '#0F172A' }}>A Nexla Academy está em manutenção</p>
+        <p className="text-[14.5px] mt-2" style={{ color: '#475569' }}>Volte em alguns minutos. Se o problema continuar, fale com a gente no WhatsApp.</p>
+        <p className="text-[12px] mt-5" style={{ color: '#94A3B8' }}>Configuração do Supabase ausente neste deploy.</p>
+      </div>
+    </div>
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Academy />
+    {supabaseConfigurado ? <Academy /> : <NaoConfigurado />}
   </StrictMode>
 );

@@ -1,11 +1,12 @@
 import { createClient, type Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
-/* Cliente do Supabase da Academy — usa só a chave pública (anon). As regras de acesso ficam no banco (RLS). */
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-);
+/* Cliente do Supabase da Academy — usa só a chave pública (anon). As regras de acesso ficam no banco (RLS).
+ * Sem as variáveis (ex.: não configuradas na Vercel), a página mostra um aviso em vez de ficar em branco. */
+const URL_SUPABASE = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const CHAVE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+export const supabaseConfigurado = !!URL_SUPABASE && !!CHAVE_ANON;
+export const supabase = createClient(URL_SUPABASE || 'https://nao-configurado.supabase.co', CHAVE_ANON || 'nao-configurado');
 
 /* Certificado: liberado a partir deste percentual de aulas concluídas (regra ainda em definição) */
 export const CERTIFICADO_MIN = 90;
