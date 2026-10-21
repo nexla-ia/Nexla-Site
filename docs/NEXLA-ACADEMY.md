@@ -5,7 +5,7 @@ Documento de passagem para continuar o desenvolvimento. Base: o briefing "Plataf
 
 ## Situação em uma frase
 
-A área do aluno está pronta e funcionando com o Supabase: login, painel, curso, certificado, perfil, vitrine, comunidade, avaliações e painel admin de conteúdo. **Ainda não existe venda** (Asaas), nem vídeo de verdade, e-mails ou métricas.
+A área do aluno está pronta e funcionando com o Supabase: login, painel, curso, certificado, perfil, vitrine, comunidade, avaliações e área admin. **A venda funciona com o Mercado Pago (Checkout Pro), em modo de teste.** Ainda não existe vídeo de verdade (Bunny), e-mails automáticos nem métricas de funil.
 
 ## Onde está o código
 
@@ -38,9 +38,12 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 - O certificado libera com **90% das aulas concluídas** (regra ainda em definição no briefing).
 - Comentários: **só quem escreveu pode apagar**, nem o admin.
 - Avaliação: aparece **uma vez por curso**, ao concluir. Fechar no X não pergunta de novo.
+- **O acesso ao curso vem só do pagamento.** Quem não comprou vê a página de apresentação do curso, com só a 1ª aula (amostra). O pedido é criado pela Edge Function `academy-checkout` (preço sempre do banco) e o curso é liberado pela `academy-webhook-mp`, que confere o pagamento na API do Mercado Pago. Reembolso ou estorno tira o acesso sozinho.
 - **Conta admin usa só a área admin** (`/academy/admin`). Ao entrar, vai direto para lá; a única tela de aluno liberada é o "Ver como aluno" (`/curso/:slug`), com todas as aulas abertas. Admin não conta como aluno nos números.
 
 ## Como rodar no computador
+
+Para publicar as Edge Functions: `npx supabase functions deploy academy-checkout --project-ref lyvknbggtimdivywfeys --use-api` e `npx supabase functions deploy academy-webhook-mp --project-ref lyvknbggtimdivywfeys --use-api --no-verify-jwt` (a conta logada na CLI precisa ser membro da organização do projeto).
 
 1. Crie o arquivo `.env.local` a partir de `.env.example`, com a URL e a chave **anon** do Supabase. Esse arquivo não vai para o git.
 2. Rode `npm install` e depois `npm run dev`.
@@ -63,6 +66,8 @@ A área do aluno está pronta e funcionando com o Supabase: login, painel, curso
 | `010_config_curso.sql` | Campos de configuração do curso (descrição, categoria, nível, destaque, certificado, carga horária) e bucket `academy-capas` | rodado |
 | `011_admin_visao.sql` | Admin passa a ler perfis, progresso, matrículas e avaliações (Visão geral e Comunidade) | **conferir se foi rodado** |
 | `012_seguranca.sql` | Datas definidas pelo servidor, avaliação só após concluir, limite de 5 comentários/minuto, ID do vídeo fora do acesso público | **conferir se foi rodado** |
+| `014_vendas.sql` | Produtos (preço e oferta extra), cupons e pedidos | rodado |
+| `015_aula_amostra.sql` | A 1ª aula de cada curso vira amostra para quem não comprou | **conferir se foi rodado** |
 | `013_matricula_manual.sql` | Admin libera acesso por e-mail (ou deixa convite para quem ainda não tem conta), remove e reativa acesso | **conferir se foi rodado** |
 
 Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" reflete o que foi informado nesta etapa. Confira no Supabase antes de seguir.
@@ -90,7 +95,16 @@ Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" ref
 - [ ] Login com Google (configurar no Google Cloud e no Supabase; hoje mostra o aviso "em breve")
 - [ ] "Esqueci minha senha" (precisa de uma tela para definir a nova senha)
 
-### Fase 4: Venda
+### Fase 4: Venda (feita com Mercado Pago, em teste)
+- [x] Página de apresentação do curso, tela de compra com oferta extra e cupom, retorno com status
+- [x] Edge Functions `academy-checkout` e `academy-webhook-mp` publicadas (`supabase/functions/`); segredo `MP_ACCESS_TOKEN` no Supabase
+- [x] Admin: preço e oferta extra (Configurações → Venda) e seção Vendas (pedidos, faturamento, cupons)
+- [ ] **Antes de lançar:** trocar `MP_ACCESS_TOKEN` pelo token de **produção** (renovado) e fazer uma compra real com reembolso
+- [ ] Entregar a oferta extra (hoje ela é cobrada e registrada no pedido, mas o conteúdo do pacote ainda não é liberado sozinho)
+- [ ] Recuperação de Pix e boleto não pagos (e-mail/WhatsApp)
+- [ ] Nota fiscal (o Mercado Pago não emite como o Asaas; definir como emitir)
+
+### Fase 4 (plano original com Asaas, substituído pelo Mercado Pago)
 - [ ] Página de vendas pública por curso (promessa, vídeo, módulos, bônus, garantia de 7 dias, perguntas frequentes), editável no admin
 - [ ] Tabelas `products`, `orders` e `coupons`
 - [ ] Checkout Asaas (Pix, cartão, boleto) e oferta extra
