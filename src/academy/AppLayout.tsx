@@ -57,8 +57,9 @@ function MenuLateral({ nome, email, admin }: { nome: string; email: string; admi
 }
 
 /* Layout das telas do aluno (painel, curso, perfil...): menu lateral fixo no computador,
-   e no celular um topo com botão que abre o mesmo menu como gaveta */
-export function AppLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
+   e no celular um topo com botão que abre o mesmo menu como gaveta.
+   foco = assistindo o curso: sem menu, a página toda para a aula (volta pelo "← Meus cursos") */
+export function AppLayout({ nome, foco = false, children }: { nome: string; foco?: boolean; children: React.ReactNode }) {
   const rota = useRota();
   const sessao = useSessao();
   const admin = !!useEhAdmin(sessao);
@@ -73,6 +74,14 @@ export function AppLayout({ nome, children }: { nome: string; children: React.Re
     document.body.style.overflow = 'hidden';
     return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = ''; };
   }, [gaveta]);
+
+  if (foco) {
+    return (
+      <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+        <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 md:py-12">{children}</main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>

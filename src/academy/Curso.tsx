@@ -181,7 +181,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
   };
 
   return (
-    <AppLayout nome={nome}>
+    <AppLayout nome={nome} foco>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         {/* Cabeçalho do curso */}
         {admin ? (
