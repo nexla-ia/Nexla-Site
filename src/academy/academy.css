@@ -20,3 +20,6 @@
 .acad-btn:hover:not(:disabled) .acad-arrow { transform: translateX(3px); }
 
 :focus-visible { outline: 2px solid #4F46E5; outline-offset: 3px; }
+
+/* Barra de rolagem discreta na lista de aulas */
+.acad-scroll { scrollbar-width: thin; scrollbar-color: rgba(15,23,42,0.18) transparent; }
