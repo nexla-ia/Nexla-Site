@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Award, BookOpen, ChevronDown, Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
 import { T, LOGO, display, ease } from './ui';
-import { Link, navegar, useRota } from './router';
+import { Link, navegar } from './router';
 import { supabase, useSessao, useEhAdmin } from './supabase';
 
 /* Menu do perfil (avatar + nome): Meus cursos, Meu perfil, Meus certificados e Sair */
@@ -74,19 +74,11 @@ function MenuPerfil({ nome, admin, email }: { nome: string; admin: boolean; emai
   );
 }
 
-/* Links principais do topo (no celular ficam dentro do menu do perfil) */
-const NAV = [
-  { para: '/painel', texto: 'Meus cursos',     ativo: (r: string) => r === '/painel' || r.startsWith('/curso/') },
-  { para: '/cursos', texto: 'Explorar cursos', ativo: (r: string) => r === '/cursos' },
-];
-const NAV_ADMIN = [{ para: '/admin/cursos', texto: '← Voltar ao admin', ativo: () => false }]; // admin vendo um curso como aluno
-
-/* Layout das telas do aluno (painel, curso, perfil...): topo com a marca, os links principais e o menu do perfil */
+/* Layout das telas do aluno (painel, curso, perfil...): topo com a marca e o menu do perfil
+   (a navegação fica no menu do perfil; o admin vendo como aluno tem o link de volta) */
 export function AppLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
-  const rota = useRota();
   const sessao = useSessao();
   const admin = !!useEhAdmin(sessao);
-  const links = admin ? NAV_ADMIN : NAV;
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
@@ -95,17 +87,11 @@ export function AppLayout({ nome, children }: { nome: string; children: React.Re
             <img src={LOGO} alt="" className="w-8 h-8 object-contain" />
             <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1 mr-auto ml-6">
-            {links.map(n => {
-              const ativo = n.ativo(rota);
-              return (
-                <Link key={n.para} para={n.para} className="px-3.5 h-9 inline-flex items-center rounded-lg text-[14px] font-medium transition-colors hover:bg-slate-100"
-                  style={{ color: ativo ? T.ink : T.mute, background: ativo ? 'rgba(79,70,229,0.08)' : undefined }}>
-                  {n.texto}
-                </Link>
-              );
-            })}
-          </nav>
+          {admin && (
+            <Link para="/admin/cursos" className="hidden md:inline-flex mr-auto ml-6 text-[14px] font-medium hover:underline underline-offset-4" style={{ color: T.mute }}>
+              ← Voltar ao admin
+            </Link>
+          )}
           <MenuPerfil nome={nome} admin={admin} email={sessao?.user.email ?? ''} />
         </div>
       </header>
