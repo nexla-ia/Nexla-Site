@@ -14,12 +14,16 @@ export type CursoAluno = ReturnType<typeof organizar> & {
 };
 
 /* Curso da vitrine que o aluno ainda não tem */
-export type CursoVitrine = ReturnType<typeof organizar> & { horas: number; modulos: number; totalAulas: number; media: number | null; avaliacoes: number };
+export type CursoVitrine = ReturnType<typeof organizar> & {
+  horas: number; modulos: number; totalAulas: number; media: number | null; avaliacoes: number;
+  preco: Preco | null;     // null = ainda sem produto ativo (vendas em breve)
+};
 
+export type Preco = { valor: number; de: number | null }; // de = preço cheio quando há promoção
 type Medias = Map<string, { media: number; total: number }>;
 
 // Quem não comprou não lê a grade do curso: os números vêm do resumo público
-const paraVitrine = (c: Curso, medias: Medias, resumos: Map<string, ResumoCurso>): CursoVitrine => {
+const paraVitrine = (c: Curso, medias: Medias, resumos: Map<string, ResumoCurso>, precos: Map<string, Preco>): CursoVitrine => {
   const o = organizar(c);
   const r = resumos.get(o.id);
   return {
@@ -29,6 +33,7 @@ const paraVitrine = (c: Curso, medias: Medias, resumos: Map<string, ResumoCurso>
     horas: r?.horas ?? 1,
     modulos: r?.modulos ?? 0,
     totalAulas: r?.aulas ?? 0,
+    preco: precos.get(o.id) ?? null,
   };
 };
 
@@ -43,7 +48,7 @@ export function useCursosAluno(sessao: Session) {
     let vivo = true;
     (async () => {
       const uid = sessao.user.id;
-      const [perfil, matriculas, progresso, catalogo, notas, minhas, resumos] = await Promise.all([
+      const [perfil, matriculas, progresso, catalogo, notas, minhas, resumos, produtos] = await Promise.all([
         supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle(),
         supabase.from('academy_enrollments').select(`criado_em, academy_courses(${SELECT_CURSO})`).eq('user_id', uid).eq('ativo', true),
         supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('user_id', uid).eq('concluida', true),
@@ -51,6 +56,7 @@ export function useCursosAluno(sessao: Session) {
         supabase.rpc('academy_media_cursos'), // se o 006 não rodou, volta erro e as médias ficam vazias
         supabase.from('academy_course_reviews').select('course_id, estrelas').eq('user_id', uid),
         buscarResumos(),
+        supabase.from('academy_products').select('course_id, preco, preco_promocional').eq('tipo', 'curso').eq('ativo', true),
       ]);
       if (!vivo) return;
       const erro = matriculas.error || progresso.error;
@@ -58,6 +64,8 @@ export function useCursosAluno(sessao: Session) {
         .map(n => [n.course_id, { media: Number(n.media), total: n.total }]));
       const minhasNotas = new Map(((minhas.data ?? []) as { course_id: string; estrelas: number | null }[])
         .map(r => [r.course_id, r.estrelas]));
+      const precos = new Map(((produtos.data ?? []) as { course_id: string; preco: number; preco_promocional: number | null }[])
+        .map(p => [p.course_id, { valor: Number(p.preco_promocional ?? p.preco), de: p.preco_promocional != null ? Number(p.preco) : null }]));
       const feitasTodas = new Map((progresso.data ?? []).map(p => [p.lesson_id as string, new Date(p.atualizado_em as string).getTime()]));
 
       const cursos: CursoAluno[] = (matriculas.data ?? [])
@@ -83,7 +91,7 @@ export function useCursosAluno(sessao: Session) {
       const meus = new Set(cursos.map(c => c.id));
       const outros = ((catalogo.data ?? []) as unknown as Curso[])
         .filter(c => !meus.has(c.id))
-        .map(c => paraVitrine(c, medias, resumos))
+        .map(c => paraVitrine(c, medias, resumos, precos))
         .sort((a, b) => a.ordem - b.ordem);
 
       setEstado({

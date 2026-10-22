@@ -304,6 +304,12 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
   const [enviandoCapa, setEnviandoCapa] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const muda = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }));
+  // Categorias já usadas em outros cursos, sugeridas no campo para não escrever a mesma de jeitos diferentes
+  const [categorias, setCategorias] = useState<string[]>([]);
+  useEffect(() => {
+    supabase.from('academy_courses').select('categoria').not('categoria', 'is', null).then(({ data }) =>
+      setCategorias([...new Set((data ?? []).map(d => (d.categoria as string).trim()).filter(Boolean))].sort()));
+  }, []);
 
   const salvar = async () => {
     if (!f.titulo.trim() || !f.slug) return setMsg({ erro: 'Nome e endereço são obrigatórios.', ok: '' });
@@ -396,7 +402,10 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
               placeholder={'Montar um agente de atendimento no WhatsApp\nAutomatizar confirmações de agenda'} onChange={e => muda('aprendizados', e.target.value)} />
           </Rotulo>
           <div className="grid md:grid-cols-3 gap-5">
-            <Rotulo texto="Categoria"><input className={inputCls} value={f.categoria} placeholder="Ex.: Atendimento" onChange={e => muda('categoria', e.target.value)} /></Rotulo>
+            <Rotulo texto="Categoria">
+              <input className={inputCls} value={f.categoria} placeholder="Ex.: Atendimento" list="categorias-cursos" onChange={e => muda('categoria', e.target.value)} />
+              <datalist id="categorias-cursos">{categorias.map(c => <option key={c} value={c} />)}</datalist>
+            </Rotulo>
             <Rotulo texto="Nível">
               <select className={inputCls} value={f.nivel} onChange={e => muda('nivel', e.target.value)}>
                 {NIVEIS.map(n => <option key={n.v} value={n.v}>{n.t}</option>)}

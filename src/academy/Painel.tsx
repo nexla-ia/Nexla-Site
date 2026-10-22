@@ -6,7 +6,7 @@ import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link } from './router';
 import { CERTIFICADO_MIN } from './supabase';
 import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno } from './dados';
-import { CardVitrine } from './Explorar';
+import { CardVitrine, GradeCategorias } from './Explorar';
 import { MediaEstrelas, MinhaNota } from './Avaliacao';
 
 function Certificado({ c }: { c: CursoAluno }) {
@@ -95,9 +95,7 @@ export default function Painel({ sessao }: { sessao: Session }) {
           <section>
             <h2 className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: T.mute }}>Cursos disponíveis</h2>
             <p className="text-[14px] mb-4" style={{ color: T.mute }}>Escolha um curso para ver a apresentação. Depois da compra, ele aparece aqui com o seu progresso.</p>
-            <div className="grid md:grid-cols-2 gap-5">
-              {outros.map(c => <CardVitrine key={c.id} c={c} />)}
-            </div>
+            <GradeCategorias outros={outros} />
           </section>
         ) : (
         <section>
