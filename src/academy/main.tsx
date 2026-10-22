@@ -16,7 +16,7 @@ import AdminComunidade from './admin/AdminComunidade';
 import AdminVendas from './admin/Vendas';
 import { Carregando } from './AppLayout';
 import { useRota, navegar } from './router';
-import { useSessao, useEhAdmin, supabaseConfigurado } from './supabase';
+import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado } from './supabase';
 import '../index.css';
 import './academy.css';
 
@@ -43,6 +43,7 @@ function Academy() {
   const retornoCompra = rota.match(/^\/compra\/([\w-]+)$/)?.[1];
   const adminCurso = rota.match(/^\/admin\/curso\/([\w-]+)$/)?.[1];
   const admin = useEhAdmin(sessao);
+  useSessaoUnica(sessao); // 1 dispositivo por conta
 
   // Ao entrar: admin vai direto para o painel admin; aluno, para "Meus cursos"
   useEffect(() => {

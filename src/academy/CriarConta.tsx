@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User, Phone, PlayCircle, LineChart, Award, Check } from 'lucide-react';
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor, soDigitos, mascaraWhats } from './ui';
 import { Link } from './router';
-import { supabase, erroAuth } from './supabase';
+import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin } from './supabase';
 
 const VANTAGENS = [
   { icon: PlayCircle, titulo: 'Aulas de amostra grátis',        sub: 'Assista antes de comprar, sem compromisso' },
@@ -64,6 +64,7 @@ export default function CriarConta() {
     if (senha.length < 8) return setErro('A senha precisa ter pelo menos 8 caracteres.');
     if (!termos) return setErro('Para criar a conta, aceite os Termos de uso e a Política de privacidade.');
     setErro(''); setCriando(true);
+    marcarNovoLogin();
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
@@ -73,7 +74,7 @@ export default function CriarConta() {
       },
     });
     setCriando(false);
-    if (error) return setErro(erroAuth(error.message));
+    if (error) { desmarcarNovoLogin(); return setErro(erroAuth(error.message)); }
     if (!data.session) setAviso(`Conta criada, ${nome.trim().split(' ')[0]}! Enviamos um link de confirmação para ${email.trim()}. Abra o e-mail para ativar o acesso.`);
   };
 

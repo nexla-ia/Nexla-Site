@@ -6,7 +6,69 @@ import { useEffect, useState } from 'react';
 const URL_SUPABASE = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const CHAVE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const supabaseConfigurado = !!URL_SUPABASE && !!CHAVE_ANON;
-export const supabase = createClient(URL_SUPABASE || 'https://nao-configurado.supabase.co', CHAVE_ANON || 'nao-configurado');
+/* Identificador deste navegador (1 dispositivo por conta). Vai no cabeçalho x-dispositivo de toda chamada. */
+function lerDispositivo() {
+  const novo = () => (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  try {
+    const salvo = localStorage.getItem('nexla_dispositivo');
+    if (salvo) return salvo;
+    const id = novo();
+    localStorage.setItem('nexla_dispositivo', id);
+    return id;
+  } catch { return novo(); } // sem armazenamento (ex.: modo restrito): vale só nesta aba
+}
+const DISPOSITIVO = lerDispositivo();
+
+export const supabase = createClient(URL_SUPABASE || 'https://nao-configurado.supabase.co', CHAVE_ANON || 'nao-configurado', {
+  global: { headers: { 'x-dispositivo': DISPOSITIVO } },
+});
+
+/* ─── 1 dispositivo por conta ──────────────────────────────────────
+ * Ao entrar, este navegador vira o dispositivo da conta. Os outros são desconectados na próxima
+ * conferência (a cada 30 s ou ao voltar para a aba). O banco também bloqueia o conteúdo para eles. */
+const marca = (k: string, v: string | null) => { try { if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
+const leMarca = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
+
+/* Chamar ANTES de entrar/cadastrar: o próximo login deste navegador assume a conta */
+export const marcarNovoLogin = () => { marca('nexla_novo_login', '1'); marca('nexla_sessao_encerrada', null); };
+export const desmarcarNovoLogin = () => marca('nexla_novo_login', null);
+
+/* A tela de login mostra o aviso uma vez quando a conta foi aberta em outro dispositivo */
+export const lerAvisoOutroDispositivo = () => leMarca('nexla_sessao_encerrada') === '1'; // limpo no próximo login
+
+const descricaoDispositivo = () => {
+  const ua = navigator.userAgent;
+  const nav = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Navegador';
+  const so = /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : '';
+  return [nav, so].filter(Boolean).join(' · ');
+};
+
+export function useSessaoUnica(sessao: Session | null | undefined) {
+  const uid = sessao?.user.id;
+  useEffect(() => {
+    if (!uid) return;
+    let vivo = true;
+    const verificar = async () => {
+      if (leMarca('nexla_novo_login')) {
+        desmarcarNovoLogin();
+        await supabase.rpc('academy_assumir_sessao', { p_descricao: descricaoDispositivo() });
+        return;
+      }
+      const { data, error } = await supabase.rpc('academy_sessao_status');
+      if (!vivo || error) return; // sem o 017 no banco, a trava fica desligada
+      if (data === 'livre') await supabase.rpc('academy_assumir_sessao', { p_descricao: descricaoDispositivo() });
+      if (data === 'outro') {
+        marca('nexla_sessao_encerrada', '1');
+        await supabase.auth.signOut({ scope: 'local' }); // só este aparelho; o novo continua conectado
+      }
+    };
+    verificar();
+    const timer = window.setInterval(verificar, 30_000);
+    const aoVoltar = () => { if (document.visibilityState === 'visible') verificar(); };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => { vivo = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', aoVoltar); };
+  }, [uid]);
+}
 
 /* Certificado: liberado a partir deste percentual de aulas concluídas (regra ainda em definição) */
 export const CERTIFICADO_MIN = 90;

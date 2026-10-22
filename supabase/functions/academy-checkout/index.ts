@@ -17,7 +17,7 @@ const PARCELAS_MAX = 12; // decisão em aberto no briefing (quantas vezes / juro
 
 const cors = (origem: string | null) => ({
   'Access-Control-Allow-Origin': origem && ORIGENS_OK.includes(origem) ? origem : SITE_PADRAO,
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-dispositivo',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
 });
@@ -37,6 +37,12 @@ Deno.serve(async (req) => {
   const { data: quem } = await admin.auth.getUser(token);
   const usuario = quem?.user;
   if (!usuario) return json({ erro: 'nao_logado' }, 401);
+
+  // Vendas fechadas para o público (ex.: enquanto o token do Mercado Pago é de TESTE, qualquer um
+  // com conta de teste "pagaria" com cartão de teste). Lista de e-mails autorizados no segredo
+  // MP_SOMENTE_EMAILS (separados por vírgula). Para abrir as vendas: apague esse segredo.
+  const autorizados = (Deno.env.get('MP_SOMENTE_EMAILS') ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (autorizados.length && !autorizados.includes((usuario.email ?? '').toLowerCase())) return json({ erro: 'vendas_fechadas' }, 403);
 
   let entrada: { slug?: string; com_oferta?: boolean; cupom?: string; acao?: string };
   try { entrada = await req.json(); } catch { return json({ erro: 'entrada' }, 400); }

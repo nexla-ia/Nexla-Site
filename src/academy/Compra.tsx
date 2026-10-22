@@ -17,6 +17,7 @@ export const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency
 
 const ERROS: Record<string, string> = {
   ja_matriculado: 'Você já tem acesso a este curso.',
+  vendas_fechadas: 'As vendas deste curso abrem em breve.',
   sem_preco: 'Este curso ainda não está à venda.',
   curso_nao_encontrado: 'Curso não encontrado.',
   mercado_pago: 'O Mercado Pago não respondeu. Tente de novo em instantes.',

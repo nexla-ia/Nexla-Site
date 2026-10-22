@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, GraduationCap, FileSpreadsheet } from 'lucide-react';
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor } from './ui';
 import { Link } from './router';
-import { supabase, erroAuth } from './supabase';
+import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin, lerAvisoOutroDispositivo } from './supabase';
 
 const CURSOS = [
   { icon: GraduationCap,   titulo: 'IA na prática para a escala 5×2', sub: 'Automação e atendimento com IA para atravessar a mudança' },
@@ -14,7 +14,10 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [verSenha, setVerSenha] = useState(false);
   const [erro, setErro] = useState('');
-  const [aviso, setAviso] = useState('');
+  // Desconectado porque a conta entrou em outro dispositivo? Mostra o motivo uma vez.
+  const [aviso, setAviso] = useState(() => lerAvisoOutroDispositivo()
+    ? 'Sua conta foi acessada em outro dispositivo, por isso este foi desconectado. Cada conta fica conectada em um dispositivo por vez.'
+    : '');
 
   const [entrando, setEntrando] = useState(false);
 
@@ -25,9 +28,10 @@ export default function Login() {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErro('Informe um e-mail válido.');
     if (senha.length < 6) return setErro('A senha precisa ter pelo menos 6 caracteres.');
     setErro(''); setEntrando(true);
+    marcarNovoLogin(); // este aparelho passa a ser o dispositivo da conta
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
     setEntrando(false);
-    if (error) setErro(erroAuth(error.message));
+    if (error) { desmarcarNovoLogin(); setErro(erroAuth(error.message)); }
   };
   const avisar = (msg: string) => { setErro(''); setAviso(msg); };
 
