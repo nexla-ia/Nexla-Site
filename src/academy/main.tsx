@@ -9,8 +9,6 @@ import Certificados from './Certificados';
 import Perfil from './Perfil';
 import Explorar from './Explorar';
 import { Comprar, RetornoCompra } from './Compra';
-import Vitrine from './Vitrine';
-import { CursoPublico } from './PaginaCurso';
 import AdminCursos from './admin/AdminCursos';
 import AdminCurso from './admin/AdminCurso';
 import VisaoGeral from './admin/VisaoGeral';
@@ -23,13 +21,13 @@ import '../index.css';
 import './academy.css';
 
 /* Nexla Academy → nexla.com.br/academy
- * Abertas a visitantes: / (vitrine) e /curso/:slug (página de vendas; quem comprou vê o curso completo).
- * Login/cadastro: /entrar e /criar-conta (aceitam ?voltar=/comprar/... para continuar de onde parou).
+ * Sem login só existem as telas de acesso: / e /entrar (login) e /criar-conta (aceitam ?voltar=... para continuar de onde parou).
+ * Depois de entrar, o aluno cai em "Meus cursos" (que mostra todos os cursos disponíveis se ainda não tiver nenhum).
  * Do aluno (exigem login): /painel, /cursos, /comprar/:slug, /compra/:id, /certificado/:slug, /certificados, /perfil.
  * Admin (role = 'admin'): só a área admin — /admin, /admin/cursos, /admin/curso/:id, /admin/vendas, /admin/comunidade —
  * mais /curso/:slug para o "Ver como aluno". */
 const TITULOS: Record<string, string> = {
-  '/': 'Cursos', '/entrar': 'Entrar', '/criar-conta': 'Criar conta', '/painel': 'Meus cursos',
+  '/': 'Entrar', '/entrar': 'Entrar', '/criar-conta': 'Criar conta', '/painel': 'Meus cursos',
   '/perfil': 'Meu perfil', '/certificados': 'Meus certificados', '/cursos': 'Explorar cursos',
   '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin', '/admin/vendas': 'Vendas · Admin',
 };
@@ -43,9 +41,8 @@ const destinoVoltar = () => {
 function Academy() {
   const rota = useRota();
   const sessao = useSessao();
-  const telaAcesso = rota === '/entrar' || rota === '/criar-conta';
+  const telaAcesso = rota === '/' || rota === '/entrar' || rota === '/criar-conta';
   const curso = rota.match(/^\/curso\/([\w-]+)$/)?.[1];
-  const aberta = rota === '/' || !!curso;              // visitante pode ver
   const certificado = rota.match(/^\/certificado\/([\w-]+)$/)?.[1];
   const comprar = rota.match(/^\/comprar\/([\w-]+)$/)?.[1];
   const retornoCompra = rota.match(/^\/compra\/([\w-]+)$/)?.[1];
@@ -55,15 +52,15 @@ function Academy() {
 
   useEffect(() => {
     if (sessao === undefined) return;
-    // Logado na vitrine/login/cadastro → admin vai ao painel admin; aluno volta para onde ia (ex.: compra) ou "Meus cursos"
-    if (sessao && (telaAcesso || rota === '/') && admin !== undefined) {
+    // Logado na tela de acesso → admin vai ao painel admin; aluno volta para onde ia ou "Meus cursos"
+    if (sessao && telaAcesso && admin !== undefined) {
       navegar(admin ? '/admin' : destinoVoltar() ?? '/painel', { substituir: true });
     }
-    // Deslogado numa área do aluno → login, guardando para onde ia
-    if (!sessao && !telaAcesso && !aberta) navegar(`/entrar?voltar=${encodeURIComponent(rota)}`, { substituir: true });
+    // Deslogado em qualquer outra tela → login, guardando para onde ia
+    if (!sessao && !telaAcesso) navegar(`/?voltar=${encodeURIComponent(rota)}`, { substituir: true });
     // Admin só usa a área admin (e as páginas de curso, pelo "Ver como aluno")
-    if (sessao && admin && !telaAcesso && rota !== '/' && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
-  }, [sessao, telaAcesso, aberta, admin, rota]);
+    if (sessao && admin && !telaAcesso && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
+  }, [sessao, telaAcesso, admin, rota]);
 
   useEffect(() => {
     document.title = `${TITULOS[rota] ?? (curso ? 'Curso' : certificado ? 'Certificado' : 'Nexla Academy')} | Nexla Academy`;
@@ -71,13 +68,11 @@ function Academy() {
 
   if (sessao === undefined) return <Carregando />;
   if (!sessao) {
-    if (rota === '/entrar') return <Login />;
     if (rota === '/criar-conta') return <CriarConta />;
-    if (rota === '/') return <Vitrine />;
-    if (curso) return <CursoPublico key={curso} slug={curso} />;
+    if (rota === '/' || rota === '/entrar') return <Login />;
     return <Carregando />;
   }
-  if (telaAcesso || rota === '/' || admin === undefined) return <Carregando />;
+  if (telaAcesso || admin === undefined) return <Carregando />;
   if (admin && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) return <Carregando />;
   if (rota === '/admin') return <VisaoGeral sessao={sessao} />;
   if (rota === '/admin/cursos') return <AdminCursos sessao={sessao} />;

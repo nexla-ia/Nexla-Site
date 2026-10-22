@@ -144,31 +144,3 @@ export function TituloPagina({ titulo, sub }: { titulo: string; sub?: string }) 
     </div>
   );
 }
-
-/* Layout para visitantes (sem login): vitrine e página de vendas dos cursos */
-export function PublicLayout({ children, voltar }: { children: React.ReactNode; voltar?: string }) {
-  const q = voltar ? `?voltar=${encodeURIComponent(voltar)}` : '';
-  return (
-    <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
-          <Link para="/" className="inline-flex items-center gap-2.5 shrink-0">
-            <img src={LOGO} alt="" className="w-8 h-8 object-contain" />
-            <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
-          </Link>
-          <nav className="flex items-center gap-1 sm:gap-2">
-            <Link para="/" className="hidden sm:inline-flex px-3 h-9 items-center rounded-lg text-[14px] font-medium hover:bg-slate-100" style={{ color: T.mute }}>Cursos</Link>
-            <Link para={`/entrar${q}`} className="px-3 h-9 inline-flex items-center rounded-lg text-[14px] font-semibold hover:bg-slate-100" style={{ color: T.ink2 }}>Entrar</Link>
-            <Link para={`/criar-conta${q}`} className="acad-btn px-4 h-9 inline-flex items-center rounded-lg text-[13.5px] font-semibold text-white">
-              <span className="hidden sm:inline">Criar conta grátis</span><span className="sm:hidden">Criar conta</span>
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 md:py-12">{children}</main>
-      <footer className="py-8 text-center text-[12.5px]" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
-        Nexla Automação e IA · Vilhena, RO · <a href="/" className="underline underline-offset-2">nexla.com.br</a>
-      </footer>
-    </div>
-  );
-}

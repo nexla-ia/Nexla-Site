@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Award, BarChart3, BookOpen, Check, ChevronDown, Clock, Gift, PlayCircle, ShieldCheck, Star, UserRound } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
-import { AppLayout, Carregando, PublicLayout } from './AppLayout';
+import { AppLayout, Carregando } from './AppLayout';
 import { Link } from './router';
 import { supabase, minutos, buscarResumos, type ResumoCurso } from './supabase';
 
@@ -26,7 +26,7 @@ const FAQ_PADRAO: Pergunta[] = [
   { pergunta: 'Quais as formas de pagamento?', resposta: 'Pix, boleto ou cartão de crédito em até 12x, pelo Mercado Pago. Os dados do seu cartão não passam pela Nexla.' },
 ];
 
-/* Página do curso para quem ainda NÃO comprou (logado ou visitante): apresentação + só o 1º vídeo + preço.
+/* Página do curso para quem está logado e ainda NÃO comprou: apresentação + só o 1º vídeo + preço.
  * NÃO mostra módulos nem títulos das aulas (a grade só aparece para quem comprou; o banco também esconde).
  * Quem comprou vê o curso completo (Curso.tsx). */
 export default function PaginaCurso({ sessao, slug, nome }: { sessao: Session | null; slug: string; nome: string }) {
@@ -41,9 +41,7 @@ export default function PaginaCurso({ sessao, slug, nome }: { sessao: Session | 
   }, [curso]);
 
   // Função (e não componente) para não recriar a página inteira a cada atualização
-  const envolver = (children: React.ReactNode) => sessao
-    ? <AppLayout nome={nome}>{children}</AppLayout>
-    : <PublicLayout voltar={`/curso/${slug}`}>{children}</PublicLayout>;
+  const envolver = (children: React.ReactNode) => <AppLayout nome={nome}>{children}</AppLayout>;
   if (curso === null) return envolver(<Carregando />);
   if (curso === 'nao') {
     return envolver(
@@ -272,9 +270,4 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   );
 
   return conteudo;
-}
-
-/* Página do curso aberta a visitantes (sem login) */
-export function CursoPublico({ slug }: { slug: string }) {
-  return <PaginaCurso sessao={null} slug={slug} nome="" />;
 }

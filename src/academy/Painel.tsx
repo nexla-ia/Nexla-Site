@@ -90,7 +90,16 @@ export default function Painel({ sessao }: { sessao: Session }) {
           </section>
         )}
 
-        {/* Meus cursos */}
+        {/* Sem cursos ainda: mostra direto os cursos disponíveis */}
+        {cursos.length === 0 && outros.length > 0 ? (
+          <section>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: T.mute }}>Cursos disponíveis</h2>
+            <p className="text-[14px] mb-4" style={{ color: T.mute }}>Escolha um curso para ver a apresentação. Depois da compra, ele aparece aqui com o seu progresso.</p>
+            <div className="grid md:grid-cols-2 gap-5">
+              {outros.map(c => <CardVitrine key={c.id} c={c} />)}
+            </div>
+          </section>
+        ) : (
         <section>
           <h2 className="text-[13px] font-semibold uppercase tracking-wide mb-3" style={{ color: T.mute }}>Meus cursos</h2>
           {cursos.length === 0 ? (
@@ -144,9 +153,10 @@ export default function Painel({ sessao }: { sessao: Session }) {
             </div>
           )}
         </section>
+        )}
 
         {/* Outros cursos publicados que o aluno ainda não tem */}
-        {outros.length > 0 && (
+        {cursos.length > 0 && outros.length > 0 && (
           <section className="mt-12">
             <div className="flex items-baseline justify-between gap-4 mb-3">
               <h2 className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: T.mute }}>Você também pode gostar</h2>
