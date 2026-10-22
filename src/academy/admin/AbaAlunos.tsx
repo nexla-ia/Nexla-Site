@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RotateCcw, UserMinus, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { T, display } from '../ui';
 import { BarraProgresso } from '../AppLayout';
 import { supabase, pct } from '../supabase';
@@ -12,9 +12,9 @@ const fmtWhats = (w: string | null) => {
 };
 const fmtData = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-/* Aba Alunos: quem comprou o curso (o acesso vem só do pagamento), com o progresso de cada um.
- * "Remover acesso" fica para casos fora do fluxo (ex.: reembolso feito por fora); reembolso pelo
- * Mercado Pago já remove o acesso sozinho. */
+/* Aba Alunos (só consulta): quem comprou o curso e o progresso de cada um.
+ * O acesso vem só do pagamento e só sai pelo reembolso no Mercado Pago (o webhook remove sozinho).
+ * O admin não tira nem dá acesso manualmente: quem pagou tem direito ao curso. */
 export default function AbaAlunos({ cursoId }: { cursoId: string }) {
   const [alunos, setAlunos] = useState<Aluno[] | null>(null);
   const [erro, setErro] = useState('');
@@ -25,13 +25,6 @@ export default function AbaAlunos({ cursoId }: { cursoId: string }) {
     setAlunos((data ?? []) as Aluno[]);
   }, [cursoId]);
   useEffect(() => { carregar(); }, [carregar]);
-
-  const definirAcesso = async (a: Aluno, ativo: boolean) => {
-    if (!ativo && !window.confirm(`Remover o acesso de ${a.nome || a.email} a este curso? O progresso fica guardado.`)) return;
-    const { error } = await supabase.rpc('academy_admin_definir_acesso', { p_user: a.user_id, p_course: cursoId, p_ativo: ativo });
-    if (error) return setErro('Não foi possível alterar o acesso.');
-    carregar();
-  };
 
   const ativos = (alunos ?? []).filter(a => a.ativo);
   const removidos = (alunos ?? []).filter(a => !a.ativo);
@@ -68,10 +61,6 @@ export default function AbaAlunos({ cursoId }: { cursoId: string }) {
                 <span className="text-[12.5px] w-9 text-right">{p}%</span>
               </div>
               <span className="text-[12.5px] md:w-28" style={{ color: T.mute }}>desde {fmtData(a.desde)}</span>
-              <button onClick={() => definirAcesso(a, false)} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] font-medium hover:bg-red-50 self-start md:self-auto"
-                style={{ color: '#B91C1C', border: '1px solid rgba(185,28,28,0.25)' }}>
-                <UserMinus size={14} /> Remover acesso
-              </button>
             </div>
           );
         })}
@@ -80,16 +69,12 @@ export default function AbaAlunos({ cursoId }: { cursoId: string }) {
       {removidos.length > 0 && (
         <section className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
           <div className="px-5 py-4" style={{ borderBottom: `1px solid ${T.rule}` }}>
-            <h3 className="font-bold text-[16.5px]" style={display}>Acesso removido</h3>
-            <p className="text-[12.5px]" style={{ color: T.mute }}>Inclui reembolsos. O progresso fica guardado.</p>
+            <h3 className="font-bold text-[16.5px]" style={display}>Reembolsados</h3>
+            <p className="text-[12.5px]" style={{ color: T.mute }}>Pediram reembolso no Mercado Pago e perderam o acesso. O progresso fica guardado caso comprem de novo.</p>
           </div>
           {removidos.map((a, i) => (
             <div key={a.user_id} className="flex items-center gap-4 px-5 py-3" style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
               <p className="flex-1 min-w-0 text-[14px] truncate" style={{ color: T.mute }}>{a.nome || 'Sem nome'} · {a.email}</p>
-              <button onClick={() => definirAcesso(a, true)} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] font-semibold hover:bg-slate-50"
-                style={{ color: T.accent, border: '1px solid rgba(79,70,229,0.3)' }}>
-                <RotateCcw size={14} /> Reativar
-              </button>
             </div>
           ))}
         </section>
