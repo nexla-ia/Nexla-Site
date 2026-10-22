@@ -121,7 +121,8 @@ Deno.serve(async (req) => {
         currency_id: 'BRL',
         unit_price: total,
       }],
-      payer: { email: usuario.email },
+      // Sem "payer.email": com credenciais de teste, mandar o e-mail real do aluno faz o Mercado Pago
+      // recusar ("uma das partes é de teste"). O próprio checkout pede/usa o e-mail de quem paga.
       external_reference: pedido.id,
       metadata: { pedido: pedido.id, curso: curso.slug },
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/academy-webhook-mp`,
