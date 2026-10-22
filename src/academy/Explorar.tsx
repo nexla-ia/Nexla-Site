@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Clock, Compass, PlayCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Compass, Lock, PlayCircle } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando, TituloPagina } from './AppLayout';
@@ -12,11 +12,15 @@ const capa = (url: string | null) => url
   ? { backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.55), transparent 60%), url("${url}")` }
   : { background: `linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})` };
 
-/* Card de um curso que o aluno ainda não tem */
+/* Card de um curso que o aluno ainda não tem (cadeado: só a aula de amostra está liberada) */
 export function CardVitrine({ c }: { c: CursoVitrine }) {
   return (
     <article className="rounded-2xl overflow-hidden flex flex-col" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <div className="h-28 px-6 flex items-end pb-4 bg-cover bg-center" style={capa(c.capa)}>
+      <div className="relative h-28 px-6 flex items-end pb-4 bg-cover bg-center" style={capa(c.capa)}>
+        <span className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center" title="Curso bloqueado"
+          style={{ background: 'rgba(15,23,42,0.55)', color: '#FFFFFF', backdropFilter: 'blur(6px)' }}>
+          <Lock size={16} strokeWidth={2} aria-label="Curso bloqueado" />
+        </span>
         {c.totalAulas > 0 && (
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.14)', color: '#E0E7FF' }}>
             <PlayCircle size={13} strokeWidth={2} /> Aula de amostra
