@@ -520,7 +520,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
           <input className={field} placeholder="Nome da empresa" value={empresa}
             onChange={e => setEmpresa(e.target.value)} autoComplete="organization" />
         </Campo>
-        <Campo label="Segmento">
+        <Campo label="Segmento (opcional)">
           <div className="relative">
             <select className={`${field} appearance-none pr-10`} style={{ color: segmento ? T.darkText : 'rgba(241,245,249,0.38)' }}
               value={segmento} onChange={e => setSegmento(e.target.value)}>
@@ -656,7 +656,7 @@ export default function Landing5x2() {
 
             <motion.div {...load(0.24)} className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-14">
               <PrimaryBtn onClick={scrollToForm}>Receber meu plano no WhatsApp <Arrow /></PrimaryBtn>
-              <span className="text-sm" style={{ color: T.mute }}>Gratuito · vagas da 1ª turma limitadas</span>
+              <span className="text-sm" style={{ color: T.mute }}>Grátis · chega em segundos no seu WhatsApp</span>
             </motion.div>
 
             {/* Linha do tempo */}
@@ -713,7 +713,7 @@ export default function Landing5x2() {
                       className="lp-serif lp-num text-[22px]" style={{ color: '#FB923C' }}>
                       {fmt(perdaSemana)}h por semana
                     </motion.span>
-                    . No curso, você aprende a cobrir isso.
+                    . No plano, você vê o que fazer até dezembro.
                   </p>
                 </div>
               )}
