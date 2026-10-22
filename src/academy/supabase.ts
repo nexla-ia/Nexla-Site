@@ -132,5 +132,16 @@ export function organizar(c: Curso) {
   return { ...c, academy_modules: modulos, aulas: modulos.flatMap(m => m.academy_lessons) };
 }
 
+/* Resumo público de cada curso: só números e a aula de amostra (a grade completa só para quem comprou) */
+export type ResumoCurso = { modulos: number; aulas: number; horas: number; amostra: { id: string; titulo: string; duracao_seg: number } | null };
+export async function buscarResumos(): Promise<Map<string, ResumoCurso>> {
+  const { data } = await supabase.rpc('academy_resumo_cursos');
+  return new Map(((data ?? []) as { course_id: string; modulos: number; aulas: number; segundos: number; amostra_id: string | null; amostra_titulo: string | null; amostra_duracao: number | null }[])
+    .map(r => [r.course_id, {
+      modulos: r.modulos, aulas: r.aulas, horas: Math.max(1, Math.round(r.segundos / 3600)),
+      amostra: r.amostra_id ? { id: r.amostra_id, titulo: r.amostra_titulo ?? '', duracao_seg: r.amostra_duracao ?? 0 } : null,
+    }]));
+}
+
 export const pct = (feitas: number, total: number) => (total ? Math.round((feitas / total) * 100) : 0);
 export const minutos = (seg: number) => `${Math.max(1, Math.round(seg / 60))} min`;

@@ -131,6 +131,8 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
   }, [curso, aulaId, dados]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (dados === null) return <AppLayout nome=""><Carregando /></AppLayout>;
+  // Quem não comprou vê a página de apresentação (sem a grade do curso), com só o 1º vídeo
+  if (dados !== 'nao-encontrado' && !dados.matriculado) return <PaginaCurso sessao={sessao} slug={slug} nome={dados.nome} />;
   if (dados === 'nao-encontrado' || !curso || !aula) {
     return (
       <AppLayout nome="">
@@ -146,8 +148,6 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
 
   const { feitas, matriculado, nome, sugestao, avaliacaoPendente, admin } = dados;
 
-  // Quem não comprou vê a página de apresentação do curso, com só o 1º vídeo (amostra)
-  if (!matriculado) return <PaginaCurso sessao={sessao} curso={curso} nome={nome} />;
   const i = curso.aulas.findIndex(a => a.id === aula.id);
   const anterior = curso.aulas[i - 1];
   const proxima = curso.aulas[i + 1];

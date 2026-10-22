@@ -71,7 +71,7 @@ const SHOWCASE = [
       'Planilhas, relatórios e avisos rodando sozinhos, sem programar',
       'Plano de transição para a 5×2 feito para a sua empresa',
     ],
-    href: '/academy/',
+    href: '/academy/entrar',
     ctaLabel: 'Acessar a Nexla Academy',
   },
   {

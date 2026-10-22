@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Award, BarChart3, BookOpen, Check, ChevronDown, Clock, Gift, Lock, PlayCircle, ShieldCheck, Star, UserRound } from 'lucide-react';
+import { Award, BarChart3, BookOpen, Check, ChevronDown, Clock, Gift, PlayCircle, ShieldCheck, Star, UserRound } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando, PublicLayout } from './AppLayout';
 import { Link } from './router';
-import { supabase, minutos, organizar, SELECT_CURSO, type Curso } from './supabase';
+import { supabase, minutos, buscarResumos, type ResumoCurso } from './supabase';
 
-type CursoOrg = ReturnType<typeof organizar>;
+type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
 type Detalhes = {
   descricao: string | null; aprendizados: string[]; nivel: string | null; instrutor: string | null;
   categoria: string | null; certificado: boolean; carga_horaria_h: number | null;
@@ -26,14 +26,41 @@ const FAQ_PADRAO: Pergunta[] = [
   { pergunta: 'Quais as formas de pagamento?', resposta: 'Pix, boleto ou cartão de crédito em até 12x, pelo Mercado Pago. Os dados do seu cartão não passam pela Nexla.' },
 ];
 
-/* Página do curso para quem ainda NÃO comprou (logado ou visitante): apresentação + só o 1º vídeo + compra.
+/* Página do curso para quem ainda NÃO comprou (logado ou visitante): apresentação + só o 1º vídeo + preço.
+ * NÃO mostra módulos nem títulos das aulas (a grade só aparece para quem comprou; o banco também esconde).
  * Quem comprou vê o curso completo (Curso.tsx). */
-export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session | null; curso: CursoOrg; nome: string }) {
+export default function PaginaCurso({ sessao, slug, nome }: { sessao: Session | null; slug: string; nome: string }) {
+  const [curso, setCurso] = useState<Basico | null | 'nao'>(null);
+  const [resumo, setResumo] = useState<ResumoCurso | null>(null);
+  useEffect(() => {
+    supabase.from('academy_courses').select('id, slug, titulo, subtitulo, capa').eq('slug', slug).maybeSingle()
+      .then(({ data }) => setCurso((data as Basico | null) ?? 'nao'));
+  }, [slug]);
+  useEffect(() => {
+    if (curso && curso !== 'nao') buscarResumos().then(m => setResumo(m.get(curso.id) ?? null));
+  }, [curso]);
+
+  // Função (e não componente) para não recriar a página inteira a cada atualização
+  const envolver = (children: React.ReactNode) => sessao
+    ? <AppLayout nome={nome}>{children}</AppLayout>
+    : <PublicLayout voltar={`/curso/${slug}`}>{children}</PublicLayout>;
+  if (curso === null) return envolver(<Carregando />);
+  if (curso === 'nao') {
+    return envolver(
+        <div className="text-center py-20">
+          <p className="font-bold text-[22px]" style={display}>Curso não encontrado</p>
+          <Link para={sessao ? '/cursos' : '/'} className="inline-block mt-4 font-semibold" style={{ color: T.accent }}>Ver todos os cursos</Link>
+        </div>
+    );
+  }
+  return envolver(<Pagina sessao={sessao} curso={curso} resumo={resumo} />);
+}
+
+function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basico; resumo: ResumoCurso | null }) {
   const [det, setDet] = useState<Detalhes | null>(null);
   const [extras, setExtras] = useState<{ bonus: Bonus[]; faq: Pergunta[] }>({ bonus: [], faq: [] });
   const [preco, setPreco] = useState<{ valor: number; de: number | null } | null | undefined>(undefined);
   const [nota, setNota] = useState<{ media: number; total: number } | null>(null);
-  const [aberto, setAberto] = useState<string | null>(curso.academy_modules[0]?.id ?? null);
   const [faqAberta, setFaqAberta] = useState<number | null>(0);
 
   useEffect(() => {
@@ -50,9 +77,9 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
     });
   }, [curso.id]);
 
-  const amostra = curso.aulas[0];
-  const segundos = curso.aulas.reduce((s, a) => s + a.duracao_seg, 0);
-  const horas = det?.carga_horaria_h ?? Math.max(1, Math.round(segundos / 3600));
+  const amostra = resumo?.amostra ?? null;
+  const horas = det?.carga_horaria_h ?? resumo?.horas ?? 1;
+  const totalAulas = resumo?.aulas ?? 0;
   const emitirCertificado = det?.certificado ?? true;
   const faq = [...extras.faq, ...FAQ_PADRAO];
   const compra = `/comprar/${curso.slug}`;
@@ -87,7 +114,7 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
                 <strong style={{ color: T.ink }}>{nota.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong> ({nota.total})
               </span>
             )}
-            <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {curso.academy_modules.length} módulos · {curso.aulas.length} aulas</span>
+            {resumo && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {resumo.modulos} módulos · {totalAulas} aulas</span>}
             <span className="inline-flex items-center gap-1.5"><Clock size={15} /> {horas}h de conteúdo</span>
             {det?.nivel && <span className="inline-flex items-center gap-1.5"><BarChart3 size={15} /> {NIVEL[det.nivel] ?? det.nivel}</span>}
             {emitirCertificado && <span className="inline-flex items-center gap-1.5"><Award size={15} /> Certificado</span>}
@@ -95,7 +122,7 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
           </div>
 
           {/* Vídeo de amostra: visitante cria a conta grátis para assistir (vira lead) */}
-          {amostra && (
+          {(
             <div className="mt-7">
               <div className="relative aspect-video rounded-2xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
                 style={{ background: curso.capa ? `linear-gradient(rgba(15,23,42,0.72), rgba(15,23,42,0.72)), url("${curso.capa}") center/cover` : `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText }}>
@@ -114,9 +141,11 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
                   </>
                 )}
               </div>
-              <p className="mt-3 text-[14px]" style={{ color: T.mute }}>
-                <strong style={{ color: T.ink }}>Aula de amostra:</strong> {amostra.titulo} · {minutos(amostra.duracao_seg)}
-              </p>
+              {amostra && (
+                <p className="mt-3 text-[14px]" style={{ color: T.mute }}>
+                  <strong style={{ color: T.ink }}>Aula de amostra:</strong> {amostra.titulo} · {minutos(amostra.duracao_seg)}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -140,7 +169,7 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
           )}
           <ul className="mt-5 space-y-2.5 text-[14px]" style={{ color: T.ink2 }}>
             {[
-              `Acesso às ${curso.aulas.length} aulas, no celular e no computador`,
+              totalAulas ? `Acesso às ${totalAulas} aulas, no celular e no computador` : 'Acesso a todas as aulas, no celular e no computador',
               'Materiais para baixar',
               ...(emitirCertificado ? ['Certificado de conclusão'] : []),
               ...(extras.bonus.length ? [`${extras.bonus.length} bônus inclusos`] : []),
@@ -177,49 +206,6 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
               </ul>
             </section>
           )}
-
-          {/* Conteúdo */}
-          <section>
-            <div className="flex items-baseline justify-between gap-3 mb-3">
-              <h2 className="font-bold text-[22px]" style={display}>Conteúdo do curso</h2>
-              <span className="text-[13.5px]" style={{ color: T.mute }}>{curso.academy_modules.length} módulos · {curso.aulas.length} aulas · {horas}h</span>
-            </div>
-            <div className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-              {curso.academy_modules.map((m, i) => {
-                const ab = aberto === m.id;
-                return (
-                  <div key={m.id} style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
-                    <button onClick={() => setAberto(ab ? null : m.id)} aria-expanded={ab}
-                      className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-50">
-                      <span>
-                        <span className="block text-[12px] font-semibold uppercase tracking-wide" style={{ color: T.accent }}>Módulo {i + 1}</span>
-                        <span className="block font-semibold text-[15.5px]">{m.titulo}</span>
-                      </span>
-                      <span className="flex items-center gap-3 shrink-0 text-[13px]" style={{ color: T.mute }}>
-                        {m.academy_lessons.length} aulas
-                        <ChevronDown size={18} className="transition-transform" style={{ transform: ab ? 'rotate(180deg)' : 'none' }} />
-                      </span>
-                    </button>
-                    {ab && (
-                      <ul className="pb-2">
-                        {m.academy_lessons.map(a => {
-                          const eAmostra = a.id === amostra?.id;
-                          return (
-                            <li key={a.id} className="flex items-center gap-3 px-5 py-2.5 text-[14px]">
-                              {eAmostra ? <PlayCircle size={16} style={{ color: T.accent }} /> : <Lock size={15} style={{ color: '#94A3B8' }} />}
-                              <span className="flex-1" style={{ color: eAmostra ? T.ink : T.ink2 }}>{a.titulo}</span>
-                              {eAmostra && <span className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(79,70,229,0.08)', color: T.accent }}>Amostra</span>}
-                              <span className="text-[12.5px] w-14 text-right" style={{ color: T.mute }}>{minutos(a.duracao_seg)}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
 
           {/* Bônus */}
           {extras.bonus.length > 0 && (
@@ -285,28 +271,10 @@ export default function PaginaCurso({ sessao, curso, nome }: { sessao: Session |
     </motion.div>
   );
 
-  return sessao
-    ? <AppLayout nome={nome}>{conteudo}</AppLayout>
-    : <PublicLayout voltar={`/curso/${curso.slug}`}>{conteudo}</PublicLayout>;
+  return conteudo;
 }
 
-/* Página do curso aberta a visitantes (sem login): carrega o curso pelo endereço */
+/* Página do curso aberta a visitantes (sem login) */
 export function CursoPublico({ slug }: { slug: string }) {
-  const [curso, setCurso] = useState<CursoOrg | null | 'nao'>(null);
-  useEffect(() => {
-    supabase.from('academy_courses').select(SELECT_CURSO).eq('slug', slug).maybeSingle()
-      .then(({ data }) => setCurso(data ? organizar(data as unknown as Curso) : 'nao'));
-  }, [slug]);
-  if (curso === null) return <PublicLayout><Carregando /></PublicLayout>;
-  if (curso === 'nao') {
-    return (
-      <PublicLayout>
-        <div className="text-center py-20">
-          <p className="font-bold text-[22px]" style={display}>Curso não encontrado</p>
-          <Link para="/" className="inline-block mt-4 font-semibold" style={{ color: T.accent }}>Ver todos os cursos</Link>
-        </div>
-      </PublicLayout>
-    );
-  }
-  return <PaginaCurso sessao={null} curso={curso} nome="" />;
+  return <PaginaCurso sessao={null} slug={slug} nome="" />;
 }

@@ -4,9 +4,10 @@ import { ArrowRight, Award, Clock, PlayCircle, ShieldCheck, Smartphone, Star } f
 import { T, display, ease } from './ui';
 import { Carregando, PublicLayout } from './AppLayout';
 import { Link } from './router';
-import { supabase, organizar, SELECT_CURSO, type Curso } from './supabase';
+import { supabase, buscarResumos } from './supabase';
 
-type Bloco = ReturnType<typeof organizar> & { preco: number | null; de: number | null; media: number | null; avaliacoes: number; horas: number };
+type Bloco = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null;
+  preco: number | null; de: number | null; media: number | null; avaliacoes: number; horas: number; modulos: number; aulas: number };
 const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 /* Vitrine aberta a visitantes (nexla.com.br/academy): todos os cursos publicados */
@@ -15,22 +16,23 @@ export default function Vitrine() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('academy_courses').select(SELECT_CURSO).eq('publicado', true).order('ordem'),
+      supabase.from('academy_courses').select('id, slug, titulo, subtitulo, capa').eq('publicado', true).order('ordem'),
       supabase.from('academy_products').select('course_id, preco, preco_promocional').eq('tipo', 'curso').eq('ativo', true),
       supabase.rpc('academy_media_cursos'),
-    ]).then(([cs, ps, ns]) => {
+      buscarResumos(),
+    ]).then(([cs, ps, ns, resumos]) => {
       const precos = new Map((ps.data ?? []).map(p => [p.course_id as string, p]));
       const notas = new Map(((ns.data ?? []) as { course_id: string; media: number; total: number }[]).map(n => [n.course_id, n]));
-      setCursos(((cs.data ?? []) as unknown as Curso[]).map(c => {
-        const o = organizar(c);
+      setCursos(((cs.data ?? []) as Omit<Bloco, 'preco' | 'de' | 'media' | 'avaliacoes' | 'horas' | 'modulos' | 'aulas'>[]).map(o => {
         const p = precos.get(o.id);
         const n = notas.get(o.id);
+        const r = resumos.get(o.id);
         return {
           ...o,
           preco: p ? Number(p.preco_promocional ?? p.preco) : null,
           de: p && p.preco_promocional != null ? Number(p.preco) : null,
           media: n ? Number(n.media) : null, avaliacoes: n?.total ?? 0,
-          horas: Math.max(1, Math.round(o.aulas.reduce((s, a) => s + a.duracao_seg, 0) / 3600)),
+          horas: r?.horas ?? 1, modulos: r?.modulos ?? 0, aulas: r?.aulas ?? 0,
         };
       }));
     });
@@ -77,7 +79,7 @@ export default function Vitrine() {
                   )}
                   {c.subtitulo && <p className="text-[14px] mt-1.5" style={{ color: T.mute }}>{c.subtitulo}</p>}
                   <p className="flex items-center gap-1.5 text-[13px] mt-3" style={{ color: T.mute }}>
-                    <Clock size={14} /> {c.academy_modules.length} módulos · {c.aulas.length} aulas · {c.horas}h
+                    <Clock size={14} /> {c.modulos} módulos · {c.aulas} aulas · {c.horas}h
                   </p>
                   <div className="mt-auto pt-4 flex items-end justify-between gap-3">
                     <div>

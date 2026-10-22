@@ -17,7 +17,7 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
   return (
     <article className="rounded-2xl overflow-hidden flex flex-col" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <div className="h-28 px-6 flex items-end pb-4 bg-cover bg-center" style={capa(c.capa)}>
-        {c.aulas.length > 0 && (
+        {c.totalAulas > 0 && (
           <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.14)', color: '#E0E7FF' }}>
             <PlayCircle size={13} strokeWidth={2} /> Aula de amostra
           </span>
@@ -28,7 +28,7 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
         {c.media !== null && <div className="mt-1.5"><MediaEstrelas media={c.media} total={c.avaliacoes} /></div>}
         {c.subtitulo && <p className="text-[14px] mt-1.5" style={{ color: T.mute }}>{c.subtitulo}</p>}
         <p className="flex items-center gap-1.5 text-[13px] mt-4" style={{ color: T.mute }}>
-          <Clock size={14} strokeWidth={1.75} /> {c.academy_modules.length} módulos · {c.aulas.length} aulas · {c.horas}h de conteúdo
+          <Clock size={14} strokeWidth={1.75} /> {c.modulos} módulos · {c.totalAulas} aulas · {c.horas}h de conteúdo
         </p>
         <div className="pt-5 mt-auto">
           <Link para={`/curso/${c.slug}`}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase, organizar, pct, CERTIFICADO_MIN, SELECT_CURSO, type Curso, type Aula } from './supabase';
+import { supabase, organizar, pct, buscarResumos, CERTIFICADO_MIN, SELECT_CURSO, type Curso, type Aula, type ResumoCurso } from './supabase';
 
 export type CursoAluno = ReturnType<typeof organizar> & {
   feitas: Set<string>;
@@ -14,18 +14,21 @@ export type CursoAluno = ReturnType<typeof organizar> & {
 };
 
 /* Curso da vitrine que o aluno ainda não tem */
-export type CursoVitrine = ReturnType<typeof organizar> & { horas: number; gratis: number; media: number | null; avaliacoes: number };
+export type CursoVitrine = ReturnType<typeof organizar> & { horas: number; modulos: number; totalAulas: number; media: number | null; avaliacoes: number };
 
 type Medias = Map<string, { media: number; total: number }>;
 
-const paraVitrine = (c: Curso, medias: Medias): CursoVitrine => {
+// Quem não comprou não lê a grade do curso: os números vêm do resumo público
+const paraVitrine = (c: Curso, medias: Medias, resumos: Map<string, ResumoCurso>): CursoVitrine => {
   const o = organizar(c);
+  const r = resumos.get(o.id);
   return {
     ...o,
     media: medias.get(o.id)?.media ?? null,
     avaliacoes: medias.get(o.id)?.total ?? 0,
-    horas: Math.max(1, Math.round(o.aulas.reduce((s, a) => s + a.duracao_seg, 0) / 3600)),
-    gratis: o.aulas.filter(a => a.gratuita).length,
+    horas: r?.horas ?? 1,
+    modulos: r?.modulos ?? 0,
+    totalAulas: r?.aulas ?? 0,
   };
 };
 
@@ -40,13 +43,14 @@ export function useCursosAluno(sessao: Session) {
     let vivo = true;
     (async () => {
       const uid = sessao.user.id;
-      const [perfil, matriculas, progresso, catalogo, notas, minhas] = await Promise.all([
+      const [perfil, matriculas, progresso, catalogo, notas, minhas, resumos] = await Promise.all([
         supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle(),
         supabase.from('academy_enrollments').select(`criado_em, academy_courses(${SELECT_CURSO})`).eq('user_id', uid).eq('ativo', true),
         supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('user_id', uid).eq('concluida', true),
         supabase.from('academy_courses').select(SELECT_CURSO).eq('publicado', true),
         supabase.rpc('academy_media_cursos'), // se o 006 não rodou, volta erro e as médias ficam vazias
         supabase.from('academy_course_reviews').select('course_id, estrelas').eq('user_id', uid),
+        buscarResumos(),
       ]);
       if (!vivo) return;
       const erro = matriculas.error || progresso.error;
@@ -79,7 +83,7 @@ export function useCursosAluno(sessao: Session) {
       const meus = new Set(cursos.map(c => c.id));
       const outros = ((catalogo.data ?? []) as unknown as Curso[])
         .filter(c => !meus.has(c.id))
-        .map(c => paraVitrine(c, medias))
+        .map(c => paraVitrine(c, medias, resumos))
         .sort((a, b) => a.ordem - b.ordem);
 
       setEstado({
