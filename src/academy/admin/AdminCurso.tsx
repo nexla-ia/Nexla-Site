@@ -480,6 +480,12 @@ function Editor({ nome, id }: { nome: string; id: string }) {
   }, [id]);
   useEffect(() => { recarregar(); }, [recarregar]);
 
+  useEffect(() => {
+    const aoNavegar = () => { const a = parametro('aba'); setAba(a === 'config' || a === 'alunos' ? a : 'aulas'); };
+    window.addEventListener('popstate', aoNavegar);
+    return () => window.removeEventListener('popstate', aoNavegar);
+  }, []);
+
   const trocarAba = (a: Aba) => { setAba(a); navegar(`/admin/curso/${id}${a === 'aulas' ? '' : `?aba=${a}`}`, { substituir: true }); };
 
   if (!curso) return <AdminLayout nome={nome}><Carregando /></AdminLayout>;

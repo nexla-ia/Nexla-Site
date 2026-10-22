@@ -14,6 +14,7 @@ type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
 type Dados = {
   nome: string; curso: ReturnType<typeof organizar>; matriculado: boolean; feitas: Set<string>; sugestao: Sugestao | null;
   avaliacaoPendente: boolean; // concluiu e ainda não avaliou nem dispensou o pedido
+  admin: boolean;             // admin no "Ver como aluno": sem certificado, sugestão nem avaliação
 };
 
 /* Próximo curso sugerido: o primeiro curso publicado (na ordem da vitrine) que o aluno ainda não tem */
@@ -109,9 +110,10 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
         nome: (perfil.data?.nome as string | undefined) || sessao.user.email || '',
         curso,
         matriculado: !!mat.data?.ativo || perfil.data?.role === 'admin', // admin vê tudo no "Ver como aluno"
+        admin: perfil.data?.role === 'admin',
         feitas: new Set((prog.data ?? []).map(p => p.lesson_id as string)),
         sugestao,
-        avaliacaoPendente: !review.error && !review.data, // sem a tabela (006 não rodado), não pergunta
+        avaliacaoPendente: perfil.data?.role !== 'admin' && !review.error && !review.data, // sem a tabela (006 não rodado), não pergunta
       });
     })();
     return () => { vivo = false; };
@@ -142,7 +144,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
     );
   }
 
-  const { feitas, matriculado, nome, sugestao, avaliacaoPendente } = dados;
+  const { feitas, matriculado, nome, sugestao, avaliacaoPendente, admin } = dados;
 
   // Quem não comprou vê a página de apresentação do curso, com só o 1º vídeo (amostra)
   if (!matriculado) return <PaginaCurso sessao={sessao} curso={curso} nome={nome} />;
@@ -175,16 +177,26 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
     const prox = new Set(feitas);
     if (novo) prox.add(aula.id); else prox.delete(aula.id);
     setDados({ ...dados, feitas: prox });
-    if (novo && prox.size === curso.aulas.length) setParabens(true); // acabou de concluir a última aula
+    if (novo && prox.size === curso.aulas.length && !admin) setParabens(true); // acabou de concluir a última aula
   };
 
   return (
     <AppLayout nome={nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         {/* Cabeçalho do curso */}
-        <Link para="/painel" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-4 hover:underline underline-offset-4" style={{ color: T.mute }}>
-          <ArrowLeft size={15} strokeWidth={1.75} /> Meus cursos
-        </Link>
+        {admin ? (
+          <div className="rounded-xl px-4 py-3 mb-5 flex flex-wrap items-center justify-between gap-3 text-[14px]"
+            style={{ background: 'rgba(15,23,42,0.05)', border: `1px solid ${T.rule}` }}>
+            <span style={{ color: T.ink2 }}><strong>Modo admin:</strong> você está vendo o curso como um aluno que comprou.</span>
+            <Link para="/admin/cursos" className="inline-flex items-center gap-1.5 font-semibold" style={{ color: T.accent }}>
+              <ArrowLeft size={15} strokeWidth={1.75} /> Voltar ao admin
+            </Link>
+          </div>
+        ) : (
+          <Link para="/painel" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-4 hover:underline underline-offset-4" style={{ color: T.mute }}>
+            <ArrowLeft size={15} strokeWidth={1.75} /> Meus cursos
+          </Link>
+        )}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(24px,3vw,34px)' }}>{curso.titulo}</h1>
@@ -193,7 +205,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
               <span className="text-[13.5px] font-semibold whitespace-nowrap">{percentual}% · {feitas.size}/{curso.aulas.length} aulas</span>
             </div>
           </div>
-          {!matriculado || percentual >= 100 ? null : percentual >= CERTIFICADO_MIN ? (
+          {!matriculado || admin || percentual >= 100 ? null : percentual >= CERTIFICADO_MIN ? (
             <Link para={`/certificado/${slug}`} className="inline-flex items-center gap-2 text-[13.5px] font-semibold px-3.5 py-2 rounded-xl self-start md:self-auto transition-colors hover:bg-green-100"
               style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
               <Award size={16} strokeWidth={2} /> Ver certificado <ArrowRight size={15} strokeWidth={2} />
@@ -207,7 +219,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
         </div>
 
         {/* Curso concluído: certificado + próximo curso sugerido */}
-        {matriculado && percentual >= 100 && (
+        {matriculado && !admin && percentual >= 100 && (
           <div className="rounded-2xl p-5 mb-6 space-y-4" style={{ background: T.card, border: '1px solid rgba(34,197,94,0.3)' }}>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
