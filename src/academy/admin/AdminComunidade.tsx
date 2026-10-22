@@ -106,7 +106,7 @@ function Tela({ nome, sessao }: { nome: string; sessao: Session }) {
           </div>
         </div>
 
-        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         {!aulas ? <Carregando /> : aba === 'comentarios' ? (
           <div className="space-y-3">
@@ -132,7 +132,7 @@ function Tela({ nome, sessao }: { nome: string; sessao: Session }) {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-[14.5px]">{c.autor_nome || 'Aluno'}</span>
-                    {c.autor_admin && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(249,115,22,0.12)', color: '#C2410C' }}>Instrutor</span>}
+                    {c.autor_admin && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(249,115,22,0.12)', color: 'var(--a-orange)' }}>Instrutor</span>}
                     {c.parent_id && <span className="inline-flex items-center gap-1 text-[12px]" style={{ color: T.mute }}><CornerDownRight size={12} /> resposta</span>}
                     <span className="text-[12.5px]" style={{ color: '#94A3B8' }}>· {quando(c.criado_em)}</span>
                   </div>
@@ -175,7 +175,7 @@ function Tela({ nome, sessao }: { nome: string; sessao: Session }) {
                   <div key={d.n} className="flex items-center gap-2 text-[12.5px]">
                     <span className="w-3" style={{ color: T.mute }}>{d.n}</span>
                     <Star size={12} strokeWidth={0} fill={AMBAR} />
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.07)' }}>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
                       <div className="h-full rounded-full" style={{ width: `${avaliacoesFiltradas.length ? (d.q / avaliacoesFiltradas.length) * 100 : 0}%`, background: AMBAR }} />
                     </div>
                     <span className="w-6 text-right" style={{ color: T.mute }}>{d.q}</span>

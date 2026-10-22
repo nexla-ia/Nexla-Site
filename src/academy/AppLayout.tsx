@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, BookOpen, Compass, LayoutDashboard, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { Award, BookOpen, Compass, LayoutDashboard, LogOut, Menu, Moon, UserRound, X } from 'lucide-react';
 import { T, LOGO, display, ease } from './ui';
 import { Link, navegar, useRota } from './router';
 import { supabase, useSessao, useEhAdmin } from './supabase';
+import { useTema } from './tema';
 
 /* Itens do menu lateral do aluno */
 const NAV = [
@@ -20,6 +21,7 @@ function MenuLateral({ nome, email, admin }: { nome: string; email: string; admi
   const rota = useRota();
   const inicial = (nome.trim()[0] || email[0] || '?').toUpperCase();
   const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
+  const { escuro, alternar } = useTema();
   return (
     <div className="h-full flex flex-col">
       <Link para={admin ? '/admin' : '/painel'} className="h-16 px-5 shrink-0 inline-flex items-center gap-2.5">
@@ -48,7 +50,14 @@ function MenuLateral({ nome, email, admin }: { nome: string; email: string; admi
             <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
           </div>
         </div>
-        <button onClick={sair} className="w-full mt-1 flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-red-50" style={{ color: '#B91C1C' }}>
+        <button role="switch" aria-checked={escuro} onClick={alternar}
+          className="w-full mt-1 flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-slate-100" style={{ color: T.ink2 }}>
+          <Moon size={18} strokeWidth={1.75} style={{ color: T.mute }} /> Modo escuro
+          <span className="ml-auto relative w-9 h-5 rounded-full shrink-0 transition-colors" style={{ background: escuro ? '#4F46E5' : 'var(--a-track)' }}>
+            <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-[left]" style={{ left: escuro ? 18 : 2 }} />
+          </span>
+        </button>
+        <button onClick={sair} className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
           <LogOut size={18} strokeWidth={1.75} /> Sair da conta
         </button>
       </div>
@@ -82,7 +91,7 @@ export function AppLayout({ nome, children }: { nome: string; children: React.Re
       </aside>
 
       {/* Celular e tablet */}
-      <header className="lg:hidden sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
+      <header className="lg:hidden sticky top-0 z-30" style={{ background: 'var(--a-vidro)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
         <div className="px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link para={admin ? '/admin' : '/painel'} className="inline-flex items-center gap-2">
             <img src={LOGO} alt="" className="w-7 h-7 object-contain" />
@@ -121,7 +130,7 @@ export function AppLayout({ nome, children }: { nome: string; children: React.Re
 /* Barra de progresso do curso */
 export function BarraProgresso({ valor, grossa = false }: { valor: number; grossa?: boolean }) {
   return (
-    <div className={`${grossa ? 'h-2.5' : 'h-2'} rounded-full overflow-hidden`} style={{ background: 'rgba(15,23,42,0.08)' }}>
+    <div className={`${grossa ? 'h-2.5' : 'h-2'} rounded-full overflow-hidden`} style={{ background: 'var(--a-track)' }}>
       <div className="h-full rounded-full transition-[width] duration-700"
         style={{ width: `${valor}%`, background: valor >= 100 ? '#22C55E' : `linear-gradient(90deg, ${T.accent}, ${T.violet})` }} />
     </div>

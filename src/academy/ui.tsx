@@ -2,10 +2,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Info, Mail } from 'lucide-react';
 
 /* ─── Paleta (a mesma do site nexla.com.br) ───────────────────── */
+/* As cores que mudam no modo escuro são variáveis CSS (valores em academy.css);
+   as "dark*" são dos painéis que já são escuros nos dois temas (login, player). */
 export const T = {
-  paper: '#F1F5F9', card: '#FFFFFF',
-  ink: '#0F172A', ink2: '#1E293B', mute: '#475569', rule: 'rgba(15,23,42,0.10)',
-  accent: '#4F46E5', violet: '#7C3AED',
+  paper: 'var(--a-paper)', card: 'var(--a-card)',
+  ink: 'var(--a-ink)', ink2: 'var(--a-ink2)', mute: 'var(--a-mute)', rule: 'var(--a-rule)',
+  accent: 'var(--a-accent)', violet: '#7C3AED',
   dark: '#0F172A', darkText: '#F1F5F9', darkMute: 'rgba(241,245,249,0.68)', darkRule: 'rgba(241,245,249,0.12)',
 } as const;
 
@@ -109,7 +111,7 @@ export function Mensagem({ erro, aviso }: { erro: string; aviso: string }) {
           initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
           className="flex items-start gap-2.5 text-[13.5px] leading-relaxed rounded-[10px] px-3.5 py-3"
           style={erro
-            ? { background: 'rgba(239,68,68,0.07)', color: '#B91C1C', border: '1px solid rgba(239,68,68,0.2)' }
+            ? { background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)', border: '1px solid rgba(239,68,68,0.2)' }
             : { background: 'rgba(79,70,229,0.07)', color: '#3730A3', border: '1px solid rgba(79,70,229,0.2)' }}>
           <Info size={16} strokeWidth={2} className="shrink-0 mt-0.5" /> {erro || aviso}
         </motion.p>

@@ -11,6 +11,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <meta name="theme-color" content="#F1F5F9" />
+    <!-- Aplica o tema salvo (claro/escuro) antes de desenhar a página, para não piscar -->
+    <script>
+      try {
+        var t = localStorage.getItem('academy-tema');
+        if (t === 'escuro' || (t === 'sistema' && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.dataset.tema = 'escuro';
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -60,7 +60,7 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
         <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>Preço cobrado no Mercado Pago (Pix, boleto ou cartão parcelado) e a oferta extra mostrada na tela de compra.</p>
       </div>
       {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semTabela ? (
-        <p className="text-[14px]" style={{ color: '#B91C1C' }}>Rode o <strong>014_vendas.sql</strong> no Supabase para configurar preços.</p>
+        <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>014_vendas.sql</strong> no Supabase para configurar preços.</p>
       ) : (
         <div className="space-y-5">
           <Chave ligado={aVenda} onChange={setAVenda} texto={aVenda ? 'À venda (botão "Comprar" aparece para quem não tem o curso)' : 'Fora de venda'} />
@@ -79,8 +79,8 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
               </div>
             )}
           </div>
-          {msg.erro && <p className="text-[13.5px]" style={{ color: '#B91C1C' }}>{msg.erro}</p>}
-          {msg.ok && <p className="text-[13.5px]" style={{ color: '#15803D' }}>{msg.ok}</p>}
+          {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
+          {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
           <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar preços'}</button>
         </div>
       )}
@@ -96,11 +96,11 @@ type Pedido = {
 type Cupom = { codigo: string; tipo: 'percentual' | 'valor'; valor: number; course_id: string | null; validade: string | null; limite_usos: number | null; usos: number; ativo: boolean };
 
 const STATUS: Record<string, { t: string; bg: string; c: string }> = {
-  pago:        { t: 'Pago',        bg: '#DCFCE7', c: '#15803D' },
-  pendente:    { t: 'Pendente',    bg: '#FEF3C7', c: '#B45309' },
-  recusado:    { t: 'Recusado',    bg: '#FEE2E2', c: '#B91C1C' },
-  cancelado:   { t: 'Cancelado',   bg: 'rgba(15,23,42,0.06)', c: '#475569' },
-  reembolsado: { t: 'Reembolsado', bg: 'rgba(15,23,42,0.06)', c: '#475569' },
+  pago:        { t: 'Pago',        bg: 'var(--a-green-bg)', c: 'var(--a-green)' },
+  pendente:    { t: 'Pendente',    bg: '#FEF3C7', c: 'var(--a-amber)' },
+  recusado:    { t: 'Recusado',    bg: '#FEE2E2', c: 'var(--a-red)' },
+  cancelado:   { t: 'Cancelado',   bg: 'var(--a-soft)', c: T.mute },
+  reembolsado: { t: 'Reembolsado', bg: 'var(--a-soft)', c: T.mute },
 };
 const FORMA: Record<string, string> = { pix: 'Pix', bank_transfer: 'Pix', credit_card: 'Cartão', debit_card: 'Débito', ticket: 'Boleto', account_money: 'Saldo MP', gratuito: 'Gratuito' };
 const data = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -162,7 +162,7 @@ function Tela({ nome }: { nome: string }) {
     <AdminLayout nome={nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <TituloAdmin titulo="Vendas" sub="Pedidos pagos pelo Mercado Pago e cupons de desconto." />
-        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         {!pedidos ? <Carregando /> : (
           <>
@@ -250,8 +250,8 @@ function Tela({ nome }: { nome: string }) {
                 <Rotulo texto="Limite de usos"><input type="number" min={1} className={inputCls} placeholder="ilimitado" value={nc.limite} onChange={e => setNc({ ...nc, limite: e.target.value })} /></Rotulo>
                 <div className="sm:col-span-2 lg:col-span-6 flex flex-wrap items-center gap-4">
                   <button type="submit" className={botaoPrimario}><Plus size={16} /> Criar cupom</button>
-                  {msgCupom.erro && <span className="text-[13.5px]" style={{ color: '#B91C1C' }}>{msgCupom.erro}</span>}
-                  {msgCupom.ok && <span className="text-[13.5px]" style={{ color: '#15803D' }}>{msgCupom.ok}</span>}
+                  {msgCupom.erro && <span className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msgCupom.erro}</span>}
+                  {msgCupom.ok && <span className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msgCupom.ok}</span>}
                 </div>
               </form>
 
@@ -268,12 +268,12 @@ function Tela({ nome }: { nome: string }) {
                       <span className="text-[13.5px]">{c.tipo === 'percentual' ? `${Number(c.valor)}%` : reais(Number(c.valor))} off</span>
                       <span className="text-[13px]" style={{ color: T.mute }}>{c.course_id ? cursos.get(c.course_id) ?? 'curso' : 'todos os cursos'}</span>
                       <span className="text-[13px]" style={{ color: T.mute }}>{c.usos}{c.limite_usos ? `/${c.limite_usos}` : ''} usos</span>
-                      <span className="text-[13px]" style={{ color: vencido ? '#B91C1C' : T.mute }}>
+                      <span className="text-[13px]" style={{ color: vencido ? 'var(--a-red)' : T.mute }}>
                         {c.validade ? `${vencido ? 'venceu' : 'até'} ${new Date(c.validade).toLocaleDateString('pt-BR')}` : 'sem prazo'}
                       </span>
                       <div className="ml-auto flex items-center gap-2">
                         <Chave ligado={c.ativo} onChange={() => alternarCupom(c)} texto={c.ativo ? 'Ativo' : 'Pausado'} />
-                        <button onClick={() => apagarCupom(c)} aria-label={`Apagar ${c.codigo}`} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-red-50" style={{ color: '#B91C1C' }}>
+                        <button onClick={() => apagarCupom(c)} aria-label={`Apagar ${c.codigo}`} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
                           <Trash2 size={15} />
                         </button>
                       </div>

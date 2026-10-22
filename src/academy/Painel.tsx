@@ -14,12 +14,12 @@ function Certificado({ c }: { c: CursoAluno }) {
   const faltam = c.faltamCertificado;
   return liberado ? (
     <Link para={`/certificado/${c.slug}`} className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-2.5 py-1 rounded-full transition-colors hover:bg-green-100"
-      style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
+      style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)' }}>
       <Award size={14} strokeWidth={2} /> Ver certificado
     </Link>
   ) : (
     <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1 rounded-full"
-      style={{ background: 'rgba(15,23,42,0.05)', color: T.mute }}>
+      style={{ background: 'var(--a-soft)', color: T.mute }}>
       <Lock size={13} strokeWidth={2} /> Certificado a partir de {CERTIFICADO_MIN}% · falta{faltam > 1 ? 'm' : ''} {faltam} aula{faltam > 1 ? 's' : ''}
     </span>
   );
@@ -45,7 +45,7 @@ export default function Painel({ sessao }: { sessao: Session }) {
           {cursos.length ? 'Continue de onde parou. Cada aula concluída fica salva aqui.' : 'Assim que você tiver um curso, ele aparece aqui.'}
         </p>
 
-        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         {/* Resumo */}
         {cursos.length > 0 && (
@@ -133,7 +133,7 @@ export default function Painel({ sessao }: { sessao: Session }) {
 
                       <div className="mt-5 mb-2 flex items-center justify-between text-[13px]">
                         <span style={{ color: T.mute }}>{c.feitas.size} de {c.aulas.length} aulas concluídas</span>
-                        <span className="font-bold text-[15px]" style={{ color: concluido ? '#15803D' : T.ink }}>{c.percentual}%</span>
+                        <span className="font-bold text-[15px]" style={{ color: concluido ? 'var(--a-green)' : T.ink }}>{c.percentual}%</span>
                       </div>
                       <div className="mb-5"><BarraProgresso valor={c.percentual} grossa /></div>
 

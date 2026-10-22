@@ -44,7 +44,7 @@ function Lista({ nome }: { nome: string }) {
         <TituloAdmin titulo="Cursos da plataforma" sub="Clique num curso para gerenciar as aulas e as configurações."
           acao={<Link para="/admin/curso/novo" className={botaoPrimario}><Plus size={17} strokeWidth={2} /> Novo curso</Link>} />
 
-        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
         {!cursos ? <Carregando /> : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {cursos.map(c => (
@@ -56,11 +56,11 @@ function Lista({ nome }: { nome: string }) {
                     ? <img src={c.capa} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" />
                     : <span className="absolute inset-0 flex items-center justify-center" style={{ color: 'rgba(224,231,255,0.5)' }}><ImageIcon size={28} strokeWidth={1.5} /></span>}
                   <span className="absolute top-3 left-3 text-[11.5px] font-bold px-2.5 py-1 rounded-full"
-                    style={c.publicado ? { background: '#DCFCE7', color: '#15803D' } : { background: 'rgba(255,255,255,0.92)', color: T.mute }}>
+                    style={c.publicado ? { background: 'var(--a-green-bg)', color: 'var(--a-green)' } : { background: 'var(--a-vidro)', color: T.mute }}>
                     {c.publicado ? 'Publicado' : 'Rascunho'}
                   </span>
                   {c.destaque && (
-                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#FEF3C7', color: '#B45309' }}>
+                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#FEF3C7', color: 'var(--a-amber)' }}>
                       <Star size={11} strokeWidth={0} fill="#F59E0B" /> Destaque
                     </span>
                   )}
@@ -69,7 +69,7 @@ function Lista({ nome }: { nome: string }) {
                   <h2 className="font-bold text-[17px] leading-snug" style={{ ...display, color: T.ink }}>{c.titulo}</h2>
                   <div className="grid grid-cols-3 gap-2 mt-auto pt-4 text-center">
                     {[{ v: c.modulos, l: 'módulos' }, { v: c.aulas, l: 'aulas' }, { v: c.alunos, l: 'alunos' }].map(n => (
-                      <div key={n.l} className="rounded-lg py-2" style={{ background: '#F8FAFC' }}>
+                      <div key={n.l} className="rounded-lg py-2" style={{ background: 'var(--a-soft2)' }}>
                         <div className="font-bold text-[16px]" style={display}>{n.v}</div>
                         <div className="text-[11.5px]" style={{ color: T.mute }}>{n.l}</div>
                       </div>

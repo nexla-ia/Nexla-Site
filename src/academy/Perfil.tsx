@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, MessageCircle, Phone, User } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, Lock, Mail, MessageCircle, Monitor, Moon, Phone, Sun, User } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { supabase, erroAuth } from './supabase';
+import { useTema, type Tema } from './tema';
 
 const WHATSAPP_NEXLA = '556999300101';
 
@@ -31,10 +32,37 @@ function Interruptor({ ligado, onChange, children }: { ligado: boolean; onChange
     <button type="button" role="switch" aria-checked={ligado} onClick={() => onChange(!ligado)}
       className="w-full flex items-start justify-between gap-4 text-left">
       <span className="text-[14px] leading-relaxed" style={{ color: T.ink2 }}>{children}</span>
-      <span className="relative w-11 h-6 rounded-full shrink-0 transition-colors" style={{ background: ligado ? T.accent : 'rgba(15,23,42,0.18)' }}>
+      <span className="relative w-11 h-6 rounded-full shrink-0 transition-colors" style={{ background: ligado ? '#4F46E5' : 'var(--a-track)' }}>
         <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-[left]" style={{ left: ligado ? 22 : 2 }} />
       </span>
     </button>
+  );
+}
+
+const TEMAS: { id: Tema; texto: string; sub: string; icone: typeof Sun }[] = [
+  { id: 'claro',   texto: 'Claro',      sub: 'Fundo claro',                      icone: Sun },
+  { id: 'escuro',  texto: 'Escuro',     sub: 'Mais confortável à noite',          icone: Moon },
+  { id: 'sistema', texto: 'Automático', sub: 'Igual ao seu celular ou computador', icone: Monitor },
+];
+
+/* Escolha do tema da Academy (fica salva neste navegador) */
+function Aparencia() {
+  const { tema, salvar } = useTema();
+  return (
+    <div role="radiogroup" aria-label="Tema" className="grid sm:grid-cols-3 gap-3">
+      {TEMAS.map(t => {
+        const ativo = tema === t.id;
+        return (
+          <button key={t.id} type="button" role="radio" aria-checked={ativo} onClick={() => salvar(t.id)}
+            className="rounded-xl p-4 text-left transition-colors hover:bg-slate-50"
+            style={{ border: `1.5px solid ${ativo ? '#4F46E5' : T.rule}`, background: ativo ? 'rgba(79,70,229,0.07)' : undefined }}>
+            <t.icone size={20} strokeWidth={1.75} style={{ color: ativo ? T.accent : T.mute }} />
+            <p className="font-semibold text-[14.5px] mt-2.5" style={{ color: T.ink }}>{t.texto}</p>
+            <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>{t.sub}</p>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -128,6 +156,10 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             </form>
           </Secao>
 
+          <Secao titulo="Aparência" sub="Escolha entre o modo claro e o escuro. Vale para este navegador.">
+            <Aparencia />
+          </Secao>
+
           <Secao titulo="Senha" sub="Use pelo menos 8 caracteres, misturando letras e números.">
             <form onSubmit={trocarSenha} noValidate className="space-y-5">
               <Campo label="Nova senha" icon={Lock}>
@@ -156,7 +188,7 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             <a href={`https://wa.me/${WHATSAPP_NEXLA}?text=${encodeURIComponent(`Olá! Quero excluir minha conta da Nexla Academy (${sessao.user.email}).`)}`}
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] text-[14px] font-semibold transition-colors hover:bg-red-50"
-              style={{ color: '#B91C1C', border: '1px solid rgba(185,28,28,0.25)' }}>
+              style={{ color: 'var(--a-red)', border: '1px solid rgba(185,28,28,0.25)' }}>
               <MessageCircle size={16} strokeWidth={1.75} /> Pedir exclusão da conta
             </a>
           </Secao>

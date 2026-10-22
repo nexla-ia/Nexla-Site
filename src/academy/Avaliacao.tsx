@@ -114,7 +114,7 @@ export default function Avaliacao({ sessao, cursoId, titulo, onFim }: {
                   </button>
                 ))}
               </div>
-              <p className="h-5 mt-1 text-[13.5px] font-semibold" style={{ color: ativa ? '#B45309' : 'transparent' }}>{ROTULOS[ativa]}</p>
+              <p className="h-5 mt-1 text-[13.5px] font-semibold" style={{ color: ativa ? 'var(--a-amber)' : 'transparent' }}>{ROTULOS[ativa]}</p>
 
               {etapa === 'comentario' && (
                 <div className="mt-4 text-left">
@@ -132,7 +132,7 @@ export default function Avaliacao({ sessao, cursoId, titulo, onFim }: {
                   </div>
                 </div>
               )}
-              {erro && <p className="mt-3 text-[13.5px]" style={{ color: '#B91C1C' }}>{erro}</p>}
+              {erro && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
             </motion.div>
           )}
         </AnimatePresence>

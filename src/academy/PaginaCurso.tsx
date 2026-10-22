@@ -91,7 +91,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
     </Link>
   ) : (
     <span className={`inline-flex items-center justify-center h-12 px-6 rounded-[10px] text-[14.5px] font-semibold ${cheio ? 'w-full' : ''}`}
-      style={{ background: 'rgba(15,23,42,0.06)', color: T.mute }}>
+      style={{ background: 'var(--a-soft)', color: T.mute }}>
       {preco === undefined ? 'Carregando…' : 'Vendas em breve'}
     </span>
   );
@@ -133,7 +133,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
                     <p className="mt-1 text-[14px]" style={{ color: 'rgba(241,245,249,0.75)' }}>Crie sua conta em menos de um minuto.</p>
                     <Link para={`/criar-conta?voltar=${encodeURIComponent(`/curso/${curso.slug}`)}`}
                       className="mt-4 inline-flex items-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold"
-                      style={{ background: '#FFFFFF', color: T.ink }}>
+                      style={{ background: '#FFFFFF', color: '#0F172A' }}>
                       Criar conta grátis e assistir
                     </Link>
                   </>
@@ -175,7 +175,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             ].map(t => <li key={t} className="flex items-start gap-2"><Check size={16} className="shrink-0 mt-0.5" color="#22C55E" /> {t}</li>)}
           </ul>
           <p className="flex items-start gap-2 text-[13px] mt-5 pt-4" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
-            <ShieldCheck size={16} className="shrink-0 mt-px" style={{ color: '#15803D' }} />
+            <ShieldCheck size={16} className="shrink-0 mt-px" style={{ color: 'var(--a-green)' }} />
             Garantia de 7 dias: se não gostar, devolvemos o valor.
           </p>
         </aside>
@@ -212,7 +212,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               <div className="grid sm:grid-cols-2 gap-3">
                 {extras.bonus.map(b => (
                   <div key={b.titulo} className="rounded-2xl p-5 flex gap-4" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(249,115,22,0.1)', color: '#C2410C' }}>
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(249,115,22,0.1)', color: 'var(--a-orange)' }}>
                       <Gift size={19} strokeWidth={1.75} />
                     </span>
                     <span>
@@ -261,7 +261,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
 
       {/* Celular: botão de compra fixo embaixo */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 p-3 flex items-center gap-3"
-        style={{ background: 'rgba(255,255,255,0.95)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
+        style={{ background: 'var(--a-vidro)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
         {preco && <span className="font-bold text-[18px] shrink-0" style={display}>{reais(preco.valor)}</span>}
         <div className="flex-1"><BotaoComprar cheio /></div>
       </div>

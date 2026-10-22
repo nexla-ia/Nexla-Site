@@ -113,7 +113,7 @@ function Painel({ nome }: { nome: string }) {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <TituloAdmin titulo="Visão geral" sub="Quantas pessoas estão na Academy, em quais cursos e como estão indo." />
         {!dados ? <Carregando /> : typeof dados === 'string' ? (
-          <p className="text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{dados}</p>
+          <p className="text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{dados}</p>
         ) : (
           <>
             {/* Números gerais */}
@@ -199,7 +199,7 @@ function Painel({ nome }: { nome: string }) {
                     <span className="inline-flex items-center gap-1 text-[12.5px]" style={{ color: T.mute }}>
                       <BookOpen size={13} /> {p.cursos ? `${p.cursos} curso${p.cursos > 1 ? 's' : ''}` : 'só cadastro'}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[12.5px] w-36" style={{ color: p.marketing ? '#15803D' : '#94A3B8' }}>
+                    <span className="inline-flex items-center gap-1 text-[12.5px] w-36" style={{ color: p.marketing ? 'var(--a-green)' : '#94A3B8' }}>
                       {p.marketing ? <><Check size={13} /> aceita marketing</> : 'sem marketing'}
                     </span>
                     <span className="text-[12.5px] w-14 text-right" style={{ color: T.mute }}>{fmtData(p.criado_em)}</span>

@@ -41,8 +41,8 @@ function Caixa({ valor, onChange, onEnviar, enviando, placeholder, autoFocus = f
       <textarea value={valor} onChange={e => onChange(e.target.value.slice(0, LIMITE))} placeholder={placeholder} autoFocus={autoFocus}
         rows={3} className="w-full resize-y px-4 py-3 text-[14.5px] leading-relaxed outline-none bg-transparent" style={{ color: T.ink }}
         onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !vazio) onEnviar(); }} />
-      <div className="flex items-center justify-between gap-3 px-3 py-2" style={{ borderTop: `1px solid ${T.rule}`, background: '#F8FAFC' }}>
-        <span className="text-[12px]" style={{ color: valor.length > LIMITE * 0.9 ? '#B91C1C' : '#94A3B8' }}>{valor.length}/{LIMITE}</span>
+      <div className="flex items-center justify-between gap-3 px-3 py-2" style={{ borderTop: `1px solid ${T.rule}`, background: 'var(--a-soft2)' }}>
+        <span className="text-[12px]" style={{ color: valor.length > LIMITE * 0.9 ? 'var(--a-red)' : '#94A3B8' }}>{valor.length}/{LIMITE}</span>
         <div className="flex items-center gap-2">
           {onCancelar && (
             <button onClick={onCancelar} className="h-9 px-3 rounded-lg text-[13.5px] font-medium hover:bg-slate-100" style={{ color: T.mute }}>Cancelar</button>
@@ -107,7 +107,7 @@ export default function Comunidade({ sessao, aulaId }: { sessao: Session; aulaId
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-[14px] font-semibold" style={{ color: T.ink }}>{c.autor_nome || 'Aluno'}</span>
           {c.autor_admin && (
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(249,115,22,0.12)', color: '#C2410C' }}>Instrutor</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(249,115,22,0.12)', color: 'var(--a-orange)' }}>Instrutor</span>
           )}
           {c.user_id === sessao.user.id && !c.autor_admin && <span className="text-[11.5px]" style={{ color: '#94A3B8' }}>você</span>}
           <span className="text-[12.5px]" style={{ color: '#94A3B8' }}>· {quando(c.criado_em)}</span>
@@ -139,7 +139,7 @@ export default function Comunidade({ sessao, aulaId }: { sessao: Session; aulaId
 
       <Caixa valor={texto} onChange={setTexto} onEnviar={() => publicar(texto, null)} enviando={enviando && !respondendo}
         placeholder="Escreva um comentário sobre esta aula…" />
-      {erro && <p className="mt-3 text-[13.5px]" style={{ color: '#B91C1C' }}>{erro}</p>}
+      {erro && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
 
       <div className="mt-7 space-y-6">
         {lista === null && <p className="text-[14px]" style={{ color: T.mute }}>Carregando comentários…</p>}

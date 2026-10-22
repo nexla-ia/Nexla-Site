@@ -45,7 +45,7 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
         <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>Aparecem na página de vendas do curso. As perguntas gerais (acesso, garantia, pagamento) já aparecem sozinhas.</p>
       </div>
       {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semColuna ? (
-        <p className="text-[14px]" style={{ color: '#B91C1C' }}>Rode o <strong>019_bonus_faq.sql</strong> no Supabase para usar esta parte.</p>
+        <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>019_bonus_faq.sql</strong> no Supabase para usar esta parte.</p>
       ) : (
         <div className="space-y-6">
           <div>
@@ -55,7 +55,7 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
                 <div key={i} className="grid sm:grid-cols-[1fr_1.4fr_auto] gap-2">
                   <input className={inputCls} placeholder="Ex.: Pacote de modelos prontos" value={b.titulo} onChange={e => muda(bonus, setBonus, i, 'titulo', e.target.value)} />
                   <input className={inputCls} placeholder="Descrição curta (opcional)" value={b.descricao} onChange={e => muda(bonus, setBonus, i, 'descricao', e.target.value)} />
-                  <button onClick={() => setBonus(bonus.filter((_, k) => k !== i))} aria-label="Remover bônus" className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: '#B91C1C' }}><Trash2 size={16} /></button>
+                  <button onClick={() => setBonus(bonus.filter((_, k) => k !== i))} aria-label="Remover bônus" className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={16} /></button>
                 </div>
               ))}
             </div>
@@ -71,7 +71,7 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
                 <div key={i} className="rounded-xl p-3 space-y-2" style={{ border: `1px solid ${T.rule}` }}>
                   <div className="flex gap-2">
                     <input className={inputCls} placeholder="Pergunta. Ex.: Preciso saber programar?" value={f.pergunta} onChange={e => muda(faq, setFaq, i, 'pergunta', e.target.value)} />
-                    <button onClick={() => setFaq(faq.filter((_, k) => k !== i))} aria-label="Remover pergunta" className="w-11 h-11 shrink-0 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: '#B91C1C' }}><Trash2 size={16} /></button>
+                    <button onClick={() => setFaq(faq.filter((_, k) => k !== i))} aria-label="Remover pergunta" className="w-11 h-11 shrink-0 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={16} /></button>
                   </div>
                   <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={2} placeholder="Resposta"
                     value={f.resposta} onChange={e => muda(faq, setFaq, i, 'resposta', e.target.value)} />
@@ -83,8 +83,8 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
             </button>
           </div>
 
-          {msg.erro && <p className="text-[13.5px]" style={{ color: '#B91C1C' }}>{msg.erro}</p>}
-          {msg.ok && <p className="text-[13.5px]" style={{ color: '#15803D' }}>{msg.ok}</p>}
+          {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
+          {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
           <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar bônus e perguntas'}</button>
         </div>
       )}

@@ -102,7 +102,7 @@ function CardMeu({ c }: { c: CursoAluno }) {
           <div className="pt-4" style={{ borderTop: `1px solid ${T.rule}` }}>
             <div className="flex items-center justify-between text-[13px] mb-2">
               <span style={{ color: T.mute }}>Você já tem · {c.feitas.size} de {c.aulas.length} aulas</span>
-              <span className="font-semibold" style={{ color: c.percentual >= 100 ? '#15803D' : T.ink }}>{c.percentual}%</span>
+              <span className="font-semibold" style={{ color: c.percentual >= 100 ? 'var(--a-green)' : T.ink }}>{c.percentual}%</span>
             </div>
             <BarraProgresso valor={c.percentual} />
             <p className="inline-flex items-center gap-1.5 mt-4 text-[14px] font-semibold" style={{ color: T.accent }}>
@@ -167,7 +167,7 @@ export default function Explorar({ sessao }: { sessao: Session }) {
         <TituloPagina titulo="Explorar cursos"
           sub={`${total} curso${total === 1 ? '' : 's'} na Nexla Academy. Assista à aula de amostra de cada um antes de decidir.`} />
 
-        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         <GradeCategorias outros={outros} cursos={cursos} />
       </motion.div>

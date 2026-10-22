@@ -9,6 +9,7 @@ import { supabase, organizar, pct, minutos, CERTIFICADO_MIN, SELECT_CURSO, type 
 import Comunidade from './Comunidade';
 import Avaliacao from './Avaliacao';
 import PaginaCurso from './PaginaCurso';
+import { BotaoTema } from './tema';
 
 type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
 type Dados = {
@@ -69,7 +70,7 @@ function MateriaisAula({ aulaId }: { aulaId: string }) {
 /* Bloco "próximo passo": curso sugerido para quem terminou */
 function ProximoCurso({ s }: { s: Sugestao }) {
   return (
-    <div className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3" style={{ background: '#F8FAFC', border: `1px solid ${T.rule}` }}>
+    <div className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3" style={{ background: 'var(--a-soft2)', border: `1px solid ${T.rule}` }}>
       <div className="flex-1 min-w-0">
         <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: T.accent }}>Próximo passo recomendado</p>
         <p className="font-bold text-[16.5px] leading-snug mt-0.5" style={display}>{s.titulo}</p>
@@ -118,7 +119,7 @@ function Player({ liberada, fim, proxima, abrir, setFim }: {
 }) {
   return (
     <div className="relative aspect-video rounded-xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
-      style={{ background: `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, boxShadow: '0 24px 50px -32px rgba(15,23,42,0.7)' }}>
+      style={{ background: `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -32px rgba(15,23,42,0.7)' }}>
       {liberada ? (
         <>
           <PlayCircle size={52} strokeWidth={1.25} style={{ color: '#A5B4FC' }} />
@@ -152,7 +153,7 @@ function ListaAulas({ curso, aulaId, feitas, matriculado, percentual, abrir }: {
       <div className="px-5 py-5" style={{ borderBottom: `1px solid ${T.rule}` }}>
         <p className="text-[12.5px] font-medium" style={{ color: T.mute }}>Seu progresso</p>
         <div className="flex items-center gap-3 mt-2">
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.08)' }}>
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
             <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${percentual}%`, background: percentual >= 100 ? '#22C55E' : `linear-gradient(90deg, ${T.accent}, ${T.violet})` }} />
           </div>
           <span className="text-[13px] font-semibold">{percentual}%</span>
@@ -171,7 +172,7 @@ function ListaAulas({ curso, aulaId, feitas, matriculado, percentual, abrir }: {
             <button onClick={() => alternar(m.id)} aria-expanded={aberto}
               className="w-full flex items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50">
               <span className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[12px] font-bold"
-                style={completo ? { background: 'rgba(34,197,94,0.12)', color: '#15803D' } : { background: 'rgba(79,70,229,0.08)', color: T.accent }}>
+                style={completo ? { background: 'rgba(34,197,94,0.12)', color: 'var(--a-green)' } : { background: 'rgba(79,70,229,0.08)', color: T.accent }}>
                 {completo ? <Check size={15} strokeWidth={2.5} /> : String(mi + 1).padStart(2, '0')}
               </span>
               <span className="flex-1 min-w-0">
@@ -376,13 +377,14 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
         <span className="hidden sm:block w-px h-6 shrink-0" style={{ background: T.rule }} />
         <p className="font-semibold text-[14.5px] truncate min-w-0">{curso.titulo}</p>
         <div className="ml-auto flex items-center gap-2 sm:gap-4 shrink-0">
+          <BotaoTema />
           <div className="hidden md:flex items-center gap-2.5 w-40">
             <div className="flex-1"><BarraProgresso valor={percentual} /></div>
             <span className="text-[13px] font-semibold">{percentual}%</span>
           </div>
           {matriculado && !admin && percentual >= CERTIFICADO_MIN && (
             <Link para={`/certificado/${slug}`} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13.5px] font-semibold transition-colors hover:bg-green-100"
-              style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
+              style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)' }}>
               <Award size={15} strokeWidth={2} /> Certificado
             </Link>
           )}
@@ -402,7 +404,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
         <main className="flex-1 min-w-0">
           <div className={`mx-auto px-4 sm:px-8 py-6 md:py-8 transition-[max-width] duration-300 ${teatro ? 'max-w-[1500px]' : 'max-w-5xl'}`}>
             {admin && (
-              <p className="mb-4 text-[13px] rounded-lg px-3 py-2" style={{ background: 'rgba(15,23,42,0.05)', color: T.ink2 }}>
+              <p className="mb-4 text-[13px] rounded-lg px-3 py-2" style={{ background: 'var(--a-soft)', color: T.ink2 }}>
                 <strong>Modo admin:</strong> você está vendo o curso como um aluno que comprou.
               </p>
             )}
@@ -417,7 +419,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
               <button onClick={alternar} disabled={!liberada || salvando}
                 className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-[10px] text-[14.5px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={concluida
-                  ? { background: 'rgba(34,197,94,0.1)', color: '#15803D', border: '1px solid rgba(34,197,94,0.35)' }
+                  ? { background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)', border: '1px solid rgba(34,197,94,0.35)' }
                   : { background: T.card, color: T.ink, border: `1px solid ${T.rule}` }}>
                 {concluida ? <><CheckCircle2 size={18} strokeWidth={2} /> Aula concluída</> : <><Check size={18} strokeWidth={2} /> Marcar como concluída</>}
               </button>
@@ -447,7 +449,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
               </div>
             </div>
             <AnimatePresence>
-              {erro && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-3 text-[14px]" style={{ color: '#B91C1C' }}>{erro}</motion.p>}
+              {erro && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-3 text-[14px]" style={{ color: 'var(--a-red)' }}>{erro}</motion.p>}
             </AnimatePresence>
             </div>
             {teatro && <div className="mt-8">{cabecalhoAula}</div>}
@@ -456,7 +458,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
             {matriculado && !admin && percentual >= 100 && (
               <div className="rounded-2xl p-5 mt-8 space-y-4" style={{ background: T.card, border: '1px solid rgba(34,197,94,0.3)' }}>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
+                  <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)' }}>
                     <Trophy size={21} strokeWidth={1.75} />
                   </span>
                   <div className="flex-1">
@@ -530,7 +532,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
                 className="absolute top-4 right-4 w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" style={{ color: T.mute }}>
                 <X size={18} strokeWidth={1.75} />
               </button>
-              <span className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
+              <span className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)' }}>
                 <Trophy size={26} strokeWidth={1.75} />
               </span>
               <h2 id="parabens-titulo" className="font-bold text-[24px] md:text-[26px] leading-tight mt-5" style={display}>

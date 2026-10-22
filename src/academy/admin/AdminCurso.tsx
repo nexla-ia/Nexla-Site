@@ -54,7 +54,7 @@ function Cartao({ titulo, sub, children, perigo = false }: { titulo: string; sub
     <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8"
       style={{ background: T.card, border: `1px solid ${perigo ? 'rgba(185,28,28,0.25)' : T.rule}` }}>
       <div>
-        <h3 className="font-bold text-[16.5px]" style={{ ...display, color: perigo ? '#B91C1C' : T.ink }}>{titulo}</h3>
+        <h3 className="font-bold text-[16.5px]" style={{ ...display, color: perigo ? 'var(--a-red)' : T.ink }}>{titulo}</h3>
         {sub && <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>{sub}</p>}
       </div>
       <div className="min-w-0">{children}</div>
@@ -91,7 +91,7 @@ function NovoCurso() {
         <input className={inputCls} value={slug} onChange={e => { setManual(true); setSlug(gerarSlug(e.target.value)); }} />
       </Rotulo>
       <p className="text-[13px]" style={{ color: T.mute }}>O curso nasce como rascunho, com um módulo. Depois você completa foto, descrição e módulos em Configurações.</p>
-      {erro && <p className="text-[13.5px]" style={{ color: '#B91C1C' }}>{erro}</p>}
+      {erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
       <button type="submit" disabled={salvando} className={botaoPrimario}>{salvando ? 'Criando…' : 'Criar curso'}</button>
     </form>
   );
@@ -181,11 +181,11 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
             {materiais.length === 0 && <p className="text-[13.5px] mb-3" style={{ color: T.mute }}>Nenhum material nesta aula.</p>}
             <ul className="space-y-2 mb-3">
               {materiais.map(m => (
-                <li key={m.id} className="flex items-center gap-3 rounded-lg px-3 py-2" style={{ background: '#F8FAFC', border: `1px solid ${T.rule}` }}>
+                <li key={m.id} className="flex items-center gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--a-soft2)', border: `1px solid ${T.rule}` }}>
                   <FileText size={16} strokeWidth={1.75} style={{ color: T.accent }} />
                   <span className="flex-1 min-w-0 text-[14px] truncate">{m.nome}</span>
                   <span className="text-[12px] shrink-0" style={{ color: T.mute }}>{kb(m.tamanho)}</span>
-                  <button onClick={() => remover(m)} aria-label={`Apagar ${m.nome}`} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-red-50" style={{ color: '#B91C1C' }}>
+                  <button onClick={() => remover(m)} aria-label={`Apagar ${m.nome}`} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
                     <Trash2 size={15} strokeWidth={1.75} />
                   </button>
                 </li>
@@ -197,7 +197,7 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
             </label>
           </div>
 
-          {erro && <p className="text-[13.5px]" style={{ color: '#B91C1C' }}>{erro}</p>}
+          {erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={onFechar} className={botaoSecundario} style={{ color: T.mute, border: `1px solid ${T.rule}` }}>Cancelar</button>
             <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar aula'}</button>
@@ -242,7 +242,7 @@ function AbaAulas({ curso, recarregar, irConfig }: { curso: CursoA; recarregar: 
     <div className="space-y-5" style={{ opacity: ocupado ? 0.7 : 1 }}>
       {curso.academy_modules.map((m, mi) => (
         <section key={m.id} className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-          <div className="flex items-center justify-between gap-3 px-5 py-3.5" style={{ background: '#F8FAFC', borderBottom: `1px solid ${T.rule}` }}>
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5" style={{ background: 'var(--a-soft2)', borderBottom: `1px solid ${T.rule}` }}>
             <div className="min-w-0">
               <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: T.accent }}>Módulo {mi + 1}</p>
               <h3 className="font-bold text-[16px] truncate" style={display}>{m.titulo}</h3>
@@ -255,7 +255,7 @@ function AbaAulas({ curso, recarregar, irConfig }: { curso: CursoA; recarregar: 
             {m.academy_lessons.map((a, ai) => (
               <li key={a.id} className="flex items-center gap-3 px-4 py-2.5" style={ai ? { borderTop: `1px solid ${T.rule}` } : undefined}>
                 <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: a.video_id ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.12)', color: a.video_id ? '#15803D' : '#B45309' }}
+                  style={{ background: a.video_id ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.12)', color: a.video_id ? 'var(--a-green)' : 'var(--a-amber)' }}
                   title={a.video_id ? 'Com vídeo' : 'Sem vídeo'}>
                   <Video size={16} strokeWidth={1.75} />
                 </span>
@@ -264,14 +264,14 @@ function AbaAulas({ curso, recarregar, irConfig }: { curso: CursoA; recarregar: 
                   <span className="flex flex-wrap items-center gap-x-2.5 text-[12px]" style={{ color: T.mute }}>
                     {Math.round(a.duracao_seg / 60)} min
                     {a.gratuita && <span className="font-semibold" style={{ color: T.accent }}>grátis</span>}
-                    {!a.video_id && <span style={{ color: '#B45309' }}>sem vídeo</span>}
+                    {!a.video_id && <span style={{ color: 'var(--a-amber)' }}>sem vídeo</span>}
                     {a.academy_lesson_materials.length > 0 && <span className="inline-flex items-center gap-1"><Paperclip size={12} /> {a.academy_lesson_materials.length}</span>}
                   </span>
                 </button>
                 <button className={iconeBtn} disabled={ai === 0 || ocupado} onClick={() => acao(() => mover('academy_lessons', m.academy_lessons, ai, -1))} aria-label="Subir aula"><ArrowUp size={15} /></button>
                 <button className={iconeBtn} disabled={ai === m.academy_lessons.length - 1 || ocupado} onClick={() => acao(() => mover('academy_lessons', m.academy_lessons, ai, 1))} aria-label="Descer aula"><ArrowDown size={15} /></button>
                 <button className={iconeBtn} onClick={() => setEditando({ aula: a, modulo: m.id })} aria-label="Editar aula" style={{ color: T.accent }}><Pencil size={14} /></button>
-                <button className={iconeBtn} disabled={ocupado} onClick={() => apagarAula(a)} aria-label="Apagar aula" style={{ color: '#B91C1C' }}><Trash2 size={15} /></button>
+                <button className={iconeBtn} disabled={ocupado} onClick={() => apagarAula(a)} aria-label="Apagar aula" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
               </li>
             ))}
           </ul>
@@ -378,7 +378,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
               <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={enviandoCapa}
                 onChange={e => { trocarCapa(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
-            {curso.capa && <button onClick={tirarCapa} className="text-[13.5px] font-medium text-left px-1 hover:underline underline-offset-4" style={{ color: '#B91C1C' }}>Remover foto</button>}
+            {curso.capa && <button onClick={tirarCapa} className="text-[13.5px] font-medium text-left px-1 hover:underline underline-offset-4" style={{ color: 'var(--a-red)' }}>Remover foto</button>}
           </div>
         </div>
       </Cartao>
@@ -430,7 +430,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
               <span className="text-[12px] shrink-0 hidden sm:block" style={{ color: T.mute }}>{m.academy_lessons.length} aulas</span>
               <button className={iconeBtn} disabled={i === 0 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, i, -1))} aria-label="Subir módulo"><ArrowUp size={15} /></button>
               <button className={iconeBtn} disabled={i === curso.academy_modules.length - 1 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, i, 1))} aria-label="Descer módulo"><ArrowDown size={15} /></button>
-              <button className={iconeBtn} disabled={ocupado} onClick={() => apagarModulo(m)} aria-label="Apagar módulo" style={{ color: '#B91C1C' }}><Trash2 size={15} /></button>
+              <button className={iconeBtn} disabled={ocupado} onClick={() => apagarModulo(m)} aria-label="Apagar módulo" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
             </li>
           ))}
         </ul>
@@ -464,15 +464,15 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
       </Cartao>
 
       <div className="sticky bottom-4 z-10 rounded-2xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-        style={{ background: 'rgba(255,255,255,0.95)', border: `1px solid ${T.rule}`, boxShadow: '0 12px 30px -16px rgba(15,23,42,0.35)', backdropFilter: 'blur(8px)' }}>
-        <span className="text-[13.5px]" style={{ color: msg.erro ? '#B91C1C' : msg.ok ? '#15803D' : T.mute }}>
+        style={{ background: 'var(--a-vidro)', border: `1px solid ${T.rule}`, boxShadow: '0 12px 30px -16px rgba(15,23,42,0.35)', backdropFilter: 'blur(8px)' }}>
+        <span className="text-[13.5px]" style={{ color: msg.erro ? 'var(--a-red)' : msg.ok ? 'var(--a-green)' : T.mute }}>
           {msg.erro || msg.ok || 'Informações, vitrine e certificado são salvos neste botão. Foto e módulos salvam na hora.'}
         </span>
         <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar configurações'}</button>
       </div>
 
       <Cartao titulo="Apagar curso" sub="Remove o curso, as aulas, as matrículas e o progresso dos alunos. Para só esconder, deixe como rascunho." perigo>
-        <button onClick={apagarCurso} className={botaoSecundario} style={{ color: '#B91C1C', border: '1px solid rgba(185,28,28,0.3)' }}>
+        <button onClick={apagarCurso} className={botaoSecundario} style={{ color: 'var(--a-red)', border: '1px solid rgba(185,28,28,0.3)' }}>
           <Trash2 size={15} strokeWidth={1.75} /> Apagar curso
         </button>
       </Cartao>
@@ -504,7 +504,7 @@ function Editor({ nome, id }: { nome: string; id: string }) {
   if (curso === 'erro') {
     return (
       <AdminLayout nome={nome}>
-        <p className="text-[14.5px]" style={{ color: '#B91C1C' }}>Não foi possível abrir o curso. Confira se o <strong>010_config_curso.sql</strong> foi rodado no Supabase.</p>
+        <p className="text-[14.5px]" style={{ color: 'var(--a-red)' }}>Não foi possível abrir o curso. Confira se o <strong>010_config_curso.sql</strong> foi rodado no Supabase.</p>
         <Link para="/admin/cursos" className="inline-block mt-4 font-semibold" style={{ color: T.accent }}>Voltar para os cursos</Link>
       </AdminLayout>
     );
@@ -532,7 +532,7 @@ function Editor({ nome, id }: { nome: string; id: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(22px,2.8vw,30px)' }}>{curso.titulo}</h1>
               <span className="text-[11.5px] font-bold px-2.5 py-1 rounded-full"
-                style={curso.publicado ? { background: '#DCFCE7', color: '#15803D' } : { background: 'rgba(15,23,42,0.06)', color: T.mute }}>
+                style={curso.publicado ? { background: 'var(--a-green-bg)', color: 'var(--a-green)' } : { background: 'var(--a-soft)', color: T.mute }}>
                 {curso.publicado ? 'Publicado' : 'Rascunho'}
               </span>
             </div>

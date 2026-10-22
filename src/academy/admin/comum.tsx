@@ -5,6 +5,7 @@ import { T, LOGO, display } from '../ui';
 import { AppLayout, Carregando } from '../AppLayout';
 import { Link, navegar, useRota } from '../router';
 import { supabase } from '../supabase';
+import { BotaoTema } from '../tema';
 
 /* Seções da área admin */
 const SECOES = [
@@ -20,7 +21,7 @@ export function AdminLayout({ nome, children }: { nome: string; children: React.
   const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
+      <header className="sticky top-0 z-30" style={{ background: 'var(--a-vidro)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center gap-4">
           <Link para="/admin" className="inline-flex items-center gap-2.5 shrink-0">
             <img src={LOGO} alt="" className="w-8 h-8 object-contain" />
@@ -39,8 +40,9 @@ export function AdminLayout({ nome, children }: { nome: string; children: React.
             })}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <BotaoTema />
             <span className="hidden sm:block text-[14px] font-medium max-w-[12rem] truncate" style={{ color: T.ink2 }}>{nome}</span>
-            <button onClick={sair} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-red-50" style={{ color: '#B91C1C' }}>
+            <button onClick={sair} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
               <LogOut size={15} strokeWidth={1.75} /> Sair
             </button>
           </div>

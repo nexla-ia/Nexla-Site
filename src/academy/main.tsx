@@ -17,6 +17,7 @@ import AdminVendas from './admin/Vendas';
 import { Carregando } from './AppLayout';
 import { useRota, navegar, parametro } from './router';
 import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado } from './supabase';
+import { iniciarTema } from './tema';
 import '../index.css';
 import './academy.css';
 
@@ -102,6 +103,7 @@ function NaoConfigurado() {
   );
 }
 
+iniciarTema();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {supabaseConfigurado ? <Academy /> : <NaoConfigurado />}

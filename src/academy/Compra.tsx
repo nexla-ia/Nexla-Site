@@ -109,7 +109,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
                     {comOferta && <CheckCircle2 size={14} color="#FFFFFF" />}
                   </span>
                   <span className="flex-1">
-                    <span className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: '#C2410C' }}>Oferta só nesta tela</span>
+                    <span className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: 'var(--a-orange)' }}>Oferta só nesta tela</span>
                     <span className="block font-semibold text-[15px] mt-0.5">Adicionar {resumo.oferta_extra.titulo}</span>
                     <span className="block text-[14px] mt-1" style={{ color: T.mute }}>
                       por mais <strong style={{ color: T.ink }}>{reais(resumo.oferta_extra.valor)}</strong>
@@ -131,7 +131,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
                   <button type="submit" disabled={calculando || !cupom.trim()} className="h-11 px-4 rounded-[10px] text-[14px] font-semibold hover:bg-slate-50 disabled:opacity-50"
                     style={{ color: T.accent, border: '1px solid rgba(79,70,229,0.3)' }}>Aplicar</button>
                 </div>
-                {resumo.cupom_msg && <p className="text-[13px] mt-2" style={{ color: resumo.cupom ? '#15803D' : '#B91C1C' }}>{resumo.cupom_msg}</p>}
+                {resumo.cupom_msg && <p className="text-[13px] mt-2" style={{ color: resumo.cupom ? 'var(--a-green)' : 'var(--a-red)' }}>{resumo.cupom_msg}</p>}
               </form>
             </div>
 
@@ -143,7 +143,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
                   <div key={i.titulo} className="flex justify-between gap-3"><span style={{ color: T.ink2 }}>{i.titulo}</span><span>{reais(i.valor)}</span></div>
                 ))}
                 {resumo.desconto > 0 && (
-                  <div className="flex justify-between gap-3" style={{ color: '#15803D' }}><span>Cupom {resumo.cupom}</span><span>− {reais(resumo.desconto)}</span></div>
+                  <div className="flex justify-between gap-3" style={{ color: 'var(--a-green)' }}><span>Cupom {resumo.cupom}</span><span>− {reais(resumo.desconto)}</span></div>
                 )}
               </div>
               <div className="flex justify-between items-baseline mt-4 pt-4" style={{ borderTop: `1px solid ${T.rule}` }}>
@@ -153,7 +153,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
               {resumo.preco_de != null && <p className="text-[12.5px] text-right" style={{ color: T.mute }}>De <s>{reais(resumo.preco_de)}</s></p>}
               <p className="text-[12.5px] mt-1 text-right" style={{ color: T.mute }}>Pix, boleto ou cartão em até {resumo.parcelas_max}x</p>
 
-              {erro && <p className="text-[13.5px] mt-3" style={{ color: '#B91C1C' }}>{erro}</p>}
+              {erro && <p className="text-[13.5px] mt-3" style={{ color: 'var(--a-red)' }}>{erro}</p>}
               <button onClick={pagar} disabled={pagando || calculando}
                 className="acad-btn w-full mt-4 h-12 rounded-[10px] inline-flex items-center justify-center gap-2 text-[15px] font-semibold text-white">
                 {pagando ? <><Loader2 size={17} className="animate-spin" /> Abrindo pagamento…</> : <><Lock size={16} /> Pagar com Mercado Pago</>}
@@ -197,11 +197,11 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
 
   const curso = pedido.academy_courses;
   const estados: Record<string, { icone: typeof Clock; cor: string; titulo: string; texto: string }> = {
-    pago:        { icone: CheckCircle2, cor: '#15803D', titulo: 'Pagamento aprovado!', texto: `Seu acesso a ${curso?.titulo ?? 'o curso'} já está liberado. Bons estudos!` },
-    pendente:    { icone: Clock,        cor: '#B45309', titulo: 'Aguardando a confirmação do pagamento',
+    pago:        { icone: CheckCircle2, cor: 'var(--a-green)', titulo: 'Pagamento aprovado!', texto: `Seu acesso a ${curso?.titulo ?? 'o curso'} já está liberado. Bons estudos!` },
+    pendente:    { icone: Clock,        cor: 'var(--a-amber)', titulo: 'Aguardando a confirmação do pagamento',
                    texto: pedido.forma_pagamento === 'ticket' ? 'O boleto pode levar até 3 dias úteis para compensar. Assim que o banco confirmar, o curso libera sozinho e avisamos você.' : 'Assim que o Mercado Pago confirmar, o curso libera sozinho. Pode deixar esta página aberta.' },
-    recusado:    { icone: XCircle,      cor: '#B91C1C', titulo: 'Pagamento não aprovado', texto: 'O pagamento foi recusado. Você pode tentar de novo com outro cartão ou pagar com Pix.' },
-    cancelado:   { icone: XCircle,      cor: '#B91C1C', titulo: 'Pagamento cancelado', texto: 'Nenhuma cobrança foi feita. Você pode tentar de novo quando quiser.' },
+    recusado:    { icone: XCircle,      cor: 'var(--a-red)', titulo: 'Pagamento não aprovado', texto: 'O pagamento foi recusado. Você pode tentar de novo com outro cartão ou pagar com Pix.' },
+    cancelado:   { icone: XCircle,      cor: 'var(--a-red)', titulo: 'Pagamento cancelado', texto: 'Nenhuma cobrança foi feita. Você pode tentar de novo quando quiser.' },
     reembolsado: { icone: XCircle,      cor: T.mute,    titulo: 'Pedido reembolsado', texto: 'O valor foi devolvido e o acesso ao curso foi encerrado.' },
   };
   const e = estados[pedido.status] ?? estados.pendente;

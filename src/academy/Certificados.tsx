@@ -23,7 +23,7 @@ export default function Certificados({ sessao }: { sessao: Session }) {
         <TituloPagina titulo="Meus certificados"
           sub={`O certificado de cada curso libera quando você conclui ${CERTIFICADO_MIN}% das aulas.`} />
 
-        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+        {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         {cursos.length === 0 && (
           <div className="rounded-2xl p-8 text-center" style={{ background: T.card, border: `1px dashed ${T.rule}` }}>
@@ -40,7 +40,7 @@ export default function Certificados({ sessao }: { sessao: Session }) {
               {liberados.map(c => (
                 <article key={c.id} className="rounded-2xl p-6 flex flex-col" style={{ background: T.card, border: '1px solid rgba(34,197,94,0.3)' }}>
                   <div className="flex items-start gap-4">
-                    <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
+                    <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)' }}>
                       <Award size={22} strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0">
@@ -70,7 +70,7 @@ export default function Certificados({ sessao }: { sessao: Session }) {
               {pendentes.map(c => (
                 <article key={c.id} className="rounded-2xl p-6" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
                   <div className="flex items-start gap-4">
-                    <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(15,23,42,0.05)', color: T.mute }}>
+                    <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--a-soft)', color: T.mute }}>
                       <Lock size={20} strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0 flex-1">

@@ -31,7 +31,7 @@ export default function AbaAlunos({ cursoId }: { cursoId: string }) {
 
   return (
     <div className="space-y-5">
-      {erro && <p className="text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: '#B91C1C' }}>{erro}</p>}
+      {erro && <p className="text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
       <section className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
         <div className="flex items-center justify-between gap-4 px-5 py-4" style={{ borderBottom: `1px solid ${T.rule}` }}>

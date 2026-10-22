@@ -108,7 +108,7 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
         </Link>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}
           className="max-w-xl mx-auto text-center rounded-2xl p-8 md:p-10" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-          <span className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'rgba(15,23,42,0.05)', color: T.mute }}>
+          <span className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'var(--a-soft)', color: T.mute }}>
             <Lock size={24} strokeWidth={1.75} />
           </span>
           <h1 className="font-bold text-[24px] md:text-[28px] leading-tight mt-5" style={display}>Seu certificado ainda não foi liberado</h1>
@@ -142,7 +142,7 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
           <div>
             <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-2.5 py-1 rounded-full mb-3"
-              style={{ background: 'rgba(34,197,94,0.1)', color: '#15803D' }}>
+              style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--a-green)' }}>
               <Award size={14} strokeWidth={2} /> Curso concluído
             </span>
             <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(26px,3.2vw,36px)' }}>Parabéns, seu certificado está pronto!</h1>
