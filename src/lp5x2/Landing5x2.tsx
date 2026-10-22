@@ -86,8 +86,8 @@ const CREDENCIAIS = [
 ];
 
 const FAQ = [
-  { q: 'O pré-cadastro é pago?', hl: 'gratuito e não te compromete com nada',
-    a: 'Não. Entrar na lista é gratuito e não te compromete com nada. Você recebe as novidades primeiro e uma condição especial no lançamento.' },
+  { q: 'O plano é pago?', hl: 'O plano é gratuito',
+    a: 'Não. O plano é gratuito e, junto com ele, você entra na lista do curso com condição especial de lançamento.' },
   { q: 'Preciso saber programar?', hl: 'ferramentas visuais',
     a: 'Não. O curso é feito para dono de empresa e equipe administrativa. Você aprende a montar as automações com ferramentas visuais.' },
   { q: 'Quando começa a primeira turma?', hl: 'primeiro para quem estiver na lista',
@@ -148,6 +148,18 @@ function loadPixel() {
   /* eslint-enable */
   fbqCall('init', META_PIXEL_ID);
   fbqCall('track', 'PageView');
+}
+
+/* Evento personalizado disparado uma vez por visita (sessionStorage; sem ele, vale a trava em memória) */
+const eventosEnviados = new Set<string>();
+function trackOnce(evento: string) {
+  if (eventosEnviados.has(evento)) return;
+  eventosEnviados.add(evento);
+  try {
+    if (sessionStorage.getItem(`px_${evento}`)) return;
+    sessionStorage.setItem(`px_${evento}`, '1');
+  } catch { /* storage bloqueado */ }
+  fbqCall('trackCustom', evento);
 }
 
 /* ─── Componentes base ─────────────────────────────────────────── */
@@ -368,7 +380,7 @@ function Calculadora({ funcionarios, setFuncionarios, horas, setHoras }: {
 
       <div className="mt-6">
         <PrimaryBtn onClick={scrollToForm} full>
-          {final > 0 ? 'Quero cobrir essas horas' : 'Quero ganhar tempo com IA'} <Arrow />
+          {final > 0 ? 'Receber o plano pra cobrir essas horas' : 'Quero ganhar tempo com IA'} <Arrow />
         </PrimaryBtn>
       </div>
     </div>
@@ -431,6 +443,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
       horas_perdidas_semana: n * Math.max(0, horas - 40),
       interesse,
       pagina: '5x2',
+      oferta: 'plano-pdf',
       enviado_em: new Date().toISOString(),
       ...getTracking(),
     };
@@ -460,8 +473,15 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
           {ok ? <Check size={22} strokeWidth={2} /> : <MessageCircle size={20} strokeWidth={1.75} />}
         </div>
         <h3 className="lp-serif text-[30px] md:text-[34px] leading-[1.1] mb-3" style={{ color: T.darkText }}>
-          {ok ? `Pronto, ${nome.split(' ')[0]}. Você está na lista.` : 'Quase lá. Finalize pelo WhatsApp.'}
+          {ok ? `Pronto, ${nome.split(' ')[0]}. Seu plano está chegando no seu WhatsApp.` : 'Quase lá. Finalize pelo WhatsApp.'}
         </h3>
+        {ok && (
+          <a href="/plano-transicao-5x2.pdf" target="_blank" rel="noopener noreferrer"
+            className="lp-link inline-flex items-center gap-2 font-medium underline underline-offset-[6px] decoration-1 mb-5"
+            style={{ color: T.darkText }}>
+            Baixar o plano agora <Arrow size={16} />
+          </a>
+        )}
         <p className="max-w-md leading-relaxed mb-8" style={{ color: T.darkMute }}>
           {ok
             ? interesse === 'implementar'
@@ -480,7 +500,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
   }
 
   const opcoes: { v: Interesse; t: string; d: string }[] = [
-    { v: 'aprender',    t: 'Quero aprender a montar',   d: 'Entrar na lista do curso' },
+    { v: 'aprender',    t: 'Quero aprender a montar',   d: 'Quero o plano e a lista do curso' },
     { v: 'implementar', t: 'Prefiro que a Nexla monte', d: 'Diagnóstico e implantação' },
     { v: 'indefinido',  t: 'Ainda não sei',             d: 'Quero entender melhor' },
   ];
@@ -561,7 +581,7 @@ function Formulario({ funcionarios, horas }: { funcionarios: number; horas: numb
       <PrimaryBtn type="submit" disabled={status === 'sending' || !aceite} full tone="accent">
         {status === 'sending'
           ? <><Loader2 size={17} className="animate-spin" /> Enviando…</>
-          : <>Quero entrar na lista <Arrow /></>}
+          : <>Receber meu plano no WhatsApp <Arrow /></>}
       </PrimaryBtn>
     </form>
   );
@@ -581,6 +601,20 @@ export default function Landing5x2() {
   const perdaSemana = funcionarios * Math.max(0, horas - 40);
 
   useEffect(() => { loadPixel(); }, []);
+
+  // ViuFormulario: quando 30% da seção #lista aparece na tela
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { trackOnce('ViuFormulario'); io.disconnect(); }
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const mudouFuncionarios = (n: number) => { trackOnce('UsouCalculadora'); setFuncionarios(n); };
+  const mudouHoras = (h: number) => { trackOnce('UsouCalculadora'); setHoras(h); };
 
   const load = (delay: number) => ({
     initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 },
@@ -621,7 +655,7 @@ export default function Landing5x2() {
             </motion.p>
 
             <motion.div {...load(0.24)} className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-14">
-              <PrimaryBtn onClick={scrollToForm}>Entrar na lista do curso <Arrow /></PrimaryBtn>
+              <PrimaryBtn onClick={scrollToForm}>Receber meu plano no WhatsApp <Arrow /></PrimaryBtn>
               <span className="text-sm" style={{ color: T.mute }}>Gratuito · vagas da 1ª turma limitadas</span>
             </motion.div>
 
@@ -649,15 +683,73 @@ export default function Landing5x2() {
           </div>
 
           <motion.div {...load(0.2)}>
-            <Calculadora funcionarios={funcionarios} setFuncionarios={setFuncionarios} horas={horas} setHoras={setHoras} />
+            <Calculadora funcionarios={funcionarios} setFuncionarios={mudouFuncionarios} horas={horas} setHoras={mudouHoras} />
           </motion.div>
         </div>
       </section>
 
-      {/* O PROBLEMA */}
-      <section className="pb-24 md:pb-32">
+      {/* FORMULÁRIO */}
+      <section id="lista" ref={formRef} className="lp-dark py-24 md:py-32" style={{ background: T.dark, color: T.darkText }}>
         <div className={WRAP}>
-          <SectionLabel n="01">O problema</SectionLabel>
+          <SectionLabel n="01" dark>Pré-cadastro</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-start">
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <h2 className="lp-serif font-medium leading-[1.06] mb-5" style={{ fontSize: 'clamp(34px,4.4vw,56px)' }}>
+                Receba no WhatsApp o seu plano de transição para a <span className="lp-grad-light">5×2</span>.
+              </h2>
+              <p className="text-[17px] leading-[1.65] mb-8" style={{ color: T.darkMute }}>
+                O cálculo da sua empresa e um checklist do que fazer até dezembro. Grátis, em <strong className="font-semibold" style={{ color: T.darkText }}>30 segundos</strong>.
+              </p>
+
+              {/* Lembra o resultado do simulador lá de cima */}
+              {perdaSemana > 0 && (
+                <div className="rounded-xl p-5 mb-8" style={{ background: T.dark2, border: `1px solid ${T.darkRule}` }}>
+                  <p className="text-[13px] mb-1" style={{ color: T.darkMute }}>
+                    Pelo simulador, com {funcionarios} funcionário{funcionarios > 1 ? 's' : ''} em {horas}h:
+                  </p>
+                  <p className="text-[16px] leading-snug" style={{ color: T.darkText }}>
+                    sua empresa perde{' '}
+                    <motion.span key={perdaSemana} initial={{ opacity: 0.4 }} animate={{ opacity: 1 }}
+                      className="lp-serif lp-num text-[22px]" style={{ color: '#FB923C' }}>
+                      {fmt(perdaSemana)}h por semana
+                    </motion.span>
+                    . No curso, você aprende a cobrir isso.
+                  </p>
+                </div>
+              )}
+
+              <motion.ul className="space-y-3.5" initial="hidden" whileInView="show" viewport={vp}
+                variants={{ show: { transition: { staggerChildren: 0.12, delayChildren: 0.2 } } }}>
+                {[
+                  { b: 'Plano de transição', r: ' em PDF' },
+                  { b: 'O cálculo de horas', r: ' da sua empresa' },
+                  { b: 'Lista do curso', r: ', com condição especial de lançamento' },
+                ].map(t => (
+                  <motion.li key={t.b} variants={{ hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0, transition: { duration: 0.5, ease } } }}
+                    className="flex items-center gap-3 text-[15px]" style={{ color: T.darkMute }}>
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)' }}>
+                      <Check size={13} strokeWidth={2.5} color="#4ADE80" />
+                    </span>
+                    <span><strong className="font-semibold" style={{ color: T.darkText }}>{t.b}</strong>{t.r}</span>
+                  </motion.li>
+                ))}
+              </motion.ul>
+            </motion.div>
+
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+              className="relative rounded-2xl p-6 md:p-8 overflow-hidden" style={{ background: T.dark2, border: `1px solid ${T.darkRule}` }}>
+              <div className="absolute top-0 inset-x-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${T.accent}, ${T.violet})` }} />
+              <Formulario funcionarios={funcionarios} horas={horas} />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* O PROBLEMA */}
+      <section className="py-24 md:py-32">
+        <div className={WRAP}>
+          <SectionLabel n="02">O problema</SectionLabel>
           <motion.h2 initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
             className="lp-serif font-medium leading-[1.08] max-w-[46rem] mb-14" style={{ fontSize: 'clamp(32px,4.2vw,52px)' }}>
             Menos horas, mesmo salário. A maioria vai resolver do jeito <em className="not-italic" style={{ color: T.loss }}>mais caro</em>.
@@ -681,7 +773,7 @@ export default function Landing5x2() {
       {/* A SAÍDA */}
       <section className="lp-dark py-24 md:py-32" style={{ background: T.dark, color: T.darkText }}>
         <div className={WRAP}>
-          <SectionLabel n="02" dark>A saída</SectionLabel>
+          <SectionLabel n="03" dark>A saída</SectionLabel>
           <div className="grid lg:grid-cols-[1fr_1.25fr] gap-14 lg:gap-20 items-start">
             <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="lg:sticky lg:top-[max(6rem,calc(50vh-10rem))]">
               <h2 className="lp-serif font-medium leading-[1.08] mb-6" style={{ fontSize: 'clamp(32px,4vw,50px)' }}>
@@ -811,7 +903,7 @@ export default function Landing5x2() {
       {/* O CURSO */}
       <section className="py-24 md:py-32">
         <div className={WRAP}>
-          <SectionLabel n="03">O curso</SectionLabel>
+          <SectionLabel n="04">O curso</SectionLabel>
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
             className="grid lg:grid-cols-[1.3fr_1fr] gap-8 lg:gap-20 items-end mb-14">
             <h2 className="lp-serif font-medium leading-[1.08]" style={{ fontSize: 'clamp(32px,4.2vw,52px)' }}>
@@ -853,7 +945,7 @@ export default function Landing5x2() {
       {/* QUEM ENSINA */}
       <section className="py-24 md:py-32" style={{ background: T.paper2 }}>
         <div className={WRAP}>
-          <SectionLabel n="04">Quem ensina</SectionLabel>
+          <SectionLabel n="05">Quem ensina</SectionLabel>
           <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-20 items-start">
             <motion.figure initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
               {/* Corte 4:3 a partir do topo — ajusta sozinho quando trocar pela foto do professor */}
@@ -915,64 +1007,6 @@ export default function Landing5x2() {
         </div>
       </section>
 
-      {/* FORMULÁRIO */}
-      <section id="lista" ref={formRef} className="lp-dark py-24 md:py-32" style={{ background: T.dark, color: T.darkText }}>
-        <div className={WRAP}>
-          <SectionLabel n="05" dark>Pré-cadastro</SectionLabel>
-          <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-20 items-start">
-            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
-              <h2 className="lp-serif font-medium leading-[1.06] mb-5" style={{ fontSize: 'clamp(34px,4.4vw,56px)' }}>
-                Entre na lista e saia na frente da <span className="lp-grad-light">5×2</span>.
-              </h2>
-              <p className="text-[17px] leading-[1.65] mb-8" style={{ color: T.darkMute }}>
-                Leva <strong className="font-semibold" style={{ color: T.darkText }}>30 segundos</strong>. Você recebe tudo pelo WhatsApp.
-              </p>
-
-              {/* Lembra o resultado do simulador lá de cima */}
-              {perdaSemana > 0 && (
-                <div className="rounded-xl p-5 mb-8" style={{ background: T.dark2, border: `1px solid ${T.darkRule}` }}>
-                  <p className="text-[13px] mb-1" style={{ color: T.darkMute }}>
-                    Pelo simulador, com {funcionarios} funcionário{funcionarios > 1 ? 's' : ''} em {horas}h:
-                  </p>
-                  <p className="text-[16px] leading-snug" style={{ color: T.darkText }}>
-                    sua empresa perde{' '}
-                    <motion.span key={perdaSemana} initial={{ opacity: 0.4 }} animate={{ opacity: 1 }}
-                      className="lp-serif lp-num text-[22px]" style={{ color: '#FB923C' }}>
-                      {fmt(perdaSemana)}h por semana
-                    </motion.span>
-                    . No curso, você aprende a cobrir isso.
-                  </p>
-                </div>
-              )}
-
-              <motion.ul className="space-y-3.5" initial="hidden" whileInView="show" viewport={vp}
-                variants={{ show: { transition: { staggerChildren: 0.12, delayChildren: 0.2 } } }}>
-                {[
-                  { b: 'Gratuito', r: ' e sem compromisso' },
-                  { b: 'Novidades do curso', r: ' antes de todo mundo' },
-                  { b: 'Condição especial', r: ' de lançamento' },
-                ].map(t => (
-                  <motion.li key={t.b} variants={{ hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0, transition: { duration: 0.5, ease } } }}
-                    className="flex items-center gap-3 text-[15px]" style={{ color: T.darkMute }}>
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)' }}>
-                      <Check size={13} strokeWidth={2.5} color="#4ADE80" />
-                    </span>
-                    <span><strong className="font-semibold" style={{ color: T.darkText }}>{t.b}</strong>{t.r}</span>
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </motion.div>
-
-            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-              className="relative rounded-2xl p-6 md:p-8 overflow-hidden" style={{ background: T.dark2, border: `1px solid ${T.darkRule}` }}>
-              <div className="absolute top-0 inset-x-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${T.accent}, ${T.violet})` }} />
-              <Formulario funcionarios={funcionarios} horas={horas} />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section className="py-24 md:py-32">
         <div className={WRAP}>
@@ -995,7 +1029,7 @@ export default function Landing5x2() {
                 <Arrow size={15} />
               </a>
               <div className="hidden lg:block">
-                <PrimaryBtn onClick={scrollToForm}>Quero entrar na lista <Arrow /></PrimaryBtn>
+                <PrimaryBtn onClick={scrollToForm}>Receber meu plano no WhatsApp <Arrow /></PrimaryBtn>
               </div>
             </div>
 
@@ -1043,7 +1077,7 @@ export default function Landing5x2() {
             </div>
           </div>
           <div className="lg:hidden mt-10">
-            <PrimaryBtn onClick={scrollToForm} full>Quero entrar na lista <Arrow /></PrimaryBtn>
+            <PrimaryBtn onClick={scrollToForm} full>Receber meu plano no WhatsApp <Arrow /></PrimaryBtn>
           </div>
         </div>
       </section>
@@ -1079,7 +1113,7 @@ export default function Landing5x2() {
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} transition={{ duration: 0.35, ease }}
             className="fixed bottom-0 inset-x-0 z-40 p-3 md:hidden"
             style={{ background: 'rgba(241,245,249,0.94)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
-            <PrimaryBtn onClick={scrollToForm} full>Entrar na lista do curso <Arrow /></PrimaryBtn>
+            <PrimaryBtn onClick={scrollToForm} full>Receber meu plano no WhatsApp <Arrow /></PrimaryBtn>
           </motion.div>
         )}
       </AnimatePresence>
