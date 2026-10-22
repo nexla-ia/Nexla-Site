@@ -1,101 +1,118 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, BookOpen, ChevronDown, Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
+import { Award, BookOpen, Compass, LayoutDashboard, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { T, LOGO, display, ease } from './ui';
-import { Link, navegar } from './router';
+import { Link, navegar, useRota } from './router';
 import { supabase, useSessao, useEhAdmin } from './supabase';
 
-/* Menu do perfil (avatar + nome): Meus cursos, Meu perfil, Meus certificados e Sair */
-function MenuPerfil({ nome, admin, email }: { nome: string; admin: boolean; email: string }) {
-  const [aberto, setAberto] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+/* Itens do menu lateral do aluno */
+const NAV = [
+  { para: '/painel',       texto: 'Meus cursos',       icone: BookOpen,  ativo: (r: string) => r === '/painel' || r.startsWith('/curso/') || r.startsWith('/comprar/') },
+  { para: '/cursos',       texto: 'Explorar cursos',   icone: Compass,   ativo: (r: string) => r === '/cursos' },
+  { para: '/certificados', texto: 'Meus certificados', icone: Award,     ativo: (r: string) => r.startsWith('/certificado') },
+  { para: '/perfil',       texto: 'Meu perfil',        icone: UserRound, ativo: (r: string) => r === '/perfil' },
+];
+// admin vendo um curso como aluno
+const NAV_ADMIN = [{ para: '/admin', texto: 'Voltar ao painel admin', icone: LayoutDashboard, ativo: () => false }];
+
+/* Conteúdo do menu lateral: marca, links e, no rodapé, a conta com o botão de sair */
+function MenuLateral({ nome, email, admin }: { nome: string; email: string; admin: boolean }) {
+  const rota = useRota();
   const inicial = (nome.trim()[0] || email[0] || '?').toUpperCase();
-
-  useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setAberto(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setAberto(false); };
-    document.addEventListener('mousedown', fora);
-    document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
-  }, [aberto]);
-
-  const ir = (para: string) => { setAberto(false); navegar(para); };
-  const sair = async () => { setAberto(false); await supabase.auth.signOut(); navegar('/'); };
-
-  const itens = admin ? [
-    { icon: LayoutDashboard, texto: 'Voltar ao painel admin', acao: () => ir('/admin') },
-  ] : [
-    { icon: BookOpen,   texto: 'Meus cursos',       acao: () => ir('/painel') },
-    { icon: Compass,    texto: 'Explorar cursos',   acao: () => ir('/cursos') },
-    { icon: UserRound,  texto: 'Meu perfil',        acao: () => ir('/perfil') },
-    { icon: Award,      texto: 'Meus certificados', acao: () => ir('/certificados') },
-  ];
-
+  const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
   return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setAberto(a => !a)} aria-haspopup="menu" aria-expanded={aberto}
-        className="flex items-center gap-2.5 pl-1.5 pr-2.5 h-11 rounded-full transition-colors hover:bg-slate-100">
-        <span className="w-8 h-8 rounded-full flex items-center justify-center text-[13.5px] font-bold text-white"
-          style={{ background: `linear-gradient(135deg, ${T.accent}, ${T.violet})` }} aria-hidden>{inicial}</span>
-        <span className="hidden sm:block text-[14px] font-medium max-w-[11rem] truncate" style={{ color: T.ink2 }}>{nome || email}</span>
-        <ChevronDown size={16} strokeWidth={1.75} className="transition-transform" style={{ color: T.mute, transform: aberto ? 'rotate(180deg)' : 'none' }} />
-      </button>
+    <div className="h-full flex flex-col">
+      <Link para={admin ? '/admin' : '/painel'} className="h-16 px-5 shrink-0 inline-flex items-center gap-2.5">
+        <img src={LOGO} alt="" className="w-8 h-8 object-contain" />
+        <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
+      </Link>
 
-      <AnimatePresence>
-        {aberto && (
-          <motion.div role="menu"
-            initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.18, ease }}
-            className="absolute right-0 top-[calc(100%+8px)] w-64 rounded-2xl overflow-hidden"
-            style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 20px 50px -20px rgba(15,23,42,0.35)', transformOrigin: 'top right' }}>
-            <div className="px-4 py-3.5" style={{ borderBottom: `1px solid ${T.rule}` }}>
-              <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || 'Aluno'}</p>
-              <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
-            </div>
-            <div className="py-1.5">
-              {itens.map(i => (
-                <button key={i.texto} role="menuitem" onClick={i.acao}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] text-left transition-colors hover:bg-slate-50" style={{ color: T.ink2 }}>
-                  <i.icon size={17} strokeWidth={1.75} style={{ color: T.mute }} /> {i.texto}
-                </button>
-              ))}
-            </div>
-            <div className="py-1.5" style={{ borderTop: `1px solid ${T.rule}` }}>
-              <button role="menuitem" onClick={sair}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] text-left transition-colors hover:bg-red-50" style={{ color: '#B91C1C' }}>
-                <LogOut size={17} strokeWidth={1.75} /> Sair da conta
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <nav className="flex-1 px-3 pt-3 space-y-0.5 overflow-y-auto">
+        {(admin ? NAV_ADMIN : NAV).map(n => {
+          const ativo = n.ativo(rota);
+          return (
+            <Link key={n.para} para={n.para} className="flex items-center gap-3 px-3 h-10 rounded-lg text-[14.5px] font-medium transition-colors hover:bg-slate-100"
+              style={{ color: ativo ? T.accent : T.ink2, background: ativo ? 'rgba(79,70,229,0.08)' : undefined }}>
+              <n.icone size={18} strokeWidth={1.75} style={{ color: ativo ? T.accent : T.mute }} /> {n.texto}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${T.rule}` }}>
+        <div className="flex items-center gap-3 px-2 py-2">
+          <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
+            style={{ background: `linear-gradient(135deg, ${T.accent}, ${T.violet})` }} aria-hidden>{inicial}</span>
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || 'Aluno'}</p>
+            <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
+          </div>
+        </div>
+        <button onClick={sair} className="w-full mt-1 flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-red-50" style={{ color: '#B91C1C' }}>
+          <LogOut size={18} strokeWidth={1.75} /> Sair da conta
+        </button>
+      </div>
     </div>
   );
 }
 
-/* Layout das telas do aluno (painel, curso, perfil...): topo com a marca e o menu do perfil
-   (a navegação fica no menu do perfil; o admin vendo como aluno tem o link de volta) */
+/* Layout das telas do aluno (painel, curso, perfil...): menu lateral fixo no computador,
+   e no celular um topo com botão que abre o mesmo menu como gaveta */
 export function AppLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
+  const rota = useRota();
   const sessao = useSessao();
   const admin = !!useEhAdmin(sessao);
+  const email = sessao?.user.email ?? '';
+  const [gaveta, setGaveta] = useState(false);
+
+  useEffect(() => { setGaveta(false); }, [rota]);
+  useEffect(() => {
+    if (!gaveta) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setGaveta(false); };
+    document.addEventListener('keydown', esc);
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = ''; };
+  }, [gaveta]);
+
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      <header className="sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
-          <Link para="/painel" className="inline-flex items-center gap-2.5">
-            <img src={LOGO} alt="" className="w-8 h-8 object-contain" />
-            <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
+      <aside className="hidden lg:block fixed inset-y-0 left-0 w-60 z-30" style={{ background: T.card, borderRight: `1px solid ${T.rule}` }}>
+        <MenuLateral nome={nome} email={email} admin={admin} />
+      </aside>
+
+      {/* Celular e tablet */}
+      <header className="lg:hidden sticky top-0 z-30" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.rule}` }}>
+        <div className="px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link para={admin ? '/admin' : '/painel'} className="inline-flex items-center gap-2">
+            <img src={LOGO} alt="" className="w-7 h-7 object-contain" />
+            <span className="text-[16px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
           </Link>
-          {admin && (
-            <Link para="/admin/cursos" className="hidden md:inline-flex mr-auto ml-6 text-[14px] font-medium hover:underline underline-offset-4" style={{ color: T.mute }}>
-              ← Voltar ao admin
-            </Link>
-          )}
-          <MenuPerfil nome={nome} admin={admin} email={sessao?.user.email ?? ''} />
+          <button onClick={() => setGaveta(true)} aria-label="Abrir menu" aria-expanded={gaveta}
+            className="w-10 h-10 -mr-2 rounded-lg flex items-center justify-center hover:bg-slate-100" style={{ color: T.ink2 }}>
+            <Menu size={22} strokeWidth={1.75} />
+          </button>
         </div>
       </header>
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 md:py-12">{children}</main>
+      <AnimatePresence>
+        {gaveta && (
+          <div className="lg:hidden fixed inset-0 z-40">
+            <motion.div className="absolute inset-0" style={{ background: 'rgba(15,23,42,0.4)' }} onClick={() => setGaveta(false)}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} />
+            <motion.aside role="dialog" aria-label="Menu" className="absolute inset-y-0 left-0 w-72 max-w-[85vw]" style={{ background: T.card }}
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ duration: 0.25, ease }}>
+              <button onClick={() => setGaveta(false)} aria-label="Fechar menu"
+                className="absolute top-3 right-3 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-slate-100" style={{ color: T.mute }}>
+                <X size={20} strokeWidth={1.75} />
+              </button>
+              <MenuLateral nome={nome} email={email} admin={admin} />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <div className="lg:pl-60">
+        <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 md:py-12">{children}</main>
+      </div>
     </div>
   );
 }
