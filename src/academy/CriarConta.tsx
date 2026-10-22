@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User, Phone, PlayCircle, LineChart, Award, Check } from 'lucide-react';
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor, soDigitos, mascaraWhats } from './ui';
-import { Link } from './router';
+import { Link, parametro } from './router';
+
+/* Mantém o ?voltar= (ex.: /comprar/curso) ao alternar entre entrar e criar conta */
+const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
 import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin } from './supabase';
 
 const VANTAGENS = [
@@ -69,7 +72,7 @@ export default function CriarConta() {
       email: email.trim(),
       password: senha,
       options: {
-        emailRedirectTo: `${window.location.origin}/academy/painel`,
+        emailRedirectTo: `${window.location.origin}/academy${/^\/[\w\-/]*$/.test(parametro('voltar') ?? '') ? parametro('voltar') : '/painel'}`,
         data: { nome: nome.trim(), whatsapp: `55${soDigitos(whats)}`, consentimento_marketing: marketing },
       },
     });
@@ -154,7 +157,7 @@ export default function CriarConta() {
 
       <p className="text-[14.5px] text-center mt-7" style={{ color: T.mute }}>
         Já tem conta?{' '}
-        <Link para="/" className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Entrar</Link>
+        <Link para={comVoltar('/entrar')} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Entrar</Link>
       </p>
     </AuthLayout>
   );

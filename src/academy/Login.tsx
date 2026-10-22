@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, GraduationCap, FileSpreadsheet } from 'lucide-react';
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor } from './ui';
-import { Link } from './router';
+import { Link, parametro } from './router';
+
+const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
 import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin, lerAvisoOutroDispositivo } from './supabase';
 
 const CURSOS = [
@@ -79,7 +81,7 @@ export default function Login() {
 
       <p className="text-[14.5px] text-center mt-7" style={{ color: T.mute }}>
         Ainda não tem conta?{' '}
-        <Link para="/criar-conta" className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Criar conta grátis</Link>
+        <Link para={comVoltar('/criar-conta')} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Criar conta grátis</Link>
       </p>
       <p className="text-[12px] text-center mt-8 leading-relaxed" style={{ color: T.mute }}>
         Ao entrar, você concorda com os Termos de uso e a Política de privacidade da Nexla.
