@@ -6,7 +6,7 @@ import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link } from './router';
 import { CERTIFICADO_MIN } from './supabase';
 import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno } from './dados';
-import { CardVitrine, GradeCategorias } from './Explorar';
+import { CardVitrine, GradeCategorias, GRADE_CURSOS } from './Explorar';
 import { MediaEstrelas, MinhaNota } from './Avaliacao';
 
 function Certificado({ c }: { c: CursoAluno }) {
@@ -162,8 +162,8 @@ export default function Painel({ sessao }: { sessao: Session }) {
                 Explorar cursos <ArrowRight size={15} strokeWidth={2} />
               </Link>
             </div>
-            <div className="grid md:grid-cols-2 gap-5">
-              {outros.slice(0, 2).map(c => <CardVitrine key={c.id} c={c} />)}
+            <div className={GRADE_CURSOS}>
+              {outros.slice(0, 3).map(c => <CardVitrine key={c.id} c={c} />)}
             </div>
           </section>
         )}

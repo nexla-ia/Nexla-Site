@@ -1,45 +1,43 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, ChevronDown, Clock, Layers, Lock, PlayCircle, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Clock, Lock, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando, TituloPagina } from './AppLayout';
 import { Link } from './router';
 import { useCursosAluno, type CursoAluno, type CursoVitrine } from './dados';
-import { MediaEstrelas } from './Avaliacao';
 import { reais } from './Compra';
 
 /* Fundo de quem ainda não tem foto: gradiente da marca com uma grade bem leve e o símbolo da Nexla */
 const SEM_FOTO = {
   backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})`,
-  backgroundSize: '28px 28px, 28px 28px, cover',
+  backgroundSize: '24px 24px, 24px 24px, cover',
 };
 const VIDRO = { background: 'rgba(15,23,42,0.55)', color: '#FFFFFF', backdropFilter: 'blur(6px)' };
 
 /* Capa do card: a foto aproxima um pouco ao passar o mouse no card */
 function Capa({ url, children }: { url: string | null; children: React.ReactNode }) {
   return (
-    <div className="relative h-40 overflow-hidden">
+    <div className="relative h-28 overflow-hidden">
       <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"
         style={url ? { backgroundImage: `url("${url}")` } : SEM_FOTO} />
-      {url
-        ? <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(15,23,42,0.5), transparent 55%)' }} />
-        : <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 object-contain opacity-80" />}
+      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 object-contain opacity-80" />}
       {children}
     </div>
   );
 }
 
-const cardCls = 'group rounded-2xl overflow-hidden flex flex-col shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_48px_-24px_rgba(79,70,229,0.45)]';
+const cardCls = 'group rounded-xl overflow-hidden flex flex-col shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-22px_rgba(79,70,229,0.45)]';
 
-/* Categoria, título, nota e subtítulo: igual nos dois cards */
+/* Selo redondo no canto da foto: cadeado (não comprou) ou check (já é seu) */
+const selo = 'absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center';
+
+/* Categoria e título: igual nos dois cards */
 function Cabecalho({ c }: { c: CursoVitrine | CursoAluno }) {
   return (
     <>
-      {c.categoria && <p className="text-[12.5px] font-semibold mb-1.5" style={{ color: T.accent }}>{c.categoria}</p>}
-      <h3 className="font-bold text-[18px] leading-snug" style={display}>{c.titulo}</h3>
-      {c.media !== null && <div className="mt-1.5"><MediaEstrelas media={c.media} total={c.avaliacoes} /></div>}
-      {c.subtitulo && <p className="text-[14px] mt-1.5 leading-relaxed line-clamp-2" style={{ color: T.mute }}>{c.subtitulo}</p>}
+      {c.categoria && <p className="text-[12px] font-semibold mb-1 truncate" style={{ color: T.accent }}>{c.categoria}</p>}
+      <h3 className="font-bold text-[15.5px] leading-snug line-clamp-2" style={display}>{c.titulo}</h3>
     </>
   );
 }
@@ -50,37 +48,28 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
     <Link para={`/curso/${c.slug}`} className={cardCls} style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <Capa url={c.capa}>
         {!c.preco && (
-          <span className="absolute top-3 left-4 inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full"
+          <span className="absolute top-2.5 left-3 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
             style={{ background: '#4F46E5', color: '#FFFFFF' }}>
-            <Clock size={13} strokeWidth={2} /> Em breve
+            <Clock size={12} strokeWidth={2} /> Em breve
           </span>
         )}
-        <span className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center" title="Curso bloqueado" style={VIDRO}>
-          <Lock size={16} strokeWidth={2} aria-label="Curso bloqueado" />
+        <span className={selo} title="Curso bloqueado" style={VIDRO}>
+          <Lock size={14} strokeWidth={2} aria-label="Curso bloqueado" />
         </span>
-        {c.totalAulas > 0 && (
-          <span className="absolute left-4 bottom-3 inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full" style={VIDRO}>
-            <PlayCircle size={13} strokeWidth={2} /> Aula de amostra grátis
-          </span>
-        )}
       </Capa>
-      <div className="p-5 flex-1 flex flex-col">
+      <div className="p-4 flex-1 flex flex-col">
         <Cabecalho c={c} />
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] mt-4" style={{ color: T.mute }}>
-          <span className="inline-flex items-center gap-1.5"><Layers size={14} strokeWidth={1.75} /> {c.modulos} módulos</span>
-          <span className="inline-flex items-center gap-1.5"><PlayCircle size={14} strokeWidth={1.75} /> {c.totalAulas} aulas</span>
-          <span className="inline-flex items-center gap-1.5"><Clock size={14} strokeWidth={1.75} /> {c.horas}h</span>
-        </div>
-        <div className="mt-auto pt-5">
-          <div className="pt-4 flex items-end justify-between gap-3" style={{ borderTop: `1px solid ${T.rule}` }}>
+        <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>{c.totalAulas} aulas · {c.horas}h de conteúdo</p>
+        <div className="mt-auto pt-4">
+          <div className="pt-3 flex items-center justify-between gap-3" style={{ borderTop: `1px solid ${T.rule}` }}>
             {c.preco ? (
-              <div>
-                {c.preco.de != null && <p className="text-[12.5px] line-through" style={{ color: T.mute }}>{reais(c.preco.de)}</p>}
-                <p className="font-bold text-[20px] leading-none whitespace-nowrap" style={display}>{reais(c.preco.valor)}</p>
-              </div>
-            ) : <p className="font-bold text-[20px] leading-none whitespace-nowrap" style={{ ...display, color: T.mute }}>Em breve</p>}
-            <span className="acad-btn inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold text-white whitespace-nowrap shrink-0">
-              Ver curso <ArrowRight size={15} strokeWidth={2} className="acad-arrow" />
+              <p className="leading-tight whitespace-nowrap">
+                {c.preco.de != null && <span className="text-[12px] line-through mr-1.5" style={{ color: T.mute }}>{reais(c.preco.de)}</span>}
+                <span className="font-bold text-[16px]" style={display}>{reais(c.preco.valor)}</span>
+              </p>
+            ) : <p className="font-semibold text-[14px] whitespace-nowrap" style={{ color: T.mute }}>Em breve</p>}
+            <span className="inline-flex items-center gap-1 text-[13.5px] font-semibold whitespace-nowrap" style={{ color: T.accent }}>
+              Ver curso <ArrowRight size={14} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
             </span>
           </div>
         </div>
@@ -94,27 +83,22 @@ function CardMeu({ c }: { c: CursoAluno }) {
   return (
     <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className={cardCls} style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <Capa url={c.capa}>
-        <span className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center" title="Você já tem este curso"
-          style={{ background: '#16A34A', color: '#FFFFFF' }}>
-          <Check size={17} strokeWidth={2.5} aria-label="Você já tem este curso" />
+        <span className={selo} title="Você já tem este curso" style={{ background: '#16A34A', color: '#FFFFFF' }}>
+          <Check size={15} strokeWidth={2.5} aria-label="Você já tem este curso" />
         </span>
       </Capa>
-      <div className="p-5 flex-1 flex flex-col">
+      <div className="p-4 flex-1 flex flex-col">
         <Cabecalho c={c} />
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] mt-4" style={{ color: T.mute }}>
-          <span className="inline-flex items-center gap-1.5"><Layers size={14} strokeWidth={1.75} /> {c.academy_modules.length} módulos</span>
-          <span className="inline-flex items-center gap-1.5"><PlayCircle size={14} strokeWidth={1.75} /> {c.aulas.length} aulas</span>
-        </div>
-        <div className="mt-auto pt-5">
-          <div className="pt-4" style={{ borderTop: `1px solid ${T.rule}` }}>
-            <div className="flex items-center justify-between text-[13px] mb-2">
-              <span style={{ color: T.mute }}>Você já tem · {c.feitas.size} de {c.aulas.length} aulas</span>
-              <span className="font-semibold" style={{ color: c.percentual >= 100 ? 'var(--a-green)' : T.ink }}>{c.percentual}%</span>
+        <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>Você já tem · {c.aulas.length} aulas</p>
+        <div className="mt-auto pt-4">
+          <div className="pt-3" style={{ borderTop: `1px solid ${T.rule}` }}>
+            <div className="flex items-center gap-2.5">
+              <div className="flex-1"><BarraProgresso valor={c.percentual} /></div>
+              <span className="text-[12.5px] font-semibold" style={{ color: c.percentual >= 100 ? 'var(--a-green)' : T.ink }}>{c.percentual}%</span>
             </div>
-            <BarraProgresso valor={c.percentual} />
-            <p className="inline-flex items-center gap-1.5 mt-4 text-[14px] font-semibold" style={{ color: T.accent }}>
+            <p className="inline-flex items-center gap-1 mt-2.5 text-[13.5px] font-semibold" style={{ color: T.accent }}>
               {c.percentual >= 100 ? 'Rever curso' : c.feitas.size ? 'Continuar' : 'Começar'}
-              <ArrowRight size={15} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight size={14} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
             </p>
           </div>
         </div>
@@ -137,22 +121,24 @@ function porCategoria(itens: Item[]) {
   return [...grupos.values()].sort((a, b) => Number(!a.nome) - Number(!b.nome));
 }
 
+/* Grade dos cards (a mesma no Explorar, no painel e nos resultados da busca) */
+export const GRADE_CURSOS = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4';
+
 /* Grade de cursos separada por categoria (usada no Explorar e no painel de quem ainda não tem cursos) */
-export function GradeCategorias({ outros, cursos = [], colunas = 3 }: { outros: CursoVitrine[]; cursos?: CursoAluno[]; colunas?: 2 | 3 }) {
+export function GradeCategorias({ outros, cursos = [] }: { outros: CursoVitrine[]; cursos?: CursoAluno[] }) {
   const grupos = porCategoria([...outros.map(c => ({ meu: false as const, c })), ...cursos.map(c => ({ meu: true as const, c }))]);
   const temCategorias = grupos.some(g => g.nome);
-  const grade = colunas === 3 ? 'grid sm:grid-cols-2 xl:grid-cols-3 gap-5' : 'grid md:grid-cols-2 gap-5';
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       {grupos.map(g => (
         <section key={g.nome || '-'}>
           {temCategorias && (
-            <div className="flex items-baseline gap-3 mb-4">
-              <h2 className="font-bold text-[21px]" style={display}>{g.nome || 'Outros cursos'}</h2>
-              <span className="text-[13.5px]" style={{ color: T.mute }}>{g.itens.length} curso{g.itens.length === 1 ? '' : 's'}</span>
+            <div className="flex items-baseline gap-2.5 mb-3">
+              <h2 className="font-bold text-[18px]" style={display}>{g.nome || 'Outros cursos'}</h2>
+              <span className="text-[13px]" style={{ color: T.mute }}>{g.itens.length} curso{g.itens.length === 1 ? '' : 's'}</span>
             </div>
           )}
-          <div className={grade}>
+          <div className={GRADE_CURSOS}>
             {g.itens.map(i => i.meu ? <CardMeu key={i.c.id} c={i.c} /> : <CardVitrine key={i.c.id} c={i.c} />)}
           </div>
         </section>
@@ -340,8 +326,8 @@ export default function Explorar({ sessao }: { sessao: Session }) {
               </label>
             </div>
 
-            {!filtrando ? <GradeCategorias outros={outros} cursos={cursos} colunas={2} /> : achados.length ? (
-              <div className="grid md:grid-cols-2 gap-5">
+            {!filtrando ? <GradeCategorias outros={outros} cursos={cursos} /> : achados.length ? (
+              <div className={GRADE_CURSOS}>
                 {achados.map(i => i.meu ? <CardMeu key={i.c.id} c={i.c} /> : <CardVitrine key={i.c.id} c={i.c} />)}
               </div>
             ) : (
