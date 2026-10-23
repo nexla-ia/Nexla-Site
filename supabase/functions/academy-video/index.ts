@@ -8,7 +8,7 @@
 // Quem não pode não recebe nem o ID do vídeo.
 //
 // Segredos (Supabase → Edge Functions → Secrets):
-//   BUNNY_LIBRARY_ID  → ID da biblioteca no Bunny Stream (obrigatório)
+//   BUNNY_LIBRARY_ID  → ID da biblioteca no Bunny Stream (opcional: sem ele, usa a biblioteca da Nexla, 788465)
 //   BUNNY_TOKEN_KEY   → chave de "Embed view token authentication" do Bunny (opcional, recomendado):
 //                       com ela o link sai assinado e expira, então não adianta copiar e compartilhar.
 // SUPABASE_URL e SUPABASE_ANON_KEY são fornecidos automaticamente pelo Supabase.
@@ -18,6 +18,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const SITE_PADRAO = 'https://www.nexla.com.br';
 const ORIGENS_OK = ['https://www.nexla.com.br', 'https://nexla.com.br', 'http://localhost:5173', 'http://localhost:4173'];
 const VALIDADE_SEG = 4 * 60 * 60; // o link assinado vale 4 horas
+const BIBLIOTECA_PADRAO = '788465'; // biblioteca da Nexla no Bunny Stream (o ID não é segredo: aparece no link do player)
 
 const cors = (origem: string | null) => ({
   'Access-Control-Allow-Origin': origem && ORIGENS_OK.includes(origem) ? origem : SITE_PADRAO,
@@ -53,8 +54,7 @@ Deno.serve(async (req) => {
   const video = String(aula.video_id ?? '').trim();
   if (!video) return json({ erro: 'sem_video' }, 404);
 
-  const biblioteca = (Deno.env.get('BUNNY_LIBRARY_ID') ?? '').trim();
-  if (!biblioteca) return json({ erro: 'sem_biblioteca' }, 503);
+  const biblioteca = (Deno.env.get('BUNNY_LIBRARY_ID') ?? '').trim() || BIBLIOTECA_PADRAO;
 
   const params = new URLSearchParams({ autoplay: 'false', preload: 'true', responsive: 'true' });
   const chave = (Deno.env.get('BUNNY_TOKEN_KEY') ?? '').trim();
@@ -64,5 +64,5 @@ Deno.serve(async (req) => {
     params.set('token', await sha256hex(chave + video + expira));
     params.set('expires', String(expira));
   }
-  return json({ url: `https://iframe.mediadelivery.net/embed/${encodeURIComponent(biblioteca)}/${encodeURIComponent(video)}?${params}` });
+  return json({ url: `https://player.mediadelivery.net/embed/${encodeURIComponent(biblioteca)}/${encodeURIComponent(video)}?${params}` });
 });
