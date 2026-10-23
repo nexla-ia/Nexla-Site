@@ -96,6 +96,12 @@ Deno.serve(async (req) => {
   const { data: jaTem } = await admin.from('academy_enrollments').select('ativo').eq('user_id', usuario.id).eq('course_id', curso.id).eq('ativo', true).maybeSingle();
   if (jaTem) return json({ erro: 'ja_matriculado' }, 409);
 
+  // Pedidos "pendente" anteriores deste aluno para este curso, que nunca chegaram a ter pagamento,
+  // foram abandonados (ele está começando outro): viram "cancelado" para não ficarem pendentes para sempre.
+  // Se algum deles ainda for pago, o webhook aprova e libera do mesmo jeito.
+  await admin.from('academy_orders').update({ status: 'cancelado', atualizado_em: new Date().toISOString() })
+    .eq('user_id', usuario.id).eq('course_id', curso.id).eq('status', 'pendente').is('forma_pagamento', null);
+
   const { data: pedido, error: erroPedido } = await admin.from('academy_orders').insert({
     user_id: usuario.id, course_id: curso.id, itens, subtotal, desconto, total,
     cupom: cupomOk ? codigo : null, com_oferta_extra: itens.length > 1, status: 'pendente',

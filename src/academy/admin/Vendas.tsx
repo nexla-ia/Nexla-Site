@@ -117,6 +117,7 @@ function Tela({ nome }: { nome: string }) {
   const [nomes, setNomes] = useState<Map<string, string>>(new Map());
   const [filtro, setFiltro] = useState('');
   const [erro, setErro] = useState('');
+  const [atualizado, setAtualizado] = useState<Date | null>(null);
   // novo cupom
   const [nc, setNc] = useState({ codigo: '', tipo: 'percentual' as 'percentual' | 'valor', valor: '', curso: '', validade: '', limite: '' });
   const [msgCupom, setMsgCupom] = useState({ erro: '', ok: '' });
@@ -133,8 +134,17 @@ function Tela({ nome }: { nome: string }) {
     setCupons((c.data ?? []) as Cupom[]);
     setCursos(new Map((cs.data ?? []).map(x => [x.id as string, x.titulo as string])));
     setNomes(new Map((pf.data ?? []).map(x => [x.id as string, (x.nome as string) || 'Aluno'])));
+    setAtualizado(new Date());
   }, []);
-  useEffect(() => { carregar(); }, [carregar]);
+  // Atualiza sozinho: a cada 10 s com a aba aberta e na hora em que você volta para ela
+  useEffect(() => {
+    carregar();
+    const visivel = () => document.visibilityState === 'visible';
+    const t = window.setInterval(() => { if (visivel()) carregar(); }, 10000);
+    const aoVoltar = () => { if (visivel()) carregar(); };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => { window.clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar); };
+  }, [carregar]);
 
   const lista = useMemo(() => (pedidos ?? []).filter(p => !filtro || p.status === filtro), [pedidos, filtro]);
   const pagos = (pedidos ?? []).filter(p => p.status === 'pago');
@@ -166,7 +176,8 @@ function Tela({ nome }: { nome: string }) {
   return (
     <AdminLayout nome={nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
-        <TituloAdmin titulo="Vendas" sub="Pedidos pagos pelo Mercado Pago e cupons de desconto." />
+        <TituloAdmin titulo="Vendas"
+          sub={`Pedidos pagos pelo Mercado Pago e cupons de desconto. Atualiza sozinho${atualizado ? ` · última vez às ${atualizado.toLocaleTimeString('pt-BR')}` : ''}.`} />
         {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         {!pedidos ? <Carregando /> : (
