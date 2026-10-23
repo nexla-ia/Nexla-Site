@@ -103,9 +103,6 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
   if (estado.tipo === 'bloqueado') {
     return (
       <AppLayout nome={estado.nome}>
-        <Link para="/painel" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-6 hover:underline underline-offset-4" style={{ color: T.mute }}>
-          <ArrowLeft size={15} strokeWidth={1.75} /> Meus cursos
-        </Link>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}
           className="max-w-xl mx-auto text-center rounded-2xl p-8 md:p-10" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
           <span className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'var(--a-soft)', color: T.mute }}>
@@ -135,9 +132,6 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
   return (
     <AppLayout nome={estado.nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
-        <Link para="/painel" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-4 hover:underline underline-offset-4" style={{ color: T.mute }}>
-          <ArrowLeft size={15} strokeWidth={1.75} /> Meus cursos
-        </Link>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
           <div>

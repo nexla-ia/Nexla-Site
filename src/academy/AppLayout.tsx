@@ -168,13 +168,10 @@ export function Carregando() {
   );
 }
 
-/* Cabeçalho padrão das páginas internas: link de voltar + título + subtítulo */
+/* Cabeçalho padrão das páginas internas: título + subtítulo (voltar fica no menu lateral) */
 export function TituloPagina({ titulo, sub }: { titulo: string; sub?: string }) {
   return (
     <div className="mb-8">
-      <Link para="/painel" className="inline-flex items-center gap-1.5 text-[14px] font-medium mb-4 hover:underline underline-offset-4" style={{ color: T.mute }}>
-        ← Meus cursos
-      </Link>
       <h1 className="font-bold leading-tight" style={{ ...display, fontSize: 'clamp(26px,3.2vw,36px)' }}>{titulo}</h1>
       {sub && <p className="text-[15px] mt-1.5" style={{ color: T.mute }}>{sub}</p>}
     </div>
