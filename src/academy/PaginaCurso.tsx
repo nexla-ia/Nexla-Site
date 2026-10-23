@@ -92,7 +92,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   ) : (
     <span className={`inline-flex items-center justify-center h-12 px-6 rounded-[10px] text-[14.5px] font-semibold ${cheio ? 'w-full' : ''}`}
       style={{ background: 'var(--a-soft)', color: T.mute }}>
-      {preco === undefined ? 'Carregando…' : 'Vendas em breve'}
+      {preco === undefined ? 'Carregando…' : 'Em breve'}
     </span>
   );
 
@@ -156,10 +156,13 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               <p className="font-bold text-[34px] leading-none mt-1" style={display}>{reais(preco.valor)}</p>
               <p className="text-[13px] mt-2" style={{ color: T.mute }}>Pix, boleto ou cartão em até 12x</p>
             </>
-          ) : (
-            <p className="font-semibold text-[16px]">{preco === undefined ? '' : 'Este curso abre para compra em breve.'}</p>
-          )}
-          <div className="mt-5"><BotaoComprar cheio /></div>
+          ) : preco === null ? (
+            <>
+              <p className="font-bold text-[34px] leading-none" style={display}>Em breve</p>
+              <p className="text-[13px] mt-2" style={{ color: T.mute }}>As vendas deste curso ainda não abriram.</p>
+            </>
+          ) : null}
+          {preco !== null && <div className="mt-5"><BotaoComprar cheio /></div>}
           {!sessao && preco && (
             <p className="text-[13px] text-center mt-2.5" style={{ color: T.mute }}>
               Já tem conta? <Link para={`/entrar?voltar=${encodeURIComponent(compra)}`} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Entrar</Link>

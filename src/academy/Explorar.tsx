@@ -71,7 +71,7 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
                 {c.preco.de != null && <p className="text-[12.5px] line-through" style={{ color: T.mute }}>{reais(c.preco.de)}</p>}
                 <p className="font-bold text-[20px] leading-none" style={display}>{reais(c.preco.valor)}</p>
               </div>
-            ) : <p className="text-[13.5px] font-medium" style={{ color: T.mute }}>Vendas em breve</p>}
+            ) : <p className="font-bold text-[20px] leading-none" style={{ ...display, color: T.mute }}>Em breve</p>}
             <span className="acad-btn inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold text-white">
               Ver curso <ArrowRight size={15} strokeWidth={2} className="acad-arrow" />
             </span>
