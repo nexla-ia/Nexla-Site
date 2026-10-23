@@ -168,7 +168,7 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
             </Rotulo>
             <Rotulo texto="Duração (min)"><input className={inputCls} inputMode="decimal" value={minutos} onChange={e => setMinutos(e.target.value)} /></Rotulo>
           </div>
-          <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo da biblioteca. O player entra quando o serviço de vídeo for definido.">
+          <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo (Video ID / GUID) da biblioteca do Bunny Stream.">
             <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
           </Rotulo>
           <Rotulo texto="Descrição (aparece abaixo do vídeo)">

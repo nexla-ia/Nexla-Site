@@ -9,6 +9,7 @@ import { supabase, minutos, buscarResumos, type ResumoCurso } from './supabase';
 import { useCursosAluno } from './dados';
 import { CardVitrine, GRADE_CURSOS } from './Explorar';
 import { checkout } from './Compra';
+import VideoAula from './Video';
 
 type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
 type Detalhes = {
@@ -148,11 +149,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
 
             {/* Vídeo de amostra */}
             <div className="mt-7">
+              {sessao && amostra ? <VideoAula aulaId={amostra.id} /> : (
               <div className="relative aspect-video rounded-2xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
                 style={{ background: curso.capa ? `linear-gradient(rgba(15,23,42,0.72), rgba(15,23,42,0.72)), url("${curso.capa}") center/cover` : `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, border: `1px solid ${T.rule}` }}>
                 <PlayCircle size={56} strokeWidth={1.25} style={{ color: '#A5B4FC' }} />
                 {sessao ? (
-                  <p className="mt-3 text-[14px]" style={{ color: 'rgba(241,245,249,0.75)' }}>O vídeo de amostra entra aqui (Bunny Stream)</p>
+                  <p className="mt-3 text-[14px]" style={{ color: 'rgba(241,245,249,0.75)' }}>Este curso ainda não tem aula de amostra.</p>
                 ) : (
                   <>
                     <p className="mt-3 font-semibold text-[16px]">Assista à aula de amostra grátis</p>
@@ -165,6 +167,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
                   </>
                 )}
               </div>
+              )}
               {amostra && (
                 <p className="mt-3 text-[14px]" style={{ color: T.mute }}>
                   <strong style={{ color: T.ink }}>Aula de amostra grátis:</strong> {amostra.titulo} · {minutos(amostra.duracao_seg)}

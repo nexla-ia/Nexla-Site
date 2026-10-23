@@ -9,6 +9,7 @@ import { supabase, organizar, pct, minutos, CERTIFICADO_MIN, SELECT_CURSO, type 
 import Comunidade from './Comunidade';
 import Avaliacao from './Avaliacao';
 import PaginaCurso from './PaginaCurso';
+import VideoAula from './Video';
 import { BotaoTema } from './tema';
 
 type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
@@ -113,28 +114,27 @@ function FimAula({ proxima, ir, cancelar }: { proxima: Aula; ir: () => void; can
   );
 }
 
-/* Player da aula (o vídeo do Bunny entra aqui) com a chamada da próxima aula por cima quando a aula acaba */
-function Player({ liberada, fim, proxima, abrir, setFim }: {
-  liberada: boolean; fim: boolean; proxima?: Aula; abrir: (id: string) => void; setFim: (v: boolean) => void;
+/* Player da aula (Bunny Stream) com a chamada da próxima aula por cima quando a aula acaba */
+function Player({ aulaId, liberada, fim, proxima, abrir, setFim, onFimVideo }: {
+  aulaId: string; liberada: boolean; fim: boolean; proxima?: Aula; abrir: (id: string) => void; setFim: (v: boolean) => void; onFimVideo: () => void;
 }) {
+  const chamada = (
+    <AnimatePresence>
+      {fim && proxima && <FimAula proxima={proxima} ir={() => abrir(proxima.id)} cancelar={() => setFim(false)} />}
+    </AnimatePresence>
+  );
+  if (liberada) return <VideoAula aulaId={aulaId} onFim={onFimVideo}>{chamada}</VideoAula>;
   return (
     <div className="relative aspect-video rounded-xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
       style={{ background: `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -32px rgba(15,23,42,0.7)' }}>
-      {liberada ? (
-        <>
-          <PlayCircle size={52} strokeWidth={1.25} style={{ color: '#A5B4FC' }} />
-          <p className="mt-3 text-[14px]" style={{ color: T.darkMute }}>O vídeo desta aula entra aqui (Bunny Stream)</p>
-        </>
-      ) : (
+      {(
         <>
           <Lock size={40} strokeWidth={1.5} style={{ color: '#A5B4FC' }} />
           <p className="mt-3 font-semibold">Aula disponível para alunos matriculados</p>
           <p className="mt-1 text-[14px]" style={{ color: T.darkMute }}>As aulas gratuitas da lista estão liberadas para você.</p>
         </>
       )}
-      <AnimatePresence>
-        {fim && proxima && <FimAula proxima={proxima} ir={() => abrir(proxima.id)} cancelar={() => setFim(false)} />}
-      </AnimatePresence>
+      {chamada}
     </div>
   );
 }
@@ -412,7 +412,8 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
             {!teatro && cabecalhoAula}
 
             <div className={`mx-auto ${teatro ? '' : 'mt-5'}`} style={teatro ? { maxWidth: 'calc((100vh - 13.5rem) * 16 / 9)' } : undefined}>
-              <Player liberada={liberada} fim={fim} proxima={proxima} abrir={abrir} setFim={setFim} />
+              <Player key={aula.id} aulaId={aula.id} liberada={liberada} fim={fim} proxima={proxima} abrir={abrir} setFim={setFim}
+                onFimVideo={() => { if (!concluida) alternar(); else if (proxima) setFim(true); }} />
 
             {/* Ações da aula: concluir, teatro, anterior e próxima (estilo "Próxima atividade" da Alura) */}
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
