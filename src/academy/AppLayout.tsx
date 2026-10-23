@@ -16,6 +16,28 @@ const NAV = [
 // admin vendo um curso como aluno
 const NAV_ADMIN = [{ para: '/admin', texto: 'Voltar ao painel admin', icone: LayoutDashboard, ativo: () => false }];
 
+/* Nome da conta guardado entre as telas: enquanto a página ainda carrega (nome = ""),
+   o menu usa o nome já conhecido ou busca no perfil, em vez de mostrar "Aluno" */
+const nomesConta = new Map<string, string>();
+function useNomeConta(nome: string) {
+  const sessao = useSessao();
+  const uid = sessao?.user.id;
+  const [buscado, setBuscado] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!uid) return;
+    if (nome) { nomesConta.set(uid, nome); return; }
+    if (nomesConta.has(uid)) { setBuscado(nomesConta.get(uid)); return; }
+    let vivo = true;
+    supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle().then(({ data }) => {
+      const n = (data?.nome as string | undefined)?.trim();
+      if (n) nomesConta.set(uid, n);
+      if (vivo && n) setBuscado(n);
+    });
+    return () => { vivo = false; };
+  }, [uid, nome]);
+  return nome || buscado || (uid ? nomesConta.get(uid) : undefined) || (sessao?.user.user_metadata?.nome as string | undefined) || '';
+}
+
 /* Conteúdo do menu lateral: marca, links e, no rodapé, a conta com o botão de sair */
 function MenuLateral({ nome, email, admin }: { nome: string; email: string; admin: boolean }) {
   const rota = useRota();
@@ -46,7 +68,7 @@ function MenuLateral({ nome, email, admin }: { nome: string; email: string; admi
           <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
             style={{ background: `linear-gradient(135deg, ${T.accent}, ${T.violet})` }} aria-hidden>{inicial}</span>
           <div className="min-w-0">
-            <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || 'Aluno'}</p>
+            <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || email.split('@')[0]}</p>
             <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
           </div>
         </div>
@@ -68,9 +90,10 @@ function MenuLateral({ nome, email, admin }: { nome: string; email: string; admi
 /* Layout das telas do aluno (painel, curso, perfil...): menu lateral fixo no computador,
    e no celular um topo com botão que abre o mesmo menu como gaveta.
    (a tela de assistir o curso tem layout próprio, no Curso.tsx) */
-export function AppLayout({ nome, children }: { nome: string; children: React.ReactNode }) {
+export function AppLayout({ nome: nomePagina, children }: { nome: string; children: React.ReactNode }) {
   const rota = useRota();
   const sessao = useSessao();
+  const nome = useNomeConta(nomePagina);
   const admin = !!useEhAdmin(sessao);
   const email = sessao?.user.email ?? '';
   const [gaveta, setGaveta] = useState(false);
