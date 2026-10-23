@@ -4,6 +4,63 @@ import { T, display } from '../ui';
 import { supabase } from '../supabase';
 import { inputCls, botaoPrimario, botaoSecundario } from './comum';
 
+/* Ferramentas usadas no curso e apresentação do instrutor (aparecem na página de vendas) */
+export function CartaoInstrutor({ cursoId }: { cursoId: string }) {
+  const [ferramentas, setFerramentas] = useState('');
+  const [bio, setBio] = useState('');
+  const [carregado, setCarregado] = useState(false);
+  const [semColuna, setSemColuna] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [msg, setMsg] = useState({ erro: '', ok: '' });
+
+  useEffect(() => {
+    supabase.from('academy_courses').select('ferramentas, instrutor_bio').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
+      if (error) { setSemColuna(true); setCarregado(true); return; }
+      setFerramentas(((data?.ferramentas ?? []) as string[]).join('\n'));
+      setBio((data?.instrutor_bio as string | null) ?? '');
+      setCarregado(true);
+    });
+  }, [cursoId]);
+
+  const salvar = async () => {
+    setSalvando(true); setMsg({ erro: '', ok: '' });
+    const { error } = await supabase.from('academy_courses').update({
+      ferramentas: [...new Set(ferramentas.split('\n').map(f => f.trim()).filter(Boolean))],
+      instrutor_bio: bio.trim() || null,
+    }).eq('id', cursoId);
+    setSalvando(false);
+    setMsg(error ? { erro: 'Não foi possível salvar.', ok: '' } : { erro: '', ok: 'Ferramentas e instrutor salvos.' });
+  };
+
+  return (
+    <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+      <div>
+        <h3 className="font-bold text-[16.5px]" style={display}>Ferramentas e instrutor</h3>
+        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>Aparecem na página de vendas. O nome do instrutor fica em Informações.</p>
+      </div>
+      {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semColuna ? (
+        <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>021_pagina_curso.sql</strong> no Supabase para usar esta parte.</p>
+      ) : (
+        <div className="space-y-5">
+          <label className="block">
+            <span className="block text-[13px] font-semibold mb-1.5" style={{ color: T.ink2 }}>Ferramentas que o aluno vai usar (uma por linha)</span>
+            <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={4}
+              placeholder={'WhatsApp Business\nn8n\nChatGPT'} value={ferramentas} onChange={e => setFerramentas(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className="block text-[13px] font-semibold mb-1.5" style={{ color: T.ink2 }}>Sobre o instrutor</span>
+            <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={4}
+              placeholder="Quem é, experiência e por que entende do assunto (2 a 4 linhas)." value={bio} onChange={e => setBio(e.target.value)} />
+          </label>
+          {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
+          {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
+          <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar ferramentas e instrutor'}</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 type Bonus = { titulo: string; descricao: string };
 type Pergunta = { pergunta: string; resposta: string };
 

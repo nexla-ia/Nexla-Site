@@ -280,12 +280,9 @@ export default function Explorar({ sessao }: { sessao: Session }) {
             const ativa = aba === a.id;
             return (
               <button key={a.id} role="tab" aria-selected={ativa} onClick={() => setAba(a.id)}
-                className="relative flex items-center justify-between gap-3 h-14 px-5 text-left transition-colors hover:bg-slate-50"
-                style={{
-                  borderLeft: k % 2 ? `1px solid ${T.rule}` : undefined,
-                  borderTop: k >= 2 ? `1px solid ${T.rule}` : undefined,
-                  background: ativa ? 'rgba(79,70,229,0.07)' : undefined,
-                }}>
+                className={`relative flex items-center justify-between gap-3 h-14 px-5 text-left transition-colors hover:bg-slate-50
+                  ${k % 2 ? 'border-l' : ''} ${k === 2 ? 'lg:border-l' : ''} ${k >= 2 ? 'border-t lg:border-t-0' : ''}`}
+                style={{ borderColor: T.rule, background: ativa ? 'rgba(79,70,229,0.07)' : undefined }}>
                 {ativa && <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: '#4F46E5' }} />}
                 <span className="text-[14.5px] font-semibold truncate" style={{ color: ativa ? T.accent : T.ink2 }}>
                   {a.curto ? <><span className="sm:hidden">{a.curto}</span><span className="hidden sm:inline">{a.texto}</span></> : a.texto}

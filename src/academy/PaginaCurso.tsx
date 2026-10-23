@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Award, BarChart3, BookOpen, Check, ChevronDown, Clock, Gift, PlayCircle, ShieldCheck, Star, UserRound } from 'lucide-react';
+import { ArrowRight, Award, BarChart3, BookOpen, Check, ChevronDown, Clock, Gift, PlayCircle, ShieldCheck, Star, Wrench } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link } from './router';
 import { supabase, minutos, buscarResumos, type ResumoCurso } from './supabase';
+import { useCursosAluno } from './dados';
+import { CardVitrine, GRADE_CURSOS } from './Explorar';
 
 type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
 type Detalhes = {
@@ -57,6 +59,7 @@ export default function PaginaCurso({ sessao, slug, nome }: { sessao: Session | 
 function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basico; resumo: ResumoCurso | null }) {
   const [det, setDet] = useState<Detalhes | null>(null);
   const [extras, setExtras] = useState<{ bonus: Bonus[]; faq: Pergunta[] }>({ bonus: [], faq: [] });
+  const [sobreInstrutor, setSobreInstrutor] = useState<{ ferramentas: string[]; bio: string | null }>({ ferramentas: [], bio: null });
   const [preco, setPreco] = useState<{ valor: number; de: number | null } | null | undefined>(undefined);
   const [nota, setNota] = useState<{ media: number; total: number } | null>(null);
   const [faqAberta, setFaqAberta] = useState<number | null>(0);
@@ -67,6 +70,8 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       .then(({ data }) => setDet((data as Detalhes | null) ?? null));
     supabase.from('academy_courses').select('bonus, faq').eq('id', curso.id).maybeSingle()
       .then(({ data }) => setExtras({ bonus: ((data?.bonus ?? []) as Bonus[]).filter(b => b?.titulo), faq: ((data?.faq ?? []) as Pergunta[]).filter(f => f?.pergunta) }));
+    supabase.from('academy_courses').select('ferramentas, instrutor_bio').eq('id', curso.id).maybeSingle()
+      .then(({ data }) => setSobreInstrutor({ ferramentas: ((data?.ferramentas ?? []) as string[]).filter(Boolean), bio: (data?.instrutor_bio as string | null) ?? null }));
     supabase.from('academy_products').select('preco, preco_promocional').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle()
       .then(({ data }) => setPreco(data ? { valor: Number(data.preco_promocional ?? data.preco), de: data.preco_promocional != null ? Number(data.preco) : null } : null));
     supabase.rpc('academy_media_cursos').then(({ data }) => {
@@ -96,34 +101,37 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
     </span>
   );
 
-  const conteudo = (
+  const titulo2 = 'font-bold text-[21px] mb-4';
+
+  return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
-      {/* ── Topo: nome, promessa, números e compra ── */}
-      <section className="grid lg:grid-cols-[1fr_22rem] gap-8 items-start mb-10">
-        <div className="min-w-0">
-          {det?.categoria && <p className="text-[13px] font-semibold uppercase tracking-wide mb-2" style={{ color: T.accent }}>{det.categoria}</p>}
-          <h1 className="font-bold leading-[1.1]" style={{ ...display, fontSize: 'clamp(30px,4vw,44px)' }}>{curso.titulo}</h1>
-          {curso.subtitulo && <p className="text-[17px] leading-relaxed mt-3" style={{ color: T.ink2 }}>{curso.subtitulo}</p>}
-
-          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-5 text-[14px]" style={{ color: T.mute }}>
-            {nota && (
-              <span className="inline-flex items-center gap-1.5">
-                <Star size={15} strokeWidth={0} fill="#F59E0B" />
-                <strong style={{ color: T.ink }}>{nota.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong> ({nota.total})
-              </span>
+      <div className="grid lg:grid-cols-[1fr_21rem] gap-8 xl:gap-10 items-start">
+        <div className="min-w-0 space-y-12">
+          {/* ── Nome, descrição e números ── */}
+          <section>
+            {det?.categoria && <p className="text-[13px] font-semibold mb-2" style={{ color: T.accent }}>{det.categoria}</p>}
+            <h1 className="font-bold leading-[1.1]" style={{ ...display, fontSize: 'clamp(28px,3.6vw,42px)' }}>{curso.titulo}</h1>
+            {curso.subtitulo && <p className="text-[17px] leading-relaxed mt-3" style={{ color: T.ink2 }}>{curso.subtitulo}</p>}
+            {det?.instrutor && (
+              <p className="text-[14.5px] mt-3" style={{ color: T.mute }}>Com <strong style={{ color: T.ink }}>{det.instrutor}</strong></p>
             )}
-            {resumo && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {resumo.modulos} módulos · {totalAulas} aulas</span>}
-            <span className="inline-flex items-center gap-1.5"><Clock size={15} /> {horas}h de conteúdo</span>
-            {det?.nivel && <span className="inline-flex items-center gap-1.5"><BarChart3 size={15} /> {NIVEL[det.nivel] ?? det.nivel}</span>}
-            {emitirCertificado && <span className="inline-flex items-center gap-1.5"><Award size={15} /> Certificado</span>}
-            {det?.instrutor && <span className="inline-flex items-center gap-1.5"><UserRound size={15} /> {det.instrutor}</span>}
-          </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-[14px]" style={{ color: T.mute }}>
+              {nota && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Star size={15} strokeWidth={0} fill="#F59E0B" />
+                  <strong style={{ color: T.ink }}>{nota.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong> ({nota.total})
+                </span>
+              )}
+              {resumo && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {resumo.modulos} módulos · {totalAulas} aulas</span>}
+              <span className="inline-flex items-center gap-1.5"><Clock size={15} /> {horas}h de conteúdo</span>
+              {det?.nivel && <span className="inline-flex items-center gap-1.5"><BarChart3 size={15} /> {NIVEL[det.nivel] ?? det.nivel}</span>}
+              {emitirCertificado && <span className="inline-flex items-center gap-1.5"><Award size={15} /> Certificado</span>}
+            </div>
 
-          {/* Vídeo de amostra: visitante cria a conta grátis para assistir (vira lead) */}
-          {(
+            {/* Vídeo de amostra */}
             <div className="mt-7">
               <div className="relative aspect-video rounded-2xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
-                style={{ background: curso.capa ? `linear-gradient(rgba(15,23,42,0.72), rgba(15,23,42,0.72)), url("${curso.capa}") center/cover` : `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText }}>
+                style={{ background: curso.capa ? `linear-gradient(rgba(15,23,42,0.72), rgba(15,23,42,0.72)), url("${curso.capa}") center/cover` : `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, border: `1px solid ${T.rule}` }}>
                 <PlayCircle size={56} strokeWidth={1.25} style={{ color: '#A5B4FC' }} />
                 {sessao ? (
                   <p className="mt-3 text-[14px]" style={{ color: 'rgba(241,245,249,0.75)' }}>O vídeo de amostra entra aqui (Bunny Stream)</p>
@@ -141,63 +149,16 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               </div>
               {amostra && (
                 <p className="mt-3 text-[14px]" style={{ color: T.mute }}>
-                  <strong style={{ color: T.ink }}>Aula de amostra:</strong> {amostra.titulo} · {minutos(amostra.duracao_seg)}
+                  <strong style={{ color: T.ink }}>Aula de amostra grátis:</strong> {amostra.titulo} · {minutos(amostra.duracao_seg)}
                 </p>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Caixa de compra */}
-        <aside className="rounded-2xl p-6 lg:sticky lg:top-24" style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -30px rgba(79,70,229,0.45)' }}>
-          {preco ? (
-            <>
-              {preco.de != null && <p className="text-[14px]" style={{ color: T.mute }}>De <s>{reais(preco.de)}</s> por</p>}
-              <p className="font-bold text-[34px] leading-none mt-1" style={display}>{reais(preco.valor)}</p>
-              <p className="text-[13px] mt-2" style={{ color: T.mute }}>Pix, boleto ou cartão em até 12x</p>
-            </>
-          ) : preco === null ? (
-            <>
-              <p className="font-bold text-[34px] leading-none" style={display}>Em breve</p>
-              <p className="text-[13px] mt-2" style={{ color: T.mute }}>As vendas deste curso ainda não abriram.</p>
-            </>
-          ) : null}
-          {preco !== null && <div className="mt-5"><BotaoComprar cheio /></div>}
-          {!sessao && preco && (
-            <p className="text-[13px] text-center mt-2.5" style={{ color: T.mute }}>
-              Já tem conta? <Link para={`/entrar?voltar=${encodeURIComponent(compra)}`} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Entrar</Link>
-            </p>
-          )}
-          <ul className="mt-5 space-y-2.5 text-[14px]" style={{ color: T.ink2 }}>
-            {[
-              totalAulas ? `Acesso às ${totalAulas} aulas, no celular e no computador` : 'Acesso a todas as aulas, no celular e no computador',
-              'Materiais para baixar',
-              ...(emitirCertificado ? ['Certificado de conclusão'] : []),
-              ...(extras.bonus.length ? [`${extras.bonus.length} bônus inclusos`] : []),
-              'Comunidade com outros alunos',
-            ].map(t => <li key={t} className="flex items-start gap-2"><Check size={16} className="shrink-0 mt-0.5" color="#22C55E" /> {t}</li>)}
-          </ul>
-          <p className="flex items-start gap-2 text-[13px] mt-5 pt-4" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
-            <ShieldCheck size={16} className="shrink-0 mt-px" style={{ color: 'var(--a-green)' }} />
-            Garantia de 7 dias: se não gostar, devolvemos o valor.
-          </p>
-        </aside>
-      </section>
-
-      <div className="grid lg:grid-cols-[1fr_22rem] gap-8">
-        <div className="space-y-10 min-w-0">
-          {/* Sobre */}
-          {det?.descricao && (
-            <section>
-              <h2 className="font-bold text-[22px] mb-3" style={display}>Sobre o curso</h2>
-              <p className="text-[15.5px] leading-relaxed whitespace-pre-line" style={{ color: T.ink2 }}>{det.descricao}</p>
-            </section>
-          )}
+          </section>
 
           {/* O que vai aprender */}
           {det?.aprendizados && det.aprendizados.length > 0 && (
             <section className="rounded-2xl p-6" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-              <h2 className="font-bold text-[20px] mb-4" style={display}>O que você vai aprender</h2>
+              <h2 className={titulo2} style={display}>O que você vai aprender</h2>
               <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
                 {det.aprendizados.map(a => (
                   <li key={a} className="flex items-start gap-2.5 text-[14.5px]" style={{ color: T.ink2 }}>
@@ -208,10 +169,33 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             </section>
           )}
 
+          {/* Sobre */}
+          {det?.descricao && (
+            <section>
+              <h2 className={titulo2} style={display}>Sobre o curso</h2>
+              <p className="text-[15.5px] leading-relaxed whitespace-pre-line" style={{ color: T.ink2 }}>{det.descricao}</p>
+            </section>
+          )}
+
+          {/* Ferramentas */}
+          {sobreInstrutor.ferramentas.length > 0 && (
+            <section>
+              <h2 className={titulo2} style={display}>Ferramentas que você vai usar</h2>
+              <div className="flex flex-wrap gap-2.5">
+                {sobreInstrutor.ferramentas.map(f => (
+                  <span key={f} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-[14px] font-medium"
+                    style={{ background: T.card, border: `1px solid ${T.rule}`, color: T.ink2 }}>
+                    <Wrench size={15} strokeWidth={1.75} style={{ color: T.accent }} /> {f}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Bônus */}
           {extras.bonus.length > 0 && (
             <section>
-              <h2 className="font-bold text-[22px] mb-3" style={display}>Bônus inclusos</h2>
+              <h2 className={titulo2} style={display}>Bônus inclusos</h2>
               <div className="grid sm:grid-cols-2 gap-3">
                 {extras.bonus.map(b => (
                   <div key={b.titulo} className="rounded-2xl p-5 flex gap-4" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
@@ -230,7 +214,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
 
           {/* Perguntas frequentes */}
           <section>
-            <h2 className="font-bold text-[22px] mb-3" style={display}>Perguntas frequentes</h2>
+            <h2 className={titulo2} style={display}>Perguntas frequentes</h2>
             <div className="rounded-2xl overflow-hidden" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
               {faq.map((f, i) => {
                 const ab = faqAberta === i;
@@ -260,7 +244,67 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             </section>
           )}
         </div>
+
+        {/* ── Lateral: caixa de compra + instrutor (acompanham a rolagem) ── */}
+        <div className="space-y-4 lg:sticky lg:top-6">
+        <aside className="rounded-2xl p-6" style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -30px rgba(79,70,229,0.45)' }}>
+          {preco ? (
+            <>
+              {preco.de != null && <p className="text-[14px]" style={{ color: T.mute }}>De <s>{reais(preco.de)}</s> por</p>}
+              <p className="font-bold text-[34px] leading-none mt-1" style={display}>{reais(preco.valor)}</p>
+              <p className="text-[13px] mt-2" style={{ color: T.mute }}>Pix, boleto ou cartão em até 12x</p>
+            </>
+          ) : preco === null ? (
+            <>
+              <p className="font-bold text-[34px] leading-none" style={display}>Em breve</p>
+              <p className="text-[13px] mt-2" style={{ color: T.mute }}>As vendas deste curso ainda não abriram.</p>
+            </>
+          ) : null}
+          {preco !== null && <div className="mt-5"><BotaoComprar cheio /></div>}
+          {!sessao && preco && (
+            <p className="text-[13px] text-center mt-2.5" style={{ color: T.mute }}>
+              Já tem conta? <Link para={`/entrar?voltar=${encodeURIComponent(compra)}`} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Entrar</Link>
+            </p>
+          )}
+          <p className="text-[13px] font-semibold mt-6 mb-2.5" style={{ color: T.ink }}>Este curso inclui</p>
+          <ul className="space-y-2.5 text-[14px]" style={{ color: T.ink2 }}>
+            {[
+              totalAulas ? `${totalAulas} aulas · ${horas}h de conteúdo` : `${horas}h de conteúdo`,
+              'Acesso no celular e no computador',
+              'Materiais para baixar',
+              ...(emitirCertificado ? ['Certificado de conclusão'] : []),
+              ...(extras.bonus.length ? [`${extras.bonus.length} bônus inclusos`] : []),
+              'Comunidade com outros alunos',
+            ].map(t => <li key={t} className="flex items-start gap-2"><Check size={16} className="shrink-0 mt-0.5" color="#22C55E" /> {t}</li>)}
+          </ul>
+          <p className="flex items-start gap-2 text-[13px] mt-5 pt-4" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
+            <ShieldCheck size={16} className="shrink-0 mt-px" style={{ color: 'var(--a-green)' }} />
+            Garantia de 7 dias: se não gostar, devolvemos o valor.
+          </p>
+        </aside>
+
+        {/* Instrutor */}
+        {det?.instrutor && (
+          <section className="rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+            <p className="text-[13px] font-semibold mb-3" style={{ color: T.mute }}>Seu instrutor</p>
+            <div className="flex items-center gap-3">
+              <span className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-[19px] font-bold text-white"
+                style={{ ...display, background: `linear-gradient(135deg, #4F46E5, ${T.violet})` }} aria-hidden>
+                {det.instrutor.trim()[0]?.toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="font-bold text-[16px] leading-tight" style={display}>{det.instrutor}</p>
+                <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>Instrutor da Nexla Academy</p>
+              </div>
+            </div>
+            {sobreInstrutor.bio && <p className="text-[13.5px] leading-relaxed mt-3 whitespace-pre-line" style={{ color: T.ink2 }}>{sobreInstrutor.bio}</p>}
+          </section>
+        )}
+        </div>
       </div>
+
+      {/* Os mais comprados (sem os cursos que a pessoa já tem) */}
+      {sessao && <MaisComprados sessao={sessao} atual={curso.id} />}
 
       {/* Celular: botão de compra fixo embaixo */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 p-3 flex items-center gap-3"
@@ -271,6 +315,37 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       <div className="lg:hidden h-20" />
     </motion.div>
   );
+}
 
-  return conteudo;
+/* Recomendação no fim da página: os cursos mais comprados da Academy que a pessoa ainda não tem */
+function MaisComprados({ sessao, atual }: { sessao: Session; atual: string }) {
+  const dados = useCursosAluno(sessao);
+  const [vendas, setVendas] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    // Sem o 021 a função não existe: segue na ordem da vitrine
+    supabase.rpc('academy_mais_vendidos').then(({ data }) =>
+      setVendas(new Map(((data ?? []) as { course_id: string; total: number }[]).map(v => [v.course_id, v.total]))));
+  }, []);
+  if (!dados) return null;
+  const lista = dados.outros
+    .filter(c => c.id !== atual)
+    .sort((a, b) => (vendas.get(b.id) ?? 0) - (vendas.get(a.id) ?? 0) || a.ordem - b.ordem)
+    .slice(0, 3);
+  if (!lista.length) return null;
+  return (
+    <section className="mt-16 pt-10" style={{ borderTop: `1px solid ${T.rule}` }}>
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+        <div>
+          <h2 className="font-bold text-[22px]" style={display}>Os mais comprados da Academy</h2>
+          <p className="text-[14px] mt-1" style={{ color: T.mute }}>Os cursos que mais alunos estão fazendo agora.</p>
+        </div>
+        <Link para="/cursos" className="inline-flex items-center gap-1 text-[14px] font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>
+          Ver todos os cursos <ArrowRight size={15} strokeWidth={2} />
+        </Link>
+      </div>
+      <div className={GRADE_CURSOS}>
+        {lista.map(c => <CardVitrine key={c.id} c={c} />)}
+      </div>
+    </section>
+  );
 }
