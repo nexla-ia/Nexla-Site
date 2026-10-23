@@ -164,13 +164,13 @@ const normal = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLower
 const alterna = (s: Set<string>, v: string) => { const n = new Set(s); if (n.has(v)) n.delete(v); else n.add(v); return n; };
 
 /* Caixinha de marcar do painel de filtros, com quantos cursos tem */
-function Marcar({ marcado, onChange, texto, qtd }: { marcado: boolean; onChange: () => void; texto: string; qtd: number }) {
+function Marcar({ marcado, onChange, texto, qtd, unica }: { marcado: boolean; onChange: () => void; texto: string; qtd: number; unica?: string }) {
   return (
     <label className="flex items-center gap-3 py-1.5 cursor-pointer group">
-      <input type="checkbox" checked={marcado} onChange={onChange} className="sr-only peer" />
-      <span className="w-[18px] h-[18px] shrink-0 rounded-[5px] flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400"
+      <input type={unica ? 'radio' : 'checkbox'} name={unica} checked={marcado} onChange={onChange} className="sr-only peer" />
+      <span className={`w-[18px] h-[18px] shrink-0 ${unica ? 'rounded-full' : 'rounded-[5px]'} flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400`}
         style={marcado ? { background: '#4F46E5', border: '1.5px solid #4F46E5' } : { border: `1.5px solid ${T.rule}`, background: T.card }}>
-        {marcado && <Check size={12} strokeWidth={3} color="#FFFFFF" />}
+        {marcado && (unica ? <span className="w-[7px] h-[7px] rounded-full bg-white" /> : <Check size={12} strokeWidth={3} color="#FFFFFF" />)}
       </span>
       <span className="flex-1 text-[14px] leading-snug transition-colors" style={{ color: marcado ? T.ink : T.ink2, fontWeight: marcado ? 600 : 400 }}>{texto}</span>
       <span className="text-[12.5px]" style={{ color: T.mute }}>{qtd}</span>
@@ -187,7 +187,7 @@ function GrupoFiltro({ titulo, children }: { titulo: string; children: React.Rea
   );
 }
 
-/* Explorar cursos: catálogo com abas, filtros na lateral, busca e ordem (sem filtro, separado por categoria) */
+/* Explorar cursos: catálogo com busca, filtros na lateral e ordem (sem filtro, separado por categoria) */
 export default function Explorar({ sessao }: { sessao: Session }) {
   const dados = useCursosAluno(sessao);
   const [busca, setBusca] = useState('');
@@ -205,8 +205,9 @@ export default function Explorar({ sessao }: { sessao: Session }) {
   const categorias = [...new Map(todos.filter(i => i.c.categoria?.trim()).map(i => [normal(i.c.categoria!), i.c.categoria!.trim()])).entries()]
     .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
   const listaNiveis = Object.keys(NIVEIS).filter(n => todos.some(i => i.c.nivel === n));
-  const qtdFiltros = cats.size + niveis.size;
-  const limpar = () => { setBusca(''); setCats(new Set()); setNiveis(new Set()); setOrdem('recomendados'); };
+  const qtdFiltros = cats.size + niveis.size + (aba !== 'todos' ? 1 : 0);
+  const limparFiltros = () => { setAba('todos'); setCats(new Set()); setNiveis(new Set()); };
+  const limpar = () => { setBusca(''); setOrdem('recomendados'); limparFiltros(); };
   const filtrando = !!busca.trim() || qtdFiltros > 0 || ordem !== 'recomendados' || aba !== 'todos';
 
   const termo = normal(busca);
@@ -227,6 +228,11 @@ export default function Explorar({ sessao }: { sessao: Session }) {
 
   const painel = (
     <div className="rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+      <GrupoFiltro titulo="Mostrar">
+        {ABAS.map(a => (
+          <Marcar key={a.id} unica="mostrar" texto={a.texto} marcado={aba === a.id} onChange={() => setAba(a.id)} qtd={todos.filter(a.filtro).length} />
+        ))}
+      </GrupoFiltro>
       {categorias.length > 0 && (
         <GrupoFiltro titulo="Categorias">
           {categorias.map(([chave, texto]) => (
@@ -242,7 +248,7 @@ export default function Explorar({ sessao }: { sessao: Session }) {
         )) : <p className="text-[13px]" style={{ color: T.mute }}>Os cursos ainda não têm nível definido.</p>}
       </GrupoFiltro>
       {qtdFiltros > 0 && (
-        <button onClick={() => { setCats(new Set()); setNiveis(new Set()); }}
+        <button onClick={limparFiltros}
           className="mt-5 w-full h-10 rounded-[10px] text-[13.5px] font-semibold transition-colors hover:bg-slate-50"
           style={{ color: T.accent, border: `1px solid ${T.rule}` }}>
           Limpar filtros ({qtdFiltros})
@@ -260,7 +266,7 @@ export default function Explorar({ sessao }: { sessao: Session }) {
         {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
         {/* Busca */}
-        <label className="relative block mb-5">
+        <label className="relative block mb-8">
           <span className="sr-only">Buscar curso</span>
           <Search size={18} strokeWidth={1.75} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.mute }} />
           <input type="search" value={busca} onChange={e => setBusca(e.target.value)} placeholder="O que você quer aprender? Busque pelo nome ou assunto"
@@ -272,22 +278,6 @@ export default function Explorar({ sessao }: { sessao: Session }) {
             </button>
           )}
         </label>
-
-        {/* Abas simples: texto com sublinhado na ativa (no celular, rolam para o lado) */}
-        <div role="tablist" aria-label="Quais cursos mostrar" className="flex gap-7 overflow-x-auto mb-8" style={{ borderBottom: `1px solid ${T.rule}` }}>
-          {ABAS.map(a => {
-            const ativa = aba === a.id;
-            return (
-              <button key={a.id} role="tab" aria-selected={ativa} onClick={() => setAba(a.id)}
-                className="relative shrink-0 inline-flex items-center gap-1.5 pb-3 pt-1 text-[14.5px] font-semibold whitespace-nowrap transition-colors"
-                style={{ color: ativa ? T.accent : T.mute }}>
-                {a.texto}
-                <span className="text-[12.5px] font-medium" style={{ color: T.mute }}>{todos.filter(a.filtro).length}</span>
-                {ativa && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full" style={{ background: '#4F46E5' }} />}
-              </button>
-            );
-          })}
-        </div>
 
         <div className="grid lg:grid-cols-[15.5rem_1fr] gap-6 lg:gap-8 items-start">
           {/* Filtros: fixos na lateral no computador; no celular abrem por um botão */}
