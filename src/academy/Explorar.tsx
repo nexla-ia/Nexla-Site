@@ -48,6 +48,12 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
   return (
     <Link para={`/curso/${c.slug}`} className={cardCls} style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <Capa url={c.capa}>
+        {!c.preco && (
+          <span className="absolute top-3 left-4 inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full"
+            style={{ background: '#4F46E5', color: '#FFFFFF' }}>
+            <Clock size={13} strokeWidth={2} /> Em breve
+          </span>
+        )}
         <span className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center" title="Curso bloqueado" style={VIDRO}>
           <Lock size={16} strokeWidth={2} aria-label="Curso bloqueado" />
         </span>
