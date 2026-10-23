@@ -152,8 +152,8 @@ const NIVEIS: Record<string, string> = { iniciante: 'Iniciante', intermediario: 
 const ORDENS = { recomendados: 'Recomendados', avaliados: 'Mais bem avaliados', menor: 'Menor preço', maior: 'Maior preço' } as const;
 type Ordem = keyof typeof ORDENS;
 type Aba = 'todos' | 'meus' | 'nao-tenho' | 'em-breve';
-const ABAS: { id: Aba; texto: string; curto?: string; filtro: (i: Item) => boolean }[] = [
-  { id: 'todos',     texto: 'Todos os cursos', curto: 'Todos', filtro: () => true },
+const ABAS: { id: Aba; texto: string; filtro: (i: Item) => boolean }[] = [
+  { id: 'todos',     texto: 'Todos os cursos', filtro: () => true },
   { id: 'meus',      texto: 'Meus cursos',     filtro: i => i.meu },
   { id: 'nao-tenho', texto: 'Ainda não tenho', filtro: i => !i.meu },
   { id: 'em-breve',  texto: 'Em breve',        filtro: i => !i.meu && !i.c.preco },
@@ -273,21 +273,17 @@ export default function Explorar({ sessao }: { sessao: Session }) {
           )}
         </label>
 
-        {/* Abas: tipo de lista (como o "filtre por tipo de conteúdo" da Alura) */}
-        <div role="tablist" aria-label="Quais cursos mostrar" className="grid grid-cols-2 lg:grid-cols-4 rounded-xl overflow-hidden mb-8"
-          style={{ border: `1px solid ${T.rule}`, background: T.card }}>
-          {ABAS.map((a, k) => {
+        {/* Abas simples: texto com sublinhado na ativa (no celular, rolam para o lado) */}
+        <div role="tablist" aria-label="Quais cursos mostrar" className="flex gap-7 overflow-x-auto mb-8" style={{ borderBottom: `1px solid ${T.rule}` }}>
+          {ABAS.map(a => {
             const ativa = aba === a.id;
             return (
               <button key={a.id} role="tab" aria-selected={ativa} onClick={() => setAba(a.id)}
-                className={`relative flex items-center justify-between gap-3 h-14 px-5 text-left transition-colors hover:bg-slate-50
-                  ${k % 2 ? 'border-l' : ''} ${k === 2 ? 'lg:border-l' : ''} ${k >= 2 ? 'border-t lg:border-t-0' : ''}`}
-                style={{ borderColor: T.rule, background: ativa ? 'rgba(79,70,229,0.07)' : undefined }}>
-                {ativa && <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: '#4F46E5' }} />}
-                <span className="text-[14.5px] font-semibold truncate" style={{ color: ativa ? T.accent : T.ink2 }}>
-                  {a.curto ? <><span className="sm:hidden">{a.curto}</span><span className="hidden sm:inline">{a.texto}</span></> : a.texto}
-                </span>
-                <span className="text-[13px] shrink-0" style={{ color: T.mute }}>{todos.filter(a.filtro).length}</span>
+                className="relative shrink-0 inline-flex items-center gap-1.5 pb-3 pt-1 text-[14.5px] font-semibold whitespace-nowrap transition-colors"
+                style={{ color: ativa ? T.accent : T.mute }}>
+                {a.texto}
+                <span className="text-[12.5px] font-medium" style={{ color: T.mute }}>{todos.filter(a.filtro).length}</span>
+                {ativa && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full" style={{ background: '#4F46E5' }} />}
               </button>
             );
           })}
