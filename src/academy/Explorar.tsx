@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, ChevronDown, Clock, Lock, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Clock, Gift, Lock, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando, TituloPagina } from './AppLayout';
@@ -44,6 +44,7 @@ function Cabecalho({ c }: { c: CursoVitrine | CursoAluno }) {
 
 /* Card de um curso que o aluno ainda não tem (cadeado: só a aula de amostra está liberada) */
 export function CardVitrine({ c }: { c: CursoVitrine }) {
+  const gratis = c.preco?.valor === 0;
   return (
     <Link para={`/curso/${c.slug}`} className={cardCls} style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <Capa url={c.capa}>
@@ -53,16 +54,25 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
             <Clock size={12} strokeWidth={2} /> Em breve
           </span>
         )}
-        <span className={selo} title="Curso bloqueado" style={VIDRO}>
-          <Lock size={14} strokeWidth={2} aria-label="Curso bloqueado" />
-        </span>
+        {gratis ? (
+          <span className="absolute top-2.5 left-3 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: '#16A34A', color: '#FFFFFF' }}>
+            <Gift size={12} strokeWidth={2} /> Grátis
+          </span>
+        ) : (
+          <span className={selo} title="Curso bloqueado" style={VIDRO}>
+            <Lock size={14} strokeWidth={2} aria-label="Curso bloqueado" />
+          </span>
+        )}
       </Capa>
       <div className="p-4 flex-1 flex flex-col">
         <Cabecalho c={c} />
         <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>{c.totalAulas} aulas · {c.horas}h de conteúdo</p>
         <div className="mt-auto pt-4">
           <div className="pt-3 flex items-center justify-between gap-3" style={{ borderTop: `1px solid ${T.rule}` }}>
-            {c.preco ? (
+            {gratis ? (
+              <p className="font-bold text-[16px] whitespace-nowrap" style={{ ...display, color: 'var(--a-green)' }}>Grátis</p>
+            ) : c.preco ? (
               <p className="leading-tight whitespace-nowrap">
                 {c.preco.de != null && <span className="text-[12px] line-through mr-1.5" style={{ color: T.mute }}>{reais(c.preco.de)}</span>}
                 <span className="font-bold text-[16px]" style={display}>{reais(c.preco.valor)}</span>
@@ -151,11 +161,12 @@ export function GradeCategorias({ outros, cursos = [] }: { outros: CursoVitrine[
 const NIVEIS: Record<string, string> = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado' };
 const ORDENS = { recomendados: 'Recomendados', avaliados: 'Mais bem avaliados', menor: 'Menor preço', maior: 'Maior preço' } as const;
 type Ordem = keyof typeof ORDENS;
-type Aba = 'todos' | 'meus' | 'nao-tenho' | 'em-breve';
+type Aba = 'todos' | 'meus' | 'nao-tenho' | 'gratis' | 'em-breve';
 const ABAS: { id: Aba; texto: string; filtro: (i: Item) => boolean }[] = [
   { id: 'todos',     texto: 'Todos os cursos', filtro: () => true },
   { id: 'meus',      texto: 'Meus cursos',     filtro: i => i.meu },
   { id: 'nao-tenho', texto: 'Ainda não tenho', filtro: i => !i.meu },
+  { id: 'gratis',    texto: 'Grátis',          filtro: i => !i.meu && i.c.preco?.valor === 0 },
   { id: 'em-breve',  texto: 'Em breve',        filtro: i => !i.meu && !i.c.preco },
 ];
 

@@ -25,7 +25,7 @@ const ERROS: Record<string, string> = {
 
 /* Chama a função do servidor que calcula o preço (e, ao pagar, cria o pedido no Mercado Pago) */
 type RespostaCheckout = Partial<Resumo> & { url?: string; erro?: string; detalhe?: string };
-async function checkout(corpo: Record<string, unknown>): Promise<RespostaCheckout> {
+export async function checkout(corpo: Record<string, unknown>): Promise<RespostaCheckout> {
   const { data, error } = await supabase.functions.invoke('academy-checkout', { body: corpo });
   if (error) {
     let corpo: { erro?: string; detalhe?: string } = {};
@@ -151,12 +151,13 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
                 <span className="font-bold text-[24px]" style={display}>{calculando ? '…' : reais(resumo.total)}</span>
               </div>
               {resumo.preco_de != null && <p className="text-[12.5px] text-right" style={{ color: T.mute }}>De <s>{reais(resumo.preco_de)}</s></p>}
-              <p className="text-[12.5px] mt-1 text-right" style={{ color: T.mute }}>Pix, boleto ou cartão em até {resumo.parcelas_max}x</p>
+              {resumo.total > 0 && <p className="text-[12.5px] mt-1 text-right" style={{ color: T.mute }}>Pix, boleto ou cartão em até {resumo.parcelas_max}x</p>}
 
               {erro && <p className="text-[13.5px] mt-3" style={{ color: 'var(--a-red)' }}>{erro}</p>}
               <button onClick={pagar} disabled={pagando || calculando}
                 className="acad-btn w-full mt-4 h-12 rounded-[10px] inline-flex items-center justify-center gap-2 text-[15px] font-semibold text-white">
-                {pagando ? <><Loader2 size={17} className="animate-spin" /> Abrindo pagamento…</> : <><Lock size={16} /> Pagar com Mercado Pago</>}
+                {pagando ? <><Loader2 size={17} className="animate-spin" /> {resumo.total > 0 ? 'Abrindo pagamento…' : 'Liberando…'}</>
+                  : resumo.total > 0 ? <><Lock size={16} /> Pagar com Mercado Pago</> : <><Award size={16} /> Liberar meu acesso</>}
               </button>
               <p className="flex items-start gap-1.5 text-[12px] mt-3" style={{ color: T.mute }}>
                 <ShieldCheck size={14} className="shrink-0 mt-px" /> Pagamento processado pelo Mercado Pago. Seus dados de cartão não passam pela Nexla.
@@ -197,7 +198,7 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
 
   const curso = pedido.academy_courses;
   const estados: Record<string, { icone: typeof Clock; cor: string; titulo: string; texto: string }> = {
-    pago:        { icone: CheckCircle2, cor: 'var(--a-green)', titulo: 'Pagamento aprovado!', texto: `Seu acesso a ${curso?.titulo ?? 'o curso'} já está liberado. Bons estudos!` },
+    pago:        { icone: CheckCircle2, cor: 'var(--a-green)', titulo: pedido.forma_pagamento === 'gratuito' ? 'Curso liberado!' : 'Pagamento aprovado!', texto: `Seu acesso a ${curso?.titulo ?? 'o curso'} já está liberado. Bons estudos!` },
     pendente:    { icone: Clock,        cor: 'var(--a-amber)', titulo: 'Aguardando a confirmação do pagamento',
                    texto: pedido.forma_pagamento === 'ticket' ? 'O boleto pode levar até 3 dias úteis para compensar. Assim que o banco confirmar, o curso libera sozinho e avisamos você.' : 'Assim que o Mercado Pago confirmar, o curso libera sozinho. Pode deixar esta página aberta.' },
     recusado:    { icone: XCircle,      cor: 'var(--a-red)', titulo: 'Pagamento não aprovado', texto: 'O pagamento foi recusado. Você pode tentar de novo com outro cartão ou pagar com Pix.' },
@@ -213,7 +214,7 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
         <e.icone size={48} strokeWidth={1.5} className={`mx-auto ${pedido.status === 'pendente' ? 'animate-pulse' : ''}`} style={{ color: e.cor }} />
         <h1 className="font-bold text-[24px] leading-tight mt-4" style={display}>{e.titulo}</h1>
         <p className="text-[15px] mt-2" style={{ color: T.mute }}>{e.texto}</p>
-        <p className="text-[13.5px] mt-3" style={{ color: T.mute }}>Valor: <strong style={{ color: T.ink }}>{reais(Number(pedido.total))}</strong></p>
+        <p className="text-[13.5px] mt-3" style={{ color: T.mute }}>Valor: <strong style={{ color: T.ink }}>{Number(pedido.total) > 0 ? reais(Number(pedido.total)) : 'Grátis'}</strong></p>
         <div className="mt-7 flex flex-col gap-3">
           {pedido.status === 'pago' && curso && (
             <Link para={`/curso/${curso.slug}`} className="acad-btn inline-flex items-center justify-center gap-2 h-12 rounded-[10px] text-[15px] font-semibold text-white">

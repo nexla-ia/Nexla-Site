@@ -38,12 +38,6 @@ Deno.serve(async (req) => {
   const usuario = quem?.user;
   if (!usuario) return json({ erro: 'nao_logado' }, 401);
 
-  // Vendas fechadas para o público (ex.: enquanto o token do Mercado Pago é de TESTE, qualquer um
-  // com conta de teste "pagaria" com cartão de teste). Lista de e-mails autorizados no segredo
-  // MP_SOMENTE_EMAILS (separados por vírgula). Para abrir as vendas: apague esse segredo.
-  const autorizados = (Deno.env.get('MP_SOMENTE_EMAILS') ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-  if (autorizados.length && !autorizados.includes((usuario.email ?? '').toLowerCase())) return json({ erro: 'vendas_fechadas' }, 403);
-
   let entrada: { slug?: string; com_oferta?: boolean; cupom?: string; acao?: string };
   try { entrada = await req.json(); } catch { return json({ erro: 'entrada' }, 400); }
   const slug = String(entrada.slug ?? '');
@@ -59,8 +53,16 @@ Deno.serve(async (req) => {
   if (!principal) return json({ erro: 'sem_preco' }, 409);
 
   const valorDe = (p: { preco: number; preco_promocional: number | null }) => Number(p.preco_promocional ?? p.preco);
+
+  // Vendas fechadas para o público (ex.: enquanto o token do Mercado Pago é de TESTE, qualquer um
+  // com conta de teste "pagaria" com cartão de teste). Lista de e-mails autorizados no segredo
+  // MP_SOMENTE_EMAILS (separados por vírgula). Para abrir as vendas: apague esse segredo.
+  // Curso gratuito (preço 0) fica liberado para todos.
+  const autorizados = (Deno.env.get('MP_SOMENTE_EMAILS') ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (valorDe(principal) > 0 && autorizados.length && !autorizados.includes((usuario.email ?? '').toLowerCase())) return json({ erro: 'vendas_fechadas' }, 403);
+
   const itens = [{ produto: principal.id, titulo: curso.titulo, valor: valorDe(principal) }];
-  if (entrada.com_oferta && extra) itens.push({ produto: extra.id, titulo: extra.titulo, valor: valorDe(extra) });
+  if (entrada.com_oferta && extra && valorDe(principal) > 0) itens.push({ produto: extra.id, titulo: extra.titulo, valor: valorDe(extra) });
   const subtotal = centavos(itens.reduce((s, i) => s + i.valor, 0));
 
   // Cupom (validado só aqui no servidor)
@@ -83,7 +85,7 @@ Deno.serve(async (req) => {
   const resumo = {
     curso: curso.titulo, itens, subtotal, desconto, total,
     cupom: cupomOk ? codigo : null, cupom_msg: cupomMsg,
-    oferta_extra: extra ? { titulo: extra.titulo, valor: valorDe(extra), de: extra.preco_promocional != null ? Number(extra.preco) : null } : null,
+    oferta_extra: extra && valorDe(principal) > 0 ? { titulo: extra.titulo, valor: valorDe(extra), de: extra.preco_promocional != null ? Number(extra.preco) : null } : null,
     preco_de: principal.preco_promocional != null ? Number(principal.preco) : null,
     parcelas_max: PARCELAS_MAX,
   };

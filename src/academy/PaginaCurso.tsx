@@ -4,10 +4,11 @@ import { ArrowRight, Award, BarChart3, BookOpen, Check, ChevronDown, Clock, Gift
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
-import { Link } from './router';
+import { Link, BASE } from './router';
 import { supabase, minutos, buscarResumos, type ResumoCurso } from './supabase';
 import { useCursosAluno } from './dados';
 import { CardVitrine, GRADE_CURSOS } from './Explorar';
+import { checkout } from './Compra';
 
 type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
 type Detalhes = {
@@ -63,6 +64,8 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   const [preco, setPreco] = useState<{ valor: number; de: number | null } | null | undefined>(undefined);
   const [nota, setNota] = useState<{ media: number; total: number } | null>(null);
   const [faqAberta, setFaqAberta] = useState<number | null>(0);
+  const [liberando, setLiberando] = useState(false);
+  const [erroLiberar, setErroLiberar] = useState('');
 
   useEffect(() => {
     // Cada parte é opcional: se a coluna/tabela ainda não existir no banco, a página segue sem ela
@@ -89,7 +92,22 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   // Visitante: cria a conta grátis e cai direto na compra
   const destinoComprar = sessao ? compra : `/criar-conta?voltar=${encodeURIComponent(compra)}`;
 
-  const BotaoComprar = ({ cheio = false }: { cheio?: boolean }) => preco ? (
+  const gratis = preco?.valor === 0;
+  // Curso gratuito: o servidor cria o pedido de R$ 0 e libera na hora; depois abre o curso já liberado
+  const liberar = async () => {
+    setLiberando(true); setErroLiberar('');
+    const r = await checkout({ slug: curso.slug, acao: 'pagar' });
+    if (r.url || r.erro === 'ja_matriculado') { window.location.href = `${BASE}/curso/${curso.slug}`; return; }
+    setLiberando(false);
+    setErroLiberar('Não foi possível liberar o curso agora. Tente de novo.');
+  };
+
+  const BotaoComprar = ({ cheio = false }: { cheio?: boolean }) => gratis && sessao ? (
+    <button onClick={liberar} disabled={liberando}
+      className={`acad-btn inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[10px] text-[15px] font-semibold text-white ${cheio ? 'w-full' : ''}`}>
+      {liberando ? 'Liberando…' : 'Começar grátis'}
+    </button>
+  ) : preco ? (
     <Link para={destinoComprar}
       className={`acad-btn inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[10px] text-[15px] font-semibold text-white ${cheio ? 'w-full' : ''}`}>
       Comprar agora
@@ -238,7 +256,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               style={{ background: T.card, border: '1px solid rgba(79,70,229,0.25)' }}>
               <div>
                 <p className="font-bold text-[20px]" style={display}>Pronto para começar?</p>
-                <p className="text-[14.5px] mt-1" style={{ color: T.mute }}>{reais(preco.valor)} · acesso imediato no Pix · 7 dias de garantia</p>
+                <p className="text-[14.5px] mt-1" style={{ color: T.mute }}>{gratis ? 'Grátis · acesso na hora' : `${reais(preco.valor)} · acesso imediato no Pix · 7 dias de garantia`}</p>
               </div>
               <BotaoComprar />
             </section>
@@ -248,7 +266,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
         {/* ── Lateral: caixa de compra + instrutor (acompanham a rolagem) ── */}
         <div className="space-y-4 lg:sticky lg:top-6">
         <aside className="rounded-2xl p-6" style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -30px rgba(79,70,229,0.45)' }}>
-          {preco ? (
+          {gratis ? (
+            <>
+              <p className="font-bold text-[34px] leading-none" style={{ ...display, color: 'var(--a-green)' }}>Grátis</p>
+              <p className="text-[13px] mt-2" style={{ color: T.mute }}>Acesso completo, sem pagar nada.</p>
+            </>
+          ) : preco ? (
             <>
               {preco.de != null && <p className="text-[14px]" style={{ color: T.mute }}>De <s>{reais(preco.de)}</s> por</p>}
               <p className="font-bold text-[34px] leading-none mt-1" style={display}>{reais(preco.valor)}</p>
@@ -261,7 +284,8 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             </>
           ) : null}
           {preco !== null && <div className="mt-5"><BotaoComprar cheio /></div>}
-          {!sessao && preco && (
+          {erroLiberar && <p className="text-[13px] mt-2" style={{ color: 'var(--a-red)' }}>{erroLiberar}</p>}
+          {!sessao && preco && !gratis && (
             <p className="text-[13px] text-center mt-2.5" style={{ color: T.mute }}>
               Já tem conta? <Link para={`/entrar?voltar=${encodeURIComponent(compra)}`} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Entrar</Link>
             </p>
@@ -277,10 +301,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               'Comunidade com outros alunos',
             ].map(t => <li key={t} className="flex items-start gap-2"><Check size={16} className="shrink-0 mt-0.5" color="#22C55E" /> {t}</li>)}
           </ul>
-          <p className="flex items-start gap-2 text-[13px] mt-5 pt-4" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
-            <ShieldCheck size={16} className="shrink-0 mt-px" style={{ color: 'var(--a-green)' }} />
-            Garantia de 7 dias: se não gostar, devolvemos o valor.
-          </p>
+          {!gratis && (
+            <p className="flex items-start gap-2 text-[13px] mt-5 pt-4" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
+              <ShieldCheck size={16} className="shrink-0 mt-px" style={{ color: 'var(--a-green)' }} />
+              Garantia de 7 dias: se não gostar, devolvemos o valor.
+            </p>
+          )}
         </aside>
 
         {/* Instrutor */}
@@ -309,7 +335,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       {/* Celular: botão de compra fixo embaixo */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 p-3 flex items-center gap-3"
         style={{ background: 'var(--a-vidro)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
-        {preco && <span className="font-bold text-[18px] shrink-0" style={display}>{reais(preco.valor)}</span>}
+        {preco && <span className="font-bold text-[18px] shrink-0" style={gratis ? { ...display, color: 'var(--a-green)' } : display}>{gratis ? 'Grátis' : reais(preco.valor)}</span>}
         <div className="flex-1"><BotaoComprar cheio /></div>
       </div>
       <div className="lg:hidden h-20" />

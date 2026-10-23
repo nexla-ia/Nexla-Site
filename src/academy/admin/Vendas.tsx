@@ -20,6 +20,7 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
   const [preco, setPreco] = useState('');
   const [promo, setPromo] = useState('');
   const [aVenda, setAVenda] = useState(true);
+  const [gratis, setGratis] = useState(false);
   const [extraAtivo, setExtraAtivo] = useState(false);
   const [extraTitulo, setExtraTitulo] = useState('Pacote de modelos prontos');
   const [extraPreco, setExtraPreco] = useState('');
@@ -31,21 +32,22 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
       if (error) { setSemTabela(true); setCarregado(true); return; }
       const c = (data ?? []).find(p => p.tipo === 'curso') as Produto | undefined;
       const e = (data ?? []).find(p => p.tipo === 'oferta_extra') as Produto | undefined;
-      if (c) { setPreco(paraCampo(c.preco)); setPromo(paraCampo(c.preco_promocional)); setAVenda(c.ativo); }
+      if (c) { setPreco(Number(c.preco) === 0 ? '' : paraCampo(c.preco)); setPromo(paraCampo(c.preco_promocional)); setAVenda(c.ativo); setGratis(Number(c.preco) === 0); }
       if (e) { setExtraAtivo(e.ativo); setExtraTitulo(e.titulo); setExtraPreco(paraCampo(e.preco)); }
       setCarregado(true);
     });
   }, [cursoId]);
 
   const salvar = async () => {
-    const p = numero(preco); const pr = promo.trim() ? numero(promo) : null; const ep = numero(extraPreco);
-    if (!(p > 0)) return setMsg({ erro: 'Informe o preço do curso.', ok: '' });
+    // Curso gratuito: preço 0 (o servidor libera direto, sem Mercado Pago) e sem oferta extra
+    const p = gratis ? 0 : numero(preco); const pr = !gratis && promo.trim() ? numero(promo) : null; const ep = numero(extraPreco);
+    if (!gratis && !(p > 0)) return setMsg({ erro: 'Informe o preço do curso (ou marque como gratuito).', ok: '' });
     if (pr !== null && !(pr > 0 && pr < p)) return setMsg({ erro: 'O preço promocional precisa ser menor que o preço normal.', ok: '' });
-    if (extraAtivo && (!extraTitulo.trim() || !(ep > 0))) return setMsg({ erro: 'Informe o nome e o preço da oferta extra.', ok: '' });
+    if (!gratis && extraAtivo && (!extraTitulo.trim() || !(ep > 0))) return setMsg({ erro: 'Informe o nome e o preço da oferta extra.', ok: '' });
     setSalvando(true); setMsg({ erro: '', ok: '' });
     const linhas = [
       { course_id: cursoId, tipo: 'curso', titulo: tituloCurso, preco: p, preco_promocional: pr, ativo: aVenda },
-      ...(extraTitulo.trim() && ep > 0 ? [{ course_id: cursoId, tipo: 'oferta_extra', titulo: extraTitulo.trim(), preco: ep, preco_promocional: null, ativo: extraAtivo }] : []),
+      ...(extraTitulo.trim() && ep > 0 ? [{ course_id: cursoId, tipo: 'oferta_extra', titulo: extraTitulo.trim(), preco: ep, preco_promocional: null, ativo: extraAtivo && !gratis }] : []),
     ];
     const { error } = await supabase.from('academy_products').upsert(linhas, { onConflict: 'course_id,tipo' });
     setSalvando(false);
@@ -57,13 +59,15 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
     <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
       <div>
         <h3 className="font-bold text-[16.5px]" style={display}>Venda</h3>
-        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>Preço cobrado no Mercado Pago (Pix, boleto ou cartão parcelado) e a oferta extra mostrada na tela de compra.</p>
+        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>Preço cobrado no Mercado Pago (Pix, boleto ou cartão parcelado) e a oferta extra mostrada na tela de compra. Ou deixe o curso gratuito.</p>
       </div>
       {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semTabela ? (
         <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>014_vendas.sql</strong> no Supabase para configurar preços.</p>
       ) : (
         <div className="space-y-5">
-          <Chave ligado={aVenda} onChange={setAVenda} texto={aVenda ? 'À venda (botão "Comprar" aparece para quem não tem o curso)' : 'Fora de venda'} />
+          <Chave ligado={aVenda} onChange={setAVenda} texto={aVenda ? (gratis ? 'Disponível (botão "Começar grátis" aparece para quem não tem o curso)' : 'À venda (botão "Comprar" aparece para quem não tem o curso)') : 'Fora de venda'} />
+          <Chave ligado={gratis} onChange={setGratis} texto="Curso gratuito (o aluno libera o curso sem pagar nada)" />
+          {!gratis && <>
           <div className="grid sm:grid-cols-2 gap-5 max-w-md">
             <Rotulo texto="Preço (R$)"><input className={inputCls} inputMode="decimal" placeholder="49,90" value={preco} onChange={e => setPreco(e.target.value)} /></Rotulo>
             <Rotulo texto="Preço promocional (R$)" dica="Opcional. Aparece com o preço normal riscado.">
@@ -79,9 +83,10 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
               </div>
             )}
           </div>
+          </>}
           {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
           {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
-          <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar preços'}</button>
+          <div><button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar preços'}</button></div>
         </div>
       )}
     </section>
