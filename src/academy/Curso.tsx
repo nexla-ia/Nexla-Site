@@ -342,6 +342,10 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
     const prox = new Set(feitas);
     if (novo) prox.add(aula.id); else prox.delete(aula.id);
     setDados({ ...dados, feitas: prox });
+    // Chegou a 90%: registra o certificado na hora (o servidor confere e não duplica; o n8n manda o e-mail)
+    if (novo && !admin && pct(prox.size, curso.aulas.length) >= CERTIFICADO_MIN) {
+      supabase.rpc('academy_emitir_certificado', { p_course: curso.id }).then(() => undefined, () => undefined);
+    }
     if (novo && prox.size === curso.aulas.length && !admin) setParabens(true); // acabou de concluir a última aula
     else if (novo && proxima) setFim(true); // chama a próxima aula no player
   };
