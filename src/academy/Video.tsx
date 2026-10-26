@@ -36,14 +36,32 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   const salvo = useRef<number | null>(null);       // posição guardada no banco (para retomar)
   const atual = useRef({ seg: 0, dur: 0 });        // onde o vídeo está agora
   const ultimoSalvo = useRef(0);
+  const pronto = useRef(false);                    // o player já avisou "ready"
+  const retomou = useRef(false);
+
+  // Mensagens para o player do Bunny (protocolo player.js). Pedidos de evento precisam de um "listener",
+  // senão o player não responde.
+  const mandar = (dados: object) =>
+    iframe.current?.contentWindow?.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', ...dados }), '*');
+  // Continua de onde parou (a partir de 3 s; quando o player está pronto e a posição já chegou)
+  const retomar = () => {
+    const pos = salvo.current ?? 0;
+    if (retomou.current || !pronto.current || salvo.current === null) return;
+    retomou.current = true;
+    if (pos >= 3) { mandar({ method: 'setCurrentTime', value: pos }); setRetomado(pos); }
+  };
+  const retomarRef = useRef(retomar);
+  retomarRef.current = retomar;
 
   useEffect(() => {
     let vivo = true;
     setEstado({ tipo: 'carregando' });
     setRetomado(null);
-    salvo.current = null;
+    salvo.current = userId ? null : 0;
     atual.current = { seg: 0, dur: 0 };
     ultimoSalvo.current = 0;
+    pronto.current = false;
+    retomou.current = false;
     supabase.functions.invoke('academy-video', { body: { aula: aulaId } }).then(async ({ data, error }) => {
       if (!vivo) return;
       if (data?.url) return setEstado({ tipo: 'ok', url: data.url as string });
@@ -54,7 +72,12 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
     });
     if (userId) {
       supabase.from('academy_lesson_progress').select('posicao_seg').eq('user_id', userId).eq('lesson_id', aulaId).maybeSingle()
-        .then(({ data }) => { if (vivo) { salvo.current = Number(data?.posicao_seg ?? 0); ultimoSalvo.current = salvo.current; } });
+        .then(({ data }) => {
+          if (!vivo) return;
+          salvo.current = Number(data?.posicao_seg ?? 0);
+          ultimoSalvo.current = salvo.current;
+          retomarRef.current(); // se o player ficou pronto antes, pula agora
+        });
     }
     return () => { vivo = false; };
   }, [aulaId, userId]);
@@ -63,7 +86,8 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   const gravar = (seg: number) => {
     if (!userId) return;
     const { dur } = atual.current;
-    const pos = dur && dur - seg < 15 ? 0 : Math.floor(seg);
+    const pertoDoFim = dur ? Math.min(15, Math.max(1, dur * 0.05)) : 0;
+    const pos = dur && dur - seg < pertoDoFim ? 0 : Math.floor(seg);
     if (Math.abs(pos - ultimoSalvo.current) < 3) return;
     ultimoSalvo.current = pos;
     supabase.from('academy_lesson_progress').upsert({ user_id: userId, lesson_id: aulaId, posicao_seg: pos }, { onConflict: 'user_id,lesson_id' })
@@ -75,16 +99,15 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   // Conversa com o player: retomar, acompanhar o tempo e saber quando terminou
   useEffect(() => {
     if (estado.tipo !== 'ok') return;
-    const mandar = (dados: object) => iframe.current?.contentWindow?.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', ...dados }), '*');
     const aoReceber = (e: MessageEvent) => {
       if (e.source !== iframe.current?.contentWindow) return;
       let m: { context?: string; event?: string; value?: { seconds?: number; duration?: number } } = {};
       try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
       if (m?.context !== 'player.js') return;
       if (m.event === 'ready') {
-        ['ended', 'timeupdate', 'pause'].forEach(ev => mandar({ method: 'addEventListener', value: ev }));
-        const pos = salvo.current ?? 0;
-        if (pos > 5) { mandar({ method: 'setCurrentTime', value: pos }); setRetomado(pos); }
+        ['ended', 'timeupdate', 'pause'].forEach(ev => mandar({ method: 'addEventListener', value: ev, listener: `nx-${ev}` }));
+        pronto.current = true;
+        retomarRef.current();
       }
       if (m.event === 'timeupdate' && m.value) {
         atual.current = { seg: Number(m.value.seconds ?? 0), dur: Number(m.value.duration ?? 0) };
@@ -101,7 +124,7 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
       document.removeEventListener('visibilitychange', aoSair);
       gravarRef.current(atual.current.seg); // trocou de aula ou saiu da página
     };
-  }, [estado]);
+  }, [estado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A marca d'água muda de lugar de tempos em tempos
   useEffect(() => {
@@ -118,7 +141,7 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   }, [retomado]);
 
   const doInicio = () => {
-    iframe.current?.contentWindow?.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', method: 'setCurrentTime', value: 0 }), '*');
+    mandar({ method: 'setCurrentTime', value: 0 });
     setRetomado(null);
   };
 
