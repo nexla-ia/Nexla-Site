@@ -12,9 +12,9 @@ export const EMPRESA = {
   cnpj: '59.838.572/0001-97',
   endereco: 'Rua Gonçalves Dias, 321, Sala 06, Centro (5º BEC), Vilhena – RO, CEP 76988-055',
   cidade: 'Vilhena, RO',
-  email: 'financeiro@nexla.com.br',
+  email: 'nexla@nexla.com.br',
   whatsapp: '556999300101',
-  whatsappTexto: '(69) 99930-0101',
+  whatsappTexto: '(69) 9930-0101',
 };
 const ATUALIZADO = '26 de outubro de 2026';
 
