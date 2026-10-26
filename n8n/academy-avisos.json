@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ══ CONFIGURE AQUI (só estes valores) ═════════════════════════════════\nconst CONFIG = {\n  segredo: 'TROQUE-POR-UMA-SENHA-LONGA',            // o mesmo valor do cabeçalho x-nexla-segredo nos webhooks do Supabase\n  supabaseUrl: 'https://lyvknbggtimdivywfeys.supabase.co',\n  site: 'https://www.nexla.com.br/academy',\n  esperaPixHoras: 1,        // lembrete se o Pix não for pago em 1 hora\n  esperaBoletoHoras: 24,    // lembrete se o boleto não for pago em 24 horas\n};\n// ═══════════════════════════════════════════════════════════════════════\n\n// Recebe o aviso do Supabase (Database Webhook) e decide qual mensagem mandar.\n// Avisos que não interessam (ou sem o segredo certo) param aqui: o fluxo não segue.\nconst saida = [];\nfor (const item of $input.all()) {\n  const h = item.json.headers || {};\n  const b = item.json.body || {};\n  if ((h['x-nexla-segredo'] || '') !== CONFIG.segredo) continue;   // não veio do nosso Supabase\n\n  const r = b.record || {};\n  const o = b.old_record || {};\n  let evento = null;\n\n  // Conta criada (só alunos; o admin não recebe)\n  if (b.table === 'academy_profiles' && b.type === 'INSERT' && (r.role || 'aluno') === 'aluno') evento = 'boas_vindas';\n\n  // Certificado emitido (o aluno chegou a 90% e abriu o certificado)\n  if (b.table === 'academy_certificates' && b.type === 'INSERT') evento = 'certificado';\n\n  // Pedido mudou: só age quando o status muda (o Mercado Pago avisa várias vezes o mesmo pagamento)\n  if (b.table === 'academy_orders' && b.type === 'UPDATE') {\n    const mudou = r.status !== o.status;\n    const forma = r.forma_pagamento || '';\n    if (r.status === 'pago' && mudou) evento = Number(r.total) > 0 ? 'pago' : 'liberado_gratis';\n    else if (r.status === 'pendente' && forma && !o.forma_pagamento) {\n      // Gerou o Pix/boleto agora (antes disso o pedido só existia porque abriu a tela de pagamento)\n      evento = (forma === 'bank_transfer' || forma === 'pix') ? 'pix_pendente' : forma === 'ticket' ? 'boleto_pendente' : 'em_analise';\n    }\n    else if (r.status === 'recusado' && mudou) evento = 'recusado';\n    else if (r.status === 'cancelado' && mudou && forma) evento = 'cancelado';   // sem forma = abandonou antes de pagar: não avisa\n    else if (r.status === 'reembolsado' && mudou) evento = 'reembolsado';\n  }\n\n  if (!evento) continue;\n  saida.push({ json: {\n    ...CONFIG,\n    evento,\n    userId: b.table === 'academy_profiles' ? r.id : r.user_id,\n    courseId: r.course_id || null,\n    pedidoId: b.table === 'academy_orders' ? r.id : null,\n    total: Number(r.total || 0),\n    codigo: r.codigo || null,\n    cursoNome: r.curso || null,\n  } });\n}\nreturn saida;\n"
+        "jsCode": "// ══ CONFIGURE AQUI (só estes valores) ═════════════════════════════════\nconst CONFIG = {\n  segredo: 'TROQUE-POR-UMA-SENHA-LONGA',            // o mesmo valor do cabeçalho x-nexla-segredo nos webhooks do Supabase\n  supabaseUrl: 'https://lyvknbggtimdivywfeys.supabase.co',\n  site: 'https://www.nexla.com.br/academy',\n};\n// ═══════════════════════════════════════════════════════════════════════\n\n// Recebe o aviso do Supabase (Database Webhook) e decide qual mensagem mandar.\n// Avisos que não interessam (ou sem o segredo certo) param aqui: o fluxo não segue.\nconst saida = [];\nfor (const item of $input.all()) {\n  const h = item.json.headers || {};\n  const b = item.json.body || {};\n  if ((h['x-nexla-segredo'] || '') !== CONFIG.segredo) continue;   // não veio do nosso Supabase\n\n  const r = b.record || {};\n  const o = b.old_record || {};\n  let evento = null;\n\n  // Conta criada (só alunos; o admin não recebe)\n  if (b.table === 'academy_profiles' && b.type === 'INSERT' && (r.role || 'aluno') === 'aluno') evento = 'boas_vindas';\n\n  // Certificado emitido (o aluno chegou a 90% e abriu o certificado)\n  if (b.table === 'academy_certificates' && b.type === 'INSERT') evento = 'certificado';\n\n  // Pedido mudou: só age quando o status muda (o Mercado Pago avisa várias vezes o mesmo pagamento).\n  // Pix/boleto gerado e lembrete ficam com os e-mails do próprio Mercado Pago.\n  if (b.table === 'academy_orders' && b.type === 'UPDATE') {\n    const mudou = r.status !== o.status;\n    const forma = r.forma_pagamento || '';\n    if (r.status === 'pago' && mudou) evento = Number(r.total) > 0 ? 'pago' : 'liberado_gratis';\n    else if (r.status === 'recusado' && mudou) evento = 'recusado';\n    else if (r.status === 'cancelado' && mudou && forma) evento = 'cancelado';   // sem forma = abandonou antes de pagar: não avisa\n    else if (r.status === 'reembolsado' && mudou) evento = 'reembolsado';\n  }\n\n  if (!evento) continue;\n  saida.push({ json: {\n    ...CONFIG,\n    evento,\n    userId: b.table === 'academy_profiles' ? r.id : r.user_id,\n    courseId: r.course_id || null,\n    pedidoId: b.table === 'academy_orders' ? r.id : null,\n    total: Number(r.total || 0),\n    codigo: r.codigo || null,\n    cursoNome: r.curso || null,\n  } });\n}\nreturn saida;\n"
       },
       "id": "7543b9a8-ba6a-4490-ba72-1acc7835d757",
       "name": "Classificar evento",
@@ -131,116 +131,6 @@
         200
       ],
       "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "e4394649-80cf-4bed-86df-a70dbe0cf645",
-              "leftValue": "={{ ['pix_pendente', 'boleto_pendente'].includes($json.evento) }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "3024b28a-ee78-463f-be7d-df8bb243e474",
-      "name": "Pix ou boleto pendente?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1120,
-        540
-      ]
-    },
-    {
-      "parameters": {
-        "amount": "={{ $json.esperaHoras }}",
-        "unit": "hours"
-      },
-      "id": "22141a42-c36b-4464-9281-09ba1b559048",
-      "name": "Esperar",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        1340,
-        540
-      ],
-      "webhookId": "8853023b-3e9a-4cf3-91fe-5b12110ed830"
-    },
-    {
-      "parameters": {
-        "url": "={{ $json.supabaseUrl }}/rest/v1/academy_orders?id=eq.{{ $json.pedidoId }}&select=status",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi",
-        "options": {}
-      },
-      "id": "93541e87-3f4d-42db-86e0-0ae3fada8a4e",
-      "name": "Conferir pedido",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1560,
-        540
-      ],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "d54371c4-5c59-4b3e-8f6f-a563cbc52989",
-              "leftValue": "={{ $json.status }}",
-              "rightValue": "pendente",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "7dfc4449-1ba1-42e4-9a38-8fbd9ccc9584",
-      "name": "Ainda pendente?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1780,
-        540
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// O Pix/boleto continua sem pagar depois da espera: manda o lembrete por e-mail\nconst m = $('Montar mensagens').first().json;\nif (!m.lembrete) return [];\nreturn [{ json: { ...m, evento: m.evento + '_lembrete', assunto: m.lembrete.assunto, html: m.lembrete.html } }];\n"
-      },
-      "id": "e466aec0-6987-472b-a124-316cd99c1040",
-      "name": "Montar lembrete",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2000,
-        520
-      ]
     }
   ],
   "connections": {
@@ -295,11 +185,6 @@
             "node": "Tem e-mail?",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Pix ou boleto pendente?",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -314,63 +199,6 @@
           }
         ],
         []
-      ]
-    },
-    "Pix ou boleto pendente?": {
-      "main": [
-        [
-          {
-            "node": "Esperar",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
-      ]
-    },
-    "Esperar": {
-      "main": [
-        [
-          {
-            "node": "Conferir pedido",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Conferir pedido": {
-      "main": [
-        [
-          {
-            "node": "Ainda pendente?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ainda pendente?": {
-      "main": [
-        [
-          {
-            "node": "Montar lembrete",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
-      ]
-    },
-    "Montar lembrete": {
-      "main": [
-        [
-          {
-            "node": "Tem e-mail?",
-            "type": "main",
-            "index": 0
-          }
-        ]
       ]
     }
   },
