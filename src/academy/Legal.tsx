@@ -103,6 +103,7 @@ const PRIVACIDADE = (): Secao[] => [
     'Uso da plataforma: cursos em que você está matriculado, aulas concluídas, comentários, avaliações, certificados emitidos e o aparelho conectado no momento (usado para manter uma sessão por vez).',
     'Compras: pedidos, valores, cupons usados, forma e situação do pagamento. Os dados do cartão são informados diretamente ao Mercado Pago e não ficam com a Nexla.',
     'Preferências: se você aceitou receber comunicações de marketing.',
+    'Origem e navegação: de onde você chegou na primeira visita (por exemplo, o anúncio ou o link de uma campanha), as páginas da Academy que você abre e as aulas iniciadas, ligados a um código anônimo do navegador e, depois do cadastro, à sua conta.',
     'Dados técnicos: informações enviadas automaticamente pelo navegador, como endereço IP, tipo de aparelho e navegador, registradas pelos nossos provedores para segurança e funcionamento do serviço.',
   ]] },
   { id: 'finalidades', titulo: 'Para que usamos os dados', blocos: [
@@ -113,7 +114,7 @@ const PRIVACIDADE = (): Secao[] => [
       'Mostrar o seu progresso, emitir certificados e permitir os comentários na comunidade (execução de contrato).',
       'Dar suporte e avisar sobre sua conta, suas compras e mudanças importantes (execução de contrato e legítimo interesse).',
       'Proteger a plataforma contra fraudes e compartilhamento de contas (legítimo interesse).',
-      'Entender, com dados agregados, como a plataforma é usada, para melhorar cursos e páginas (legítimo interesse).',
+      'Medir, com dados agregados, quantas pessoas visitam, se cadastram e compram, de quais anúncios vieram e em que aula param, para melhorar cursos, páginas e anúncios (legítimo interesse).',
       'Enviar novidades e ofertas por e-mail e WhatsApp, somente se você autorizar (consentimento).',
     ],
   ] },
@@ -162,7 +163,7 @@ const PRIVACIDADE = (): Secao[] => [
     `Para exercer esses direitos, use Meu perfil → Seus dados (LGPD) ou fale com a gente ${canais()}. Respondemos em até 15 dias. Você também pode apresentar reclamação à ANPD.`,
   ] },
   { id: 'cookies', titulo: 'Cookies e armazenamento no navegador', blocos: [
-    'A Academy usa o armazenamento do navegador para manter você conectado e lembrar preferências, como o modo claro ou escuro e o modo teatro do player.',
+    'A Academy usa o armazenamento do navegador para manter você conectado, lembrar preferências (como o modo claro ou escuro e o modo teatro do player) e guardar um código anônimo e a origem da sua primeira visita, usados nas nossas próprias métricas.',
     'Hoje a Nexla Academy não usa cookies de publicidade. Se passarmos a usar ferramentas de medição de anúncios, esta Política será atualizada antes.',
   ] },
   { id: 'menores', titulo: 'Crianças e adolescentes', blocos: [
