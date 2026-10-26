@@ -1,5 +1,5 @@
 {
-  "name": "Nexla Academy — avisos (boas-vindas, pagamentos, certificado)",
+  "name": "Nexla Academy — e-mails (boas-vindas, pagamentos, certificado)",
   "nodes": [
     {
       "parameters": {
@@ -8,7 +8,7 @@
         "responseMode": "onReceived",
         "options": {}
       },
-      "id": "cf18a27f-ea22-49e3-9678-991a59abf78f",
+      "id": "9648456a-fe16-4479-9c4f-d5c971c19bc1",
       "name": "Webhook Supabase",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -16,13 +16,13 @@
         0,
         300
       ],
-      "webhookId": "a6040efd-d4ea-423a-860b-d91aa42220ec"
+      "webhookId": "a10cb5d8-97e0-4367-8143-f63766df0c6f"
     },
     {
       "parameters": {
-        "jsCode": "// ══ CONFIGURE AQUI (só estes valores) ═════════════════════════════════\nconst CONFIG = {\n  segredo: 'TROQUE-POR-UMA-SENHA-LONGA',            // o mesmo valor do cabeçalho x-nexla-segredo nos webhooks do Supabase\n  supabaseUrl: 'https://lyvknbggtimdivywfeys.supabase.co',\n  site: 'https://www.nexla.com.br/academy',\n  evolutionUrl: 'https://SUA-EVOLUTION-API.com',     // endereço da Evolution API, sem barra no final\n  evolutionInstancia: 'NOME-DA-INSTANCIA',\n  evolutionApiKey: 'SUA-APIKEY-DA-EVOLUTION',\n  esperaPixHoras: 1,        // lembrete se o Pix não for pago em 1 hora\n  esperaBoletoHoras: 24,    // lembrete se o boleto não for pago em 24 horas\n};\n// ═══════════════════════════════════════════════════════════════════════\n\n// Recebe o aviso do Supabase (Database Webhook) e decide qual mensagem mandar.\n// Avisos que não interessam (ou sem o segredo certo) param aqui: o fluxo não segue.\nconst saida = [];\nfor (const item of $input.all()) {\n  const h = item.json.headers || {};\n  const b = item.json.body || {};\n  if ((h['x-nexla-segredo'] || '') !== CONFIG.segredo) continue;   // não veio do nosso Supabase\n\n  const r = b.record || {};\n  const o = b.old_record || {};\n  let evento = null;\n\n  // Conta criada (só alunos; o admin não recebe)\n  if (b.table === 'academy_profiles' && b.type === 'INSERT' && (r.role || 'aluno') === 'aluno') evento = 'boas_vindas';\n\n  // Certificado emitido (o aluno chegou a 90% e abriu o certificado)\n  if (b.table === 'academy_certificates' && b.type === 'INSERT') evento = 'certificado';\n\n  // Pedido mudou: só age quando o status muda (o Mercado Pago avisa várias vezes o mesmo pagamento)\n  if (b.table === 'academy_orders' && b.type === 'UPDATE') {\n    const mudou = r.status !== o.status;\n    const forma = r.forma_pagamento || '';\n    if (r.status === 'pago' && mudou) evento = Number(r.total) > 0 ? 'pago' : 'liberado_gratis';\n    else if (r.status === 'pendente' && forma && !o.forma_pagamento) {\n      // Gerou o Pix/boleto agora (antes disso o pedido só existia porque abriu a tela de pagamento)\n      evento = (forma === 'bank_transfer' || forma === 'pix') ? 'pix_pendente' : forma === 'ticket' ? 'boleto_pendente' : 'em_analise';\n    }\n    else if (r.status === 'recusado' && mudou) evento = 'recusado';\n    else if (r.status === 'cancelado' && mudou && forma) evento = 'cancelado';   // sem forma = abandonou antes de pagar: não avisa\n    else if (r.status === 'reembolsado' && mudou) evento = 'reembolsado';\n  }\n\n  if (!evento) continue;\n  saida.push({ json: {\n    ...CONFIG,\n    evento,\n    userId: b.table === 'academy_profiles' ? r.id : r.user_id,\n    courseId: r.course_id || null,\n    pedidoId: b.table === 'academy_orders' ? r.id : null,\n    total: Number(r.total || 0),\n    codigo: r.codigo || null,\n    cursoNome: r.curso || null,\n  } });\n}\nreturn saida;\n"
+        "jsCode": "// ══ CONFIGURE AQUI (só estes valores) ═════════════════════════════════\nconst CONFIG = {\n  segredo: 'TROQUE-POR-UMA-SENHA-LONGA',            // o mesmo valor do cabeçalho x-nexla-segredo nos webhooks do Supabase\n  supabaseUrl: 'https://lyvknbggtimdivywfeys.supabase.co',\n  site: 'https://www.nexla.com.br/academy',\n  esperaPixHoras: 1,        // lembrete se o Pix não for pago em 1 hora\n  esperaBoletoHoras: 24,    // lembrete se o boleto não for pago em 24 horas\n};\n// ═══════════════════════════════════════════════════════════════════════\n\n// Recebe o aviso do Supabase (Database Webhook) e decide qual mensagem mandar.\n// Avisos que não interessam (ou sem o segredo certo) param aqui: o fluxo não segue.\nconst saida = [];\nfor (const item of $input.all()) {\n  const h = item.json.headers || {};\n  const b = item.json.body || {};\n  if ((h['x-nexla-segredo'] || '') !== CONFIG.segredo) continue;   // não veio do nosso Supabase\n\n  const r = b.record || {};\n  const o = b.old_record || {};\n  let evento = null;\n\n  // Conta criada (só alunos; o admin não recebe)\n  if (b.table === 'academy_profiles' && b.type === 'INSERT' && (r.role || 'aluno') === 'aluno') evento = 'boas_vindas';\n\n  // Certificado emitido (o aluno chegou a 90% e abriu o certificado)\n  if (b.table === 'academy_certificates' && b.type === 'INSERT') evento = 'certificado';\n\n  // Pedido mudou: só age quando o status muda (o Mercado Pago avisa várias vezes o mesmo pagamento)\n  if (b.table === 'academy_orders' && b.type === 'UPDATE') {\n    const mudou = r.status !== o.status;\n    const forma = r.forma_pagamento || '';\n    if (r.status === 'pago' && mudou) evento = Number(r.total) > 0 ? 'pago' : 'liberado_gratis';\n    else if (r.status === 'pendente' && forma && !o.forma_pagamento) {\n      // Gerou o Pix/boleto agora (antes disso o pedido só existia porque abriu a tela de pagamento)\n      evento = (forma === 'bank_transfer' || forma === 'pix') ? 'pix_pendente' : forma === 'ticket' ? 'boleto_pendente' : 'em_analise';\n    }\n    else if (r.status === 'recusado' && mudou) evento = 'recusado';\n    else if (r.status === 'cancelado' && mudou && forma) evento = 'cancelado';   // sem forma = abandonou antes de pagar: não avisa\n    else if (r.status === 'reembolsado' && mudou) evento = 'reembolsado';\n  }\n\n  if (!evento) continue;\n  saida.push({ json: {\n    ...CONFIG,\n    evento,\n    userId: b.table === 'academy_profiles' ? r.id : r.user_id,\n    courseId: r.course_id || null,\n    pedidoId: b.table === 'academy_orders' ? r.id : null,\n    total: Number(r.total || 0),\n    codigo: r.codigo || null,\n    cursoNome: r.curso || null,\n  } });\n}\nreturn saida;\n"
       },
-      "id": "056994ba-466e-4b81-9665-2eccb92e5bfd",
+      "id": "7543b9a8-ba6a-4490-ba72-1acc7835d757",
       "name": "Classificar evento",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -33,12 +33,12 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.supabaseUrl }}/rest/v1/academy_profiles?id=eq.{{ $json.userId }}&select=nome,email,whatsapp",
+        "url": "={{ $json.supabaseUrl }}/rest/v1/academy_profiles?id=eq.{{ $json.userId }}&select=nome,email",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "options": {}
       },
-      "id": "b6076ae8-a15c-4166-88dd-f96926d467a0",
+      "id": "3a568f5a-32da-4446-a3d4-e6a9de974376",
       "name": "Buscar aluno",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -55,7 +55,7 @@
         "nodeCredentialType": "supabaseApi",
         "options": {}
       },
-      "id": "f5e6ee25-079c-4fbe-8b01-de8653c4b994",
+      "id": "1bbcf15d-7ec7-47bd-9872-dbeafb68e0a3",
       "name": "Buscar curso",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -67,9 +67,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Monta o texto do WhatsApp e o e-mail de cada situação\nconst c = $('Classificar evento').first().json;\nconst a = $('Buscar aluno').first().json || {};\nconst cu = $('Buscar curso').first().json || {};\n\nconst nome = String(a.nome || '').trim();\nconst n = nome.split(/\\s+/)[0] || '';\nconst ola = `Olá${n ? `, ${n}` : ''}!`;\nconst curso = cu.titulo || c.cursoNome || 'seu curso';\nconst slug = cu.slug || '';\nconst site = c.site;\nconst valor = 'R$ ' + Number(c.total || 0).toFixed(2).replace('.', ',');\nconst esc = s => String(s).replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[ch]));\nconst L = {\n  painel: `${site}/painel`,\n  curso: slug ? `${site}/curso/${slug}` : `${site}/painel`,\n  comprar: slug ? `${site}/comprar/${slug}` : `${site}/cursos`,\n  certificados: `${site}/certificados`,\n  validar: `${site}/validar/${c.codigo || ''}`,\n};\nconst C = `<strong>${esc(curso)}</strong>`;\n\nconst MSG = {\n  boas_vindas: {\n    assunto: 'Bem-vindo(a) à Nexla Academy',\n    titulo: `${ola} Sua conta está pronta.`,\n    paragrafos: ['Na Nexla Academy você assiste às aulas de amostra grátis, conhece todos os cursos e acompanha o seu progresso.', 'Qualquer dúvida, é só responder este e-mail ou chamar no WhatsApp.'],\n    botao: ['Acessar a Nexla Academy', L.painel],\n    whatsapp: `${ola} Que bom ter você na *Nexla Academy*.\\n\\nSua conta está pronta. Por lá você assiste às aulas de amostra grátis e conhece todos os cursos:\\n${L.painel}\\n\\nQualquer dúvida, é só responder aqui.`,\n  },\n  pix_pendente: {\n    assunto: `Seu Pix do curso ${curso} foi gerado`,\n    titulo: 'Seu Pix foi gerado',\n    paragrafos: [`O Pix de ${valor} do curso ${C} está aguardando pagamento.`, 'Assim que o pagamento cair, o acesso é liberado na hora e você recebe uma confirmação.', 'Se o código expirou, é só gerar um novo pelo botão abaixo.'],\n    botao: ['Gerar um novo Pix', L.comprar],\n    whatsapp: `${ola} O Pix de ${valor} do curso *${curso}* foi gerado e está aguardando pagamento.\\n\\nAssim que cair, o acesso é liberado na hora e eu te aviso aqui.\\n\\nSe o código expirou, gere outro em:\\n${L.comprar}`,\n    lembrete: {\n      assunto: `Seu Pix do curso ${curso} ainda está pendente`,\n      titulo: 'Seu Pix ainda não foi pago',\n      paragrafos: [`O Pix de ${valor} do curso ${C} ainda está aguardando pagamento.`, 'Se quiser garantir seu acesso, pague o código que você gerou ou gere um novo pelo botão abaixo.'],\n      botao: ['Concluir a compra', L.comprar],\n      whatsapp: `${ola} Passando para lembrar: o Pix do curso *${curso}* ainda está aguardando pagamento.\\n\\nSe quiser garantir seu acesso, é só pagar o código que você gerou ou gerar um novo aqui:\\n${L.comprar}\\n\\nFicou alguma dúvida? É só responder.`,\n    },\n  },\n  boleto_pendente: {\n    assunto: `Seu boleto do curso ${curso} foi gerado`,\n    titulo: 'Seu boleto foi gerado',\n    paragrafos: [`O boleto de ${valor} do curso ${C} está aguardando pagamento.`, 'Depois de pago, o banco leva até 3 dias úteis para confirmar. O acesso é liberado sozinho e você recebe uma confirmação.'],\n    botao: ['Ver meus cursos', L.painel],\n    whatsapp: `${ola} O boleto de ${valor} do curso *${curso}* foi gerado.\\n\\nDepois de pago, o banco leva até 3 dias úteis para confirmar. O acesso é liberado sozinho e eu te aviso aqui.\\n\\nPrefere liberar na hora? Pague com Pix:\\n${L.comprar}`,\n    lembrete: {\n      assunto: `Seu boleto do curso ${curso} ainda não foi pago`,\n      titulo: 'Seu boleto ainda não foi pago',\n      paragrafos: [`O boleto de ${valor} do curso ${C} ainda não foi pago.`, 'Se preferir liberar o acesso na hora, você pode pagar com Pix pelo botão abaixo.'],\n      botao: ['Pagar com Pix', L.comprar],\n      whatsapp: `${ola} O boleto do curso *${curso}* ainda não foi pago.\\n\\nSe preferir liberar o acesso na hora, pague com Pix:\\n${L.comprar}`,\n    },\n  },\n  em_analise: {\n    assunto: `Pagamento do curso ${curso} em análise`,\n    titulo: 'Seu pagamento está em análise',\n    paragrafos: [`O Mercado Pago está analisando o pagamento do curso ${C}. Isso costuma levar poucos minutos.`, 'Assim que for aprovado, o acesso é liberado sozinho e você recebe uma confirmação.'],\n    botao: ['Ver meus cursos', L.painel],\n    whatsapp: `${ola} O pagamento do curso *${curso}* está em análise no Mercado Pago. Costuma levar poucos minutos.\\n\\nAssim que for aprovado, o acesso é liberado sozinho e eu te aviso aqui.`,\n  },\n  pago: {\n    assunto: `Pagamento confirmado: ${curso}`,\n    titulo: 'Pagamento confirmado!',\n    paragrafos: [`Seu pagamento de ${valor} foi aprovado e o curso ${C} já está liberado na sua conta.`, 'Você tem 7 dias de garantia: se não gostar, devolvemos o valor.'],\n    botao: ['Começar o curso', L.curso],\n    whatsapp: `${ola} Pagamento confirmado!\\n\\nO curso *${curso}* já está liberado na sua conta. Comece agora:\\n${L.curso}\\n\\nBons estudos!`,\n  },\n  liberado_gratis: {\n    assunto: `Curso liberado: ${curso}`,\n    titulo: 'Seu curso foi liberado!',\n    paragrafos: [`O curso ${C} já está na sua conta, sem custo.`],\n    botao: ['Começar o curso', L.curso],\n    whatsapp: `${ola} O curso *${curso}* foi liberado na sua conta. Comece agora:\\n${L.curso}`,\n  },\n  recusado: {\n    assunto: `Pagamento não aprovado: ${curso}`,\n    titulo: 'Seu pagamento não foi aprovado',\n    paragrafos: [`O pagamento do curso ${C} foi recusado pelo Mercado Pago. Nenhum valor foi cobrado.`, 'Você pode tentar de novo com outro cartão ou pagar com Pix, que libera na hora.'],\n    botao: ['Tentar de novo', L.comprar],\n    whatsapp: `${ola} O pagamento do curso *${curso}* não foi aprovado e nenhum valor foi cobrado.\\n\\nVocê pode tentar de novo com outro cartão ou pagar com Pix, que libera na hora:\\n${L.comprar}`,\n  },\n  cancelado: {\n    assunto: `Pagamento cancelado: ${curso}`,\n    titulo: 'Seu pagamento foi cancelado',\n    paragrafos: [`O pagamento do curso ${C} foi cancelado (o Pix ou o boleto pode ter expirado). Nenhum valor foi cobrado.`, 'Se ainda quiser o curso, é só gerar um novo pagamento.'],\n    botao: ['Gerar novo pagamento', L.comprar],\n    whatsapp: `${ola} O pagamento do curso *${curso}* foi cancelado (o Pix ou o boleto pode ter expirado). Nenhum valor foi cobrado.\\n\\nSe ainda quiser o curso, gere um novo pagamento:\\n${L.comprar}`,\n  },\n  reembolsado: {\n    assunto: `Reembolso processado: ${curso}`,\n    titulo: 'Seu reembolso foi processado',\n    paragrafos: [`O reembolso de ${valor} do curso ${C} foi processado e o valor volta pelo mesmo meio de pagamento. No cartão, aparece na fatura conforme o prazo da operadora.`, 'Se puder, conte o que podemos melhorar: é só responder este e-mail.'],\n    botao: null,\n    whatsapp: `${ola} O reembolso do curso *${curso}* foi processado e o valor volta pelo mesmo meio de pagamento.\\n\\nSe puder, conte o que podemos melhorar. Sua opinião ajuda muito.`,\n  },\n  certificado: {\n    assunto: `Seu certificado do curso ${curso} está disponível`,\n    titulo: `Parabéns${n ? `, ${esc(n)}` : ''}! Seu certificado está pronto.`,\n    paragrafos: [`Você concluiu o curso ${C} e o seu certificado já pode ser baixado em PDF.`, `Código de validação: <strong>${esc(c.codigo || '')}</strong>. Qualquer pessoa pode conferir em <a href=\"${L.validar}\">${esc(L.validar)}</a>.`],\n    botao: ['Baixar meu certificado', L.certificados],\n    whatsapp: `Parabéns${n ? `, ${n}` : ''}! Você concluiu o curso *${curso}* e o seu certificado já está disponível:\\n${L.certificados}\\n\\nCódigo de validação: *${c.codigo || ''}*\\nQualquer pessoa confere em ${L.validar}`,\n  },\n};\n\nconst html = m => `<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:28px 24px;color:#0F172A\">\n<p style=\"font-size:17px;font-weight:bold;color:#4F46E5;margin:0 0 20px\">Nexla Academy</p>\n<h1 style=\"font-size:22px;line-height:1.3;margin:0 0 14px\">${m.titulo}</h1>\n${m.paragrafos.map(p => `<p style=\"font-size:15px;line-height:1.6;color:#334155;margin:0 0 12px\">${p}</p>`).join('\\n')}\n${m.botao ? `<p style=\"margin:26px 0\"><a href=\"${m.botao[1]}\" style=\"background:#4F46E5;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:bold;display:inline-block\">${m.botao[0]}</a></p>` : ''}\n<p style=\"font-size:12px;line-height:1.6;color:#94A3B8;margin-top:34px;border-top:1px solid #E2E8F0;padding-top:16px\">Nexla Automação e Inteligência Artificial Ltda. · CNPJ 59.838.572/0001-97 · Vilhena – RO<br>Dúvidas: WhatsApp (69) 9930-0101 · nexla@nexla.com.br</p>\n</div>`;\n\nconst m = MSG[c.evento];\nif (!m) return [];\nlet telefone = String(a.whatsapp || '').replace(/\\D/g, '');\nif (telefone && !telefone.startsWith('55')) telefone = '55' + telefone;\nif (telefone.length < 12) telefone = '';\n\nreturn [{ json: {\n  evento: c.evento,\n  pedidoId: c.pedidoId,\n  supabaseUrl: c.supabaseUrl,\n  evolutionUrl: c.evolutionUrl,\n  evolutionInstancia: c.evolutionInstancia,\n  evolutionApiKey: c.evolutionApiKey,\n  esperaHoras: c.evento === 'boleto_pendente' ? c.esperaBoletoHoras : c.esperaPixHoras,\n  telefone,\n  email: String(a.email || '').trim(),\n  assunto: m.assunto,\n  whatsapp: m.whatsapp,\n  html: html(m),\n  lembrete: m.lembrete ? { assunto: m.lembrete.assunto, whatsapp: m.lembrete.whatsapp, html: html(m.lembrete) } : null,\n} }];\n"
+        "jsCode": "// Monta o e-mail de cada situação\nconst c = $('Classificar evento').first().json;\nconst a = $('Buscar aluno').first().json || {};\nconst cu = $('Buscar curso').first().json || {};\n\nconst nome = String(a.nome || '').trim();\nconst n = nome.split(/\\s+/)[0] || '';\nconst ola = `Olá${n ? `, ${n}` : ''}!`;\nconst curso = cu.titulo || c.cursoNome || 'seu curso';\nconst slug = cu.slug || '';\nconst site = c.site;\nconst valor = 'R$ ' + Number(c.total || 0).toFixed(2).replace('.', ',');\nconst esc = s => String(s).replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[ch]));\nconst L = {\n  painel: `${site}/painel`,\n  curso: slug ? `${site}/curso/${slug}` : `${site}/painel`,\n  comprar: slug ? `${site}/comprar/${slug}` : `${site}/cursos`,\n  certificados: `${site}/certificados`,\n  validar: `${site}/validar/${c.codigo || ''}`,\n};\nconst C = `<strong>${esc(curso)}</strong>`;\n\nconst MSG = {\n  boas_vindas: {\n    assunto: 'Bem-vindo(a) à Nexla Academy',\n    titulo: `${ola} Sua conta está pronta.`,\n    paragrafos: ['Na Nexla Academy você assiste às aulas de amostra grátis, conhece todos os cursos e acompanha o seu progresso.', 'Qualquer dúvida, é só responder este e-mail ou chamar no WhatsApp.'],\n    botao: ['Acessar a Nexla Academy', L.painel],\n  },\n  pix_pendente: {\n    assunto: `Seu Pix do curso ${curso} foi gerado`,\n    titulo: 'Seu Pix foi gerado',\n    paragrafos: [`O Pix de ${valor} do curso ${C} está aguardando pagamento.`, 'Assim que o pagamento cair, o acesso é liberado na hora e você recebe uma confirmação.', 'Se o código expirou, é só gerar um novo pelo botão abaixo.'],\n    botao: ['Gerar um novo Pix', L.comprar],\n    lembrete: {\n      assunto: `Seu Pix do curso ${curso} ainda está pendente`,\n      titulo: 'Seu Pix ainda não foi pago',\n      paragrafos: [`O Pix de ${valor} do curso ${C} ainda está aguardando pagamento.`, 'Se quiser garantir seu acesso, pague o código que você gerou ou gere um novo pelo botão abaixo.'],\n      botao: ['Concluir a compra', L.comprar],\n    },\n  },\n  boleto_pendente: {\n    assunto: `Seu boleto do curso ${curso} foi gerado`,\n    titulo: 'Seu boleto foi gerado',\n    paragrafos: [`O boleto de ${valor} do curso ${C} está aguardando pagamento.`, 'Depois de pago, o banco leva até 3 dias úteis para confirmar. O acesso é liberado sozinho e você recebe uma confirmação.'],\n    botao: ['Ver meus cursos', L.painel],\n    lembrete: {\n      assunto: `Seu boleto do curso ${curso} ainda não foi pago`,\n      titulo: 'Seu boleto ainda não foi pago',\n      paragrafos: [`O boleto de ${valor} do curso ${C} ainda não foi pago.`, 'Se preferir liberar o acesso na hora, você pode pagar com Pix pelo botão abaixo.'],\n      botao: ['Pagar com Pix', L.comprar],\n    },\n  },\n  em_analise: {\n    assunto: `Pagamento do curso ${curso} em análise`,\n    titulo: 'Seu pagamento está em análise',\n    paragrafos: [`O Mercado Pago está analisando o pagamento do curso ${C}. Isso costuma levar poucos minutos.`, 'Assim que for aprovado, o acesso é liberado sozinho e você recebe uma confirmação.'],\n    botao: ['Ver meus cursos', L.painel],\n  },\n  pago: {\n    assunto: `Pagamento confirmado: ${curso}`,\n    titulo: 'Pagamento confirmado!',\n    paragrafos: [`Seu pagamento de ${valor} foi aprovado e o curso ${C} já está liberado na sua conta.`, 'Você tem 7 dias de garantia: se não gostar, devolvemos o valor.'],\n    botao: ['Começar o curso', L.curso],\n  },\n  liberado_gratis: {\n    assunto: `Curso liberado: ${curso}`,\n    titulo: 'Seu curso foi liberado!',\n    paragrafos: [`O curso ${C} já está na sua conta, sem custo.`],\n    botao: ['Começar o curso', L.curso],\n  },\n  recusado: {\n    assunto: `Pagamento não aprovado: ${curso}`,\n    titulo: 'Seu pagamento não foi aprovado',\n    paragrafos: [`O pagamento do curso ${C} foi recusado pelo Mercado Pago. Nenhum valor foi cobrado.`, 'Você pode tentar de novo com outro cartão ou pagar com Pix, que libera na hora.'],\n    botao: ['Tentar de novo', L.comprar],\n  },\n  cancelado: {\n    assunto: `Pagamento cancelado: ${curso}`,\n    titulo: 'Seu pagamento foi cancelado',\n    paragrafos: [`O pagamento do curso ${C} foi cancelado (o Pix ou o boleto pode ter expirado). Nenhum valor foi cobrado.`, 'Se ainda quiser o curso, é só gerar um novo pagamento.'],\n    botao: ['Gerar novo pagamento', L.comprar],\n  },\n  reembolsado: {\n    assunto: `Reembolso processado: ${curso}`,\n    titulo: 'Seu reembolso foi processado',\n    paragrafos: [`O reembolso de ${valor} do curso ${C} foi processado e o valor volta pelo mesmo meio de pagamento. No cartão, aparece na fatura conforme o prazo da operadora.`, 'Se puder, conte o que podemos melhorar: é só responder este e-mail.'],\n    botao: null,\n  },\n  certificado: {\n    assunto: `Seu certificado do curso ${curso} está disponível`,\n    titulo: `Parabéns${n ? `, ${esc(n)}` : ''}! Seu certificado está pronto.`,\n    paragrafos: [`Você concluiu o curso ${C} e o seu certificado já pode ser baixado em PDF.`, `Código de validação: <strong>${esc(c.codigo || '')}</strong>. Qualquer pessoa pode conferir em <a href=\"${L.validar}\">${esc(L.validar)}</a>.`],\n    botao: ['Baixar meu certificado', L.certificados],\n  },\n};\n\nconst html = m => `<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:28px 24px;color:#0F172A\">\n<p style=\"font-size:17px;font-weight:bold;color:#4F46E5;margin:0 0 20px\">Nexla Academy</p>\n<h1 style=\"font-size:22px;line-height:1.3;margin:0 0 14px\">${m.titulo}</h1>\n${m.paragrafos.map(p => `<p style=\"font-size:15px;line-height:1.6;color:#334155;margin:0 0 12px\">${p}</p>`).join('\\n')}\n${m.botao ? `<p style=\"margin:26px 0\"><a href=\"${m.botao[1]}\" style=\"background:#4F46E5;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:bold;display:inline-block\">${m.botao[0]}</a></p>` : ''}\n<p style=\"font-size:12px;line-height:1.6;color:#94A3B8;margin-top:34px;border-top:1px solid #E2E8F0;padding-top:16px\">Nexla Automação e Inteligência Artificial Ltda. · CNPJ 59.838.572/0001-97 · Vilhena – RO<br>Dúvidas: WhatsApp (69) 9930-0101 · nexla@nexla.com.br</p>\n</div>`;\n\nconst m = MSG[c.evento];\nif (!m) return [];\n\nreturn [{ json: {\n  evento: c.evento,\n  pedidoId: c.pedidoId,\n  supabaseUrl: c.supabaseUrl,\n  esperaHoras: c.evento === 'boleto_pendente' ? c.esperaBoletoHoras : c.esperaPixHoras,\n  email: String(a.email || '').trim(),\n  assunto: m.assunto,\n  html: html(m),\n  lembrete: m.lembrete ? { assunto: m.lembrete.assunto, html: html(m.lembrete) } : null,\n} }];\n"
       },
-      "id": "a8464e4e-7796-40d4-bd0d-97a636a7ba99",
+      "id": "9934b102-d3c9-4f32-b2f8-d5ec88f4a883",
       "name": "Montar mensagens",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -88,68 +88,7 @@
           },
           "conditions": [
             {
-              "id": "c79cd9b7-8558-4955-abfd-2d498ebae3f4",
-              "leftValue": "={{ $json.telefone }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "4c0a902b-f8fe-4971-bba1-388e3e40b9f7",
-      "name": "Tem WhatsApp?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1120,
-        120
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $json.evolutionUrl }}/message/sendText/{{ $json.evolutionInstancia }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $json.evolutionApiKey }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $json.telefone, text: $json.whatsapp }) }}",
-        "options": {}
-      },
-      "id": "68f9c760-4bd1-48b7-b590-e25f400e54ef",
-      "name": "Enviar WhatsApp",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1340,
-        100
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "707594ed-4b84-4b9e-b3b6-072c2b00d6a4",
+              "id": "045d186e-fcbd-4131-9e6f-8510e6012d44",
               "leftValue": "={{ $json.email }}",
               "rightValue": "",
               "operator": {
@@ -163,13 +102,13 @@
         },
         "options": {}
       },
-      "id": "8fe6b0f6-c1e7-4e0d-8a4c-c3ad5a7d155f",
+      "id": "7a397d5e-c86c-44a8-a8c4-1e00ac13162a",
       "name": "Tem e-mail?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         1120,
-        320
+        200
       ]
     },
     {
@@ -183,13 +122,13 @@
           "appendAttribution": false
         }
       },
-      "id": "d06a53ec-1bb1-4d98-ad4e-8e3da5e2255f",
+      "id": "90424cf1-3779-437a-9549-c8d1c591ace8",
       "name": "Enviar e-mail",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
         1340,
-        320
+        200
       ],
       "onError": "continueRegularOutput"
     },
@@ -203,7 +142,7 @@
           },
           "conditions": [
             {
-              "id": "a43374ef-0b66-421f-8d0f-aeed1cc9e2d8",
+              "id": "e4394649-80cf-4bed-86df-a70dbe0cf645",
               "leftValue": "={{ ['pix_pendente', 'boleto_pendente'].includes($json.evento) }}",
               "rightValue": "",
               "operator": {
@@ -217,7 +156,7 @@
         },
         "options": {}
       },
-      "id": "1e0d6539-f3a5-49e3-ad0d-f299f90f7baf",
+      "id": "3024b28a-ee78-463f-be7d-df8bb243e474",
       "name": "Pix ou boleto pendente?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -231,7 +170,7 @@
         "amount": "={{ $json.esperaHoras }}",
         "unit": "hours"
       },
-      "id": "1dd80b37-b62e-40b2-b2c7-cd3f94b53a80",
+      "id": "22141a42-c36b-4464-9281-09ba1b559048",
       "name": "Esperar",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -239,7 +178,7 @@
         1340,
         540
       ],
-      "webhookId": "ee8a318a-18e1-47c8-9b8e-d33328f5d3eb"
+      "webhookId": "8853023b-3e9a-4cf3-91fe-5b12110ed830"
     },
     {
       "parameters": {
@@ -248,7 +187,7 @@
         "nodeCredentialType": "supabaseApi",
         "options": {}
       },
-      "id": "ec6fca7b-8078-48ee-8866-f0929bca63d3",
+      "id": "93541e87-3f4d-42db-86e0-0ae3fada8a4e",
       "name": "Conferir pedido",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -268,7 +207,7 @@
           },
           "conditions": [
             {
-              "id": "13446b62-c5ab-47d9-8022-b322918b1fc9",
+              "id": "d54371c4-5c59-4b3e-8f6f-a563cbc52989",
               "leftValue": "={{ $json.status }}",
               "rightValue": "pendente",
               "operator": {
@@ -281,7 +220,7 @@
         },
         "options": {}
       },
-      "id": "e7d74283-7f3f-4302-80ed-6046cabc1fcc",
+      "id": "7dfc4449-1ba1-42e4-9a38-8fbd9ccc9584",
       "name": "Ainda pendente?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -292,9 +231,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// O Pix/boleto continua sem pagar depois da espera: manda o lembrete\nconst m = $('Montar mensagens').first().json;\nif (!m.lembrete) return [];\nreturn [{ json: { ...m, evento: m.evento + '_lembrete', assunto: m.lembrete.assunto, whatsapp: m.lembrete.whatsapp, html: m.lembrete.html } }];\n"
+        "jsCode": "// O Pix/boleto continua sem pagar depois da espera: manda o lembrete por e-mail\nconst m = $('Montar mensagens').first().json;\nif (!m.lembrete) return [];\nreturn [{ json: { ...m, evento: m.evento + '_lembrete', assunto: m.lembrete.assunto, html: m.lembrete.html } }];\n"
       },
-      "id": "0a853d31-d940-4ca5-afe1-6c431ed5c895",
+      "id": "e466aec0-6987-472b-a124-316cd99c1040",
       "name": "Montar lembrete",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -353,11 +292,6 @@
       "main": [
         [
           {
-            "node": "Tem WhatsApp?",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Tem e-mail?",
             "type": "main",
             "index": 0
@@ -368,18 +302,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Tem WhatsApp?": {
-      "main": [
-        [
-          {
-            "node": "Enviar WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
       ]
     },
     "Tem e-mail?": {
@@ -443,11 +365,6 @@
     "Montar lembrete": {
       "main": [
         [
-          {
-            "node": "Tem WhatsApp?",
-            "type": "main",
-            "index": 0
-          },
           {
             "node": "Tem e-mail?",
             "type": "main",
