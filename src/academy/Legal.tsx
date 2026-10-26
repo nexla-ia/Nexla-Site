@@ -101,6 +101,7 @@ const PRIVACIDADE = (): Secao[] => [
   ] },
   { id: 'dados-coletados', titulo: 'Dados que coletamos', blocos: [[
     'Cadastro: nome, e-mail, WhatsApp e senha. A senha é guardada de forma criptografada pelo nosso provedor de login, e nem a equipe da Nexla consegue vê-la.',
+    'Login com Google: se você escolher entrar com a sua conta Google, recebemos do Google o seu nome, e-mail e foto de perfil. Não temos acesso à sua senha do Google.',
     'Uso da plataforma: cursos em que você está matriculado, aulas concluídas, comentários, avaliações, certificados emitidos e o aparelho conectado no momento (usado para manter uma sessão por vez).',
     'Compras: pedidos, valores, cupons usados, forma e situação do pagamento. Os dados do cartão são informados diretamente ao Mercado Pago e não ficam com a Nexla.',
     'Preferências: se você aceitou receber comunicações de marketing.',
@@ -131,6 +132,7 @@ const PRIVACIDADE = (): Secao[] => [
       'Mercado Pago: processamento dos pagamentos e reembolsos.',
       'Bunny.net: hospedagem e transmissão dos vídeos das aulas.',
       'Vercel: hospedagem do site.',
+      'Google: login com a conta Google (quando você escolhe essa opção) e envio dos e-mails da Academy.',
       'Meta (Facebook e Instagram): medição dos anúncios pelo Meta Pixel e pela API de Conversões. Recebe as páginas visitadas, cadastros e compras; e-mail, telefone e o código da sua conta vão criptografados.',
     ],
     'Também podemos compartilhar dados quando a lei exigir ou por ordem de autoridade competente.',

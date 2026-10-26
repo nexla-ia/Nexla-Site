@@ -7,7 +7,7 @@ import { evento } from './pixel';
 
 /* Mantém o ?voltar= (ex.: /comprar/curso) ao alternar entre entrar e criar conta */
 const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
-import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin } from './supabase';
+import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin, entrarComGoogle } from './supabase';
 
 const VANTAGENS = [
   { icon: PlayCircle, titulo: 'Aulas de amostra grátis',        sub: 'Assista antes de comprar, sem compromisso' },
@@ -30,7 +30,7 @@ const FORCA = [
   { t: 'Forte',       c: '#22C55E' },
 ];
 
-function Caixa({ marcado, onChange, children }: { marcado: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+export function Caixa({ marcado, onChange, children }: { marcado: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
   return (
     <label className="flex items-start gap-3 text-[13.5px] leading-relaxed cursor-pointer select-none" style={{ color: T.mute }}>
       <input type="checkbox" checked={marcado} onChange={e => onChange(e.target.checked)} className="sr-only peer" />
@@ -98,7 +98,10 @@ export default function CriarConta() {
       <h2 className="font-bold leading-tight mb-2" style={{ ...display, fontSize: 'clamp(28px,3vw,34px)' }}>Criar conta grátis</h2>
       <p className="text-[15px] mb-8" style={{ color: T.mute }}>Leva menos de um minuto.</p>
 
-      <BotaoGoogle texto="Cadastrar com Google" onClick={() => { setErro(''); setAviso('O cadastro com Google será liberado junto com a abertura da Nexla Academy.'); }} />
+      <BotaoGoogle texto="Cadastrar com Google" onClick={async () => {
+        setErro(''); setAviso('');
+        if (await entrarComGoogle(parametro('voltar'))) setErro('Não foi possível abrir o cadastro do Google agora. Tente de novo.');
+      }} />
       <Divisor texto="ou cadastre com e-mail" />
 
       <form onSubmit={criar} noValidate className="space-y-5">

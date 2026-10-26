@@ -33,6 +33,26 @@ const leMarca = (k: string) => { try { return sessionStorage.getItem(k); } catch
 export const marcarNovoLogin = () => { marca('nexla_novo_login', '1'); marca('nexla_sessao_encerrada', null); };
 export const desmarcarNovoLogin = () => marca('nexla_novo_login', null);
 
+/* Entrar ou cadastrar com Google: vai para o Google e volta para `voltar` (ou "Meus cursos") já conectado.
+ * Conta nova pelo Google ainda não tem WhatsApp: o main.tsx mostra a tela "Complete seu cadastro". */
+export async function entrarComGoogle(voltar: string | null) {
+  marcarNovoLogin();
+  const destino = voltar && /^\/[\w\-/]*$/.test(voltar) && !voltar.startsWith('//') ? voltar : '/painel';
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}/academy${destino}`, queryParams: { prompt: 'select_account' } },
+  });
+  if (error) desmarcarNovoLogin();
+  return error;
+}
+
+/* Voltou do Google sem entrar (cancelou ou deu erro): lido ao abrir a página, a tela de login avisa uma vez */
+let erroGoogle = (() => {
+  const p = new URLSearchParams(window.location.hash.slice(1) + '&' + window.location.search.slice(1));
+  return !window.location.pathname.endsWith('/nova-senha') && !!(p.get('error') || p.get('error_code'));
+})();
+export const lerErroGoogle = () => { const e = erroGoogle; erroGoogle = false; return e; };
+
 /* A tela de login mostra o aviso uma vez quando a conta foi aberta em outro dispositivo */
 export const lerAvisoOutroDispositivo = () => leMarca('nexla_sessao_encerrada') === '1'; // limpo no próximo login
 

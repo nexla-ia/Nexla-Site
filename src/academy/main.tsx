@@ -23,6 +23,7 @@ import { iniciarTema } from './tema';
 import Legal from './Legal';
 import Validar from './Validar';
 import { EsqueciSenha, NovaSenha } from './Recuperar';
+import CompletarCadastro, { useCadastroPendente } from './CompletarCadastro';
 import { capturarOrigem, registrarVisita, salvarOrigemNoPerfil } from './rastreio';
 import { iniciarPixel, evento } from './pixel';
 import '../index.css';
@@ -65,6 +66,7 @@ function Academy() {
   const adminCurso = rota.match(/^\/admin\/curso\/([\w-]+)$/)?.[1];
   const admin = useEhAdmin(sessao);
   useSessaoUnica(sessao); // 1 dispositivo por conta
+  const [pendente, cadastroCompleto] = useCadastroPendente(sessao, admin); // conta nova pelo Google sem WhatsApp
 
   useEffect(() => {
     if (sessao === undefined) return;
@@ -103,6 +105,8 @@ function Academy() {
   }
   if (telaAcesso || admin === undefined) return <Carregando />;
   if (admin && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) return <Carregando />;
+  if (pendente === undefined) return <Carregando />;
+  if (pendente) return <CompletarCadastro sessao={sessao} aoConcluir={cadastroCompleto} />;
   if (rota === '/admin') return <VisaoGeral sessao={sessao} />;
   if (rota === '/admin/cursos') return <AdminCursos sessao={sessao} />;
   if (rota === '/admin/vendas') return <AdminVendas sessao={sessao} />;

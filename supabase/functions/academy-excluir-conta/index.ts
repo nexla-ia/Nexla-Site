@@ -60,9 +60,15 @@ Deno.serve(async (req) => {
     if (error && !/does not exist|schema cache/i.test(error.message)) console.error('Excluir conta:', tabela, error.message);
   }
 
-  // 3) Linha vazia que o outro sistema cria sozinho no cadastro (só se continuar vazia)
-  await admin.from('profiles').delete().eq('id', uid).is('full_name', null).is('avatar_url', null)
-    .then(() => undefined, () => undefined);
+  // 3) Linha que o outro sistema cria sozinho no cadastro: sai se continuar vazia ou só com o nome/foto
+  //    que vieram do próprio login (ex.: conta Google). Se alguém preencheu no outro sistema, fica.
+  const meta = usuario.user_metadata ?? {};
+  const doLogin = (v: unknown, ...origem: unknown[]) => v == null || origem.includes(v);
+  const { data: outro } = await admin.from('profiles').select('full_name, avatar_url').eq('id', uid).maybeSingle()
+    .then(r => r, () => ({ data: null }));
+  if (outro && doLogin(outro.full_name, meta.full_name, meta.name, meta.nome) && doLogin(outro.avatar_url, meta.avatar_url, meta.picture)) {
+    await admin.from('profiles').delete().eq('id', uid).then(() => undefined, () => undefined);
+  }
 
   // 4) O login. Se o outro sistema ainda usa essa conta, o banco recusa: fica o login, sem nada da Academy.
   const { error: erroLogin } = await admin.auth.admin.deleteUser(uid);

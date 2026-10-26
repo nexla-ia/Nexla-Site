@@ -4,7 +4,7 @@ import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGo
 import { Link, parametro } from './router';
 
 const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
-import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin, lerAvisoOutroDispositivo } from './supabase';
+import { supabase, erroAuth, marcarNovoLogin, desmarcarNovoLogin, lerAvisoOutroDispositivo, entrarComGoogle, lerErroGoogle } from './supabase';
 
 const CURSOS = [
   { icon: GraduationCap,   titulo: 'IA na prática para a escala 5×2', sub: 'Automação e atendimento com IA para atravessar a mudança' },
@@ -15,7 +15,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [verSenha, setVerSenha] = useState(false);
-  const [erro, setErro] = useState('');
+  const [erro, setErro] = useState(() => lerErroGoogle() ? 'Não foi possível entrar com o Google. Tente de novo ou entre com e-mail e senha.' : '');
   // Desconectado porque a conta entrou em outro dispositivo? Mostra o motivo uma vez.
   const [aviso, setAviso] = useState(() => {
     let excluida = false;
@@ -40,7 +40,10 @@ export default function Login() {
     setEntrando(false);
     if (error) { desmarcarNovoLogin(); setErro(erroAuth(error.message)); }
   };
-  const avisar = (msg: string) => { setErro(''); setAviso(msg); };
+  const google = async () => {
+    setErro(''); setAviso('');
+    if (await entrarComGoogle(parametro('voltar'))) setErro('Não foi possível abrir o login do Google agora. Tente de novo.');
+  };
 
   return (
     <AuthLayout painel={<>
@@ -55,7 +58,7 @@ export default function Login() {
       <h2 className="font-bold leading-tight mb-2" style={{ ...display, fontSize: 'clamp(28px,3vw,34px)' }}>Entrar na sua conta</h2>
       <p className="text-[15px] mb-8" style={{ color: T.mute }}>Acesse seus cursos e continue de onde parou.</p>
 
-      <BotaoGoogle texto="Continuar com Google" onClick={() => avisar('O login com Google será liberado junto com a abertura da Nexla Academy.')} />
+      <BotaoGoogle texto="Continuar com Google" onClick={google} />
       <Divisor texto="ou entre com e-mail" />
 
       <form onSubmit={entrar} noValidate className="space-y-5">
