@@ -8,7 +8,7 @@
 // Quem não pode não recebe nem o ID do vídeo.
 //
 // Segredos (Supabase → Edge Functions → Secrets):
-//   BUNNY_LIBRARY_ID  → ID da biblioteca no Bunny Stream (opcional: sem ele, usa a biblioteca da Nexla, 788465)
+//   BUNNY_LIBRARY_ID  → ID da biblioteca no Bunny Stream (opcional: sem ele, usa a biblioteca da Nexla, 790467)
 //   BUNNY_TOKEN_KEY   → chave de "Embed view token authentication" do Bunny (opcional, recomendado):
 //                       com ela o link sai assinado e expira, então não adianta copiar e compartilhar.
 // SUPABASE_URL e SUPABASE_ANON_KEY são fornecidos automaticamente pelo Supabase.
@@ -18,7 +18,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const SITE_PADRAO = 'https://www.nexla.com.br';
 const ORIGENS_OK = ['https://www.nexla.com.br', 'https://nexla.com.br', 'http://localhost:5173', 'http://localhost:4173'];
 const VALIDADE_SEG = 4 * 60 * 60; // o link assinado vale 4 horas
-const BIBLIOTECA_PADRAO = '788465'; // biblioteca da Nexla no Bunny Stream (o ID não é segredo: aparece no link do player)
+const BIBLIOTECA_PADRAO = '790467'; // biblioteca da Nexla no Bunny Stream (o ID não é segredo: aparece no link do player)
 
 const cors = (origem: string | null) => ({
   'Access-Control-Allow-Origin': origem && ORIGENS_OK.includes(origem) ? origem : SITE_PADRAO,
