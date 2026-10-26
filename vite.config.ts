@@ -26,6 +26,8 @@ export default defineConfig({
         lp5x2: resolve(__dirname, '5x2/index.html'),
         // Nexla Academy (plataforma de cursos) → nexla.com.br/academy
         academy: resolve(__dirname, 'academy/index.html'),
+        // Tá Sabendo AI (resumo diário no WhatsApp) → nexla.com.br/tasabendo
+        tasabendo: resolve(__dirname, 'tasabendo/index.html'),
       },
     },
   },

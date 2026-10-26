@@ -1,0 +1,64 @@
+/* ─── Tá Sabendo AI — mesmo visual da /5x2 e do nexla.com.br ─────────────── */
+.ts {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.ts ::selection { background: #0F172A; color: #F1F5F9; }
+
+.ts-display {
+  font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.ts-mono { font-family: 'Space Mono', ui-monospace, monospace; }
+
+/* Botões */
+.ts-btn { transition: filter 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.ts-btn[data-tone='accent'] {
+  background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #FFFFFF;
+  box-shadow: 0 8px 28px rgba(79,70,229,0.28);
+}
+.ts-btn[data-tone='accent']:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 10px 32px rgba(79,70,229,0.38); }
+.ts-btn:disabled { box-shadow: none; }
+.ts-btn .ts-arrow, .ts-link .ts-arrow { transition: transform 200ms ease; }
+.ts-btn:hover .ts-arrow, .ts-link:hover .ts-arrow { transform: translateX(3px); }
+
+.ts :focus-visible { outline: 2px solid #4F46E5; outline-offset: 3px; }
+.ts-dark :focus-visible { outline-color: #F1F5F9; }
+
+/* Campos do formulário (fundo escuro) */
+.ts-field {
+  background: rgba(241,245,249,0.04);
+  border: 1px solid rgba(241,245,249,0.16);
+  color: #F1F5F9;
+  border-radius: 10px;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.ts-field::placeholder { color: rgba(241,245,249,0.38); }
+.ts-field:hover { border-color: rgba(241,245,249,0.28); }
+.ts-field:focus { border-color: #818CF8; background: rgba(241,245,249,0.07); box-shadow: 0 0 0 3px rgba(129,140,248,0.22); outline: none; }
+.ts-field[aria-invalid='true'] { border-color: #FDBA74; }
+.ts-field option { color: #0F172A; }
+
+.ts-grad-light {
+  background: linear-gradient(135deg, #A5B4FC, #C4B5FD);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Mockup do WhatsApp */
+.ts-wa-chat {
+  background-color: #EFEAE2;
+  background-image: radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.ts-wa-bubble { position: relative; }
+.ts-wa-bubble::before {
+  content: ''; position: absolute; top: 0; left: -7px;
+  border-top: 8px solid #FFFFFF; border-left: 8px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts * { animation: none !important; transition: none !important; }
+}
