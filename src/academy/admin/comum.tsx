@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, BookOpen, LogOut, MessagesSquare, Receipt, ShieldAlert } from 'lucide-react';
+import { BarChart3, BookOpen, LineChart, LogOut, MessagesSquare, Receipt, ShieldAlert, Users } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display } from '../ui';
 import { AppLayout, Carregando } from '../AppLayout';
@@ -10,8 +10,10 @@ import { BotaoTema } from '../tema';
 /* Seções da área admin */
 const SECOES = [
   { para: '/admin',            texto: 'Visão geral', icone: BarChart3,      ativo: (r: string) => r === '/admin' },
+  { para: '/admin/metricas',   texto: 'Métricas',    icone: LineChart,      ativo: (r: string) => r === '/admin/metricas' },
   { para: '/admin/cursos',     texto: 'Cursos',      icone: BookOpen,       ativo: (r: string) => r.startsWith('/admin/curso') },
   { para: '/admin/vendas',     texto: 'Vendas',      icone: Receipt,        ativo: (r: string) => r === '/admin/vendas' },
+  { para: '/admin/leads',      texto: 'Leads',       icone: Users,          ativo: (r: string) => r === '/admin/leads' },
   { para: '/admin/comunidade', texto: 'Comunidade',  icone: MessagesSquare, ativo: (r: string) => r === '/admin/comunidade' },
 ];
 
@@ -28,22 +30,22 @@ export function AdminLayout({ nome, children }: { nome: string; children: React.
             <span className="text-[17px] font-bold" style={display}>Nexla <span style={{ color: T.accent }}>Academy</span></span>
             <span className="text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md" style={{ background: T.dark, color: '#FFFFFF' }}>Admin</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1 ml-6">
+          <nav className="hidden md:flex items-center gap-0.5 ml-4">
             {SECOES.map(s => {
               const ativo = s.ativo(rota);
               return (
-                <Link key={s.para} para={s.para} className="inline-flex items-center gap-2 px-3.5 h-9 rounded-lg text-[14px] font-medium transition-colors hover:bg-slate-100"
+                <Link key={s.para} para={s.para} className="inline-flex items-center gap-2 px-3 h-9 rounded-lg text-[14px] font-medium whitespace-nowrap transition-colors hover:bg-slate-100"
                   style={{ color: ativo ? T.ink : T.mute, background: ativo ? 'rgba(79,70,229,0.08)' : undefined }}>
-                  <s.icone size={16} strokeWidth={1.75} /> {s.texto}
+                  <s.icone size={16} strokeWidth={1.75} className="hidden xl:block" /> {s.texto}
                 </Link>
               );
             })}
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <BotaoTema />
-            <span className="hidden sm:block text-[14px] font-medium max-w-[12rem] truncate" style={{ color: T.ink2 }}>{nome}</span>
-            <button onClick={sair} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
-              <LogOut size={15} strokeWidth={1.75} /> Sair
+            <span className="hidden xl:block text-[14px] font-medium max-w-[12rem] truncate" style={{ color: T.ink2 }}>{nome}</span>
+            <button onClick={sair} title="Sair" aria-label="Sair" className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
+              <LogOut size={15} strokeWidth={1.75} /> <span className="md:hidden xl:inline">Sair</span>
             </button>
           </div>
         </div>

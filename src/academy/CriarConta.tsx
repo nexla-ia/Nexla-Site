@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User, Phone, PlayCircle, LineChart, Award, Check } from 'lucide-react';
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor, soDigitos, mascaraWhats } from './ui';
 import { Link, parametro, BASE } from './router';
+import { lerOrigem } from './rastreio';
 
 /* Mantém o ?voltar= (ex.: /comprar/curso) ao alternar entre entrar e criar conta */
 const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
@@ -73,7 +74,8 @@ export default function CriarConta() {
       password: senha,
       options: {
         emailRedirectTo: `${window.location.origin}/academy${/^\/[\w\-/]*$/.test(parametro('voltar') ?? '') ? parametro('voltar') : '/painel'}`,
-        data: { nome: nome.trim(), whatsapp: `55${soDigitos(whats)}`, consentimento_marketing: marketing },
+        // utm: de onde a pessoa veio na primeira visita (vai para o perfil e para as métricas)
+        data: { nome: nome.trim(), whatsapp: `55${soDigitos(whats)}`, consentimento_marketing: marketing, utm: lerOrigem() },
       },
     });
     setCriando(false);

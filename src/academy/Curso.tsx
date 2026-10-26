@@ -10,6 +10,7 @@ import Comunidade from './Comunidade';
 import Avaliacao from './Avaliacao';
 import PaginaCurso from './PaginaCurso';
 import VideoAula from './Video';
+import { registrarAula } from './rastreio';
 import { BotaoTema } from './tema';
 
 type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
@@ -284,6 +285,12 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
       ?? curso.aulas.find(a => !dados.feitas.has(a.id) && pode(a.id))
       ?? curso.aulas[0];
   }, [curso, aulaId, dados]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Funil "onde os alunos abandonam": registra cada aula aberta (não conta o admin)
+  useEffect(() => {
+    if (!aula || !curso || !dados || dados === 'nao-encontrado' || dados.admin) return;
+    if (dados.matriculado || aula.gratuita) registrarAula(sessao.user.id, curso.id, aula.id);
+  }, [aula?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (dados === null) return <AppLayout nome=""><Carregando /></AppLayout>;
   // Quem não comprou vê a página de apresentação (sem a grade do curso), com só o 1º vídeo

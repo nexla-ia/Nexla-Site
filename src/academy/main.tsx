@@ -14,11 +14,14 @@ import AdminCurso from './admin/AdminCurso';
 import VisaoGeral from './admin/VisaoGeral';
 import AdminComunidade from './admin/AdminComunidade';
 import AdminVendas from './admin/Vendas';
+import AdminMetricas from './admin/Metricas';
+import AdminLeads from './admin/Leads';
 import { Carregando } from './AppLayout';
 import { useRota, navegar, parametro } from './router';
 import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado } from './supabase';
 import { iniciarTema } from './tema';
 import Legal from './Legal';
+import { capturarOrigem, registrarVisita, salvarOrigemNoPerfil } from './rastreio';
 import '../index.css';
 import './academy.css';
 
@@ -34,6 +37,7 @@ const TITULOS: Record<string, string> = {
   '/termos': 'Termos de uso', '/privacidade': 'Política de privacidade',
   '/perfil': 'Meu perfil', '/certificados': 'Meus certificados', '/cursos': 'Explorar cursos',
   '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin', '/admin/vendas': 'Vendas · Admin',
+  '/admin/metricas': 'Métricas · Admin', '/admin/leads': 'Leads · Admin',
 };
 
 /* Para onde ir depois de entrar: o ?voltar= (só caminhos internos da Academy) ou o padrão */
@@ -67,6 +71,13 @@ function Academy() {
     if (sessao && admin && !telaAcesso && !publica && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
   }, [sessao, telaAcesso, publica, admin, rota]);
 
+  // Funil: registra a visita de cada página (menos de quem é admin e da área admin)
+  useEffect(() => {
+    if (sessao === undefined || (sessao && admin === undefined) || admin || rota.startsWith('/admin')) return;
+    registrarVisita(rota, sessao?.user.id);
+    if (sessao) salvarOrigemNoPerfil(sessao.user.id);
+  }, [rota, sessao, admin]);
+
   useEffect(() => {
     document.title = `${TITULOS[rota] ?? (curso ? 'Curso' : certificado ? 'Certificado' : 'Nexla Academy')} | Nexla Academy`;
   }, [rota, curso, certificado]);
@@ -83,6 +94,8 @@ function Academy() {
   if (rota === '/admin') return <VisaoGeral sessao={sessao} />;
   if (rota === '/admin/cursos') return <AdminCursos sessao={sessao} />;
   if (rota === '/admin/vendas') return <AdminVendas sessao={sessao} />;
+  if (rota === '/admin/metricas') return <AdminMetricas sessao={sessao} />;
+  if (rota === '/admin/leads') return <AdminLeads sessao={sessao} />;
   if (rota === '/admin/comunidade') return <AdminComunidade sessao={sessao} />;
   if (adminCurso) return <AdminCurso key={adminCurso} sessao={sessao} id={adminCurso} />;
   if (comprar) return <Comprar key={comprar} sessao={sessao} slug={comprar} />;
@@ -109,6 +122,7 @@ function NaoConfigurado() {
 }
 
 iniciarTema();
+capturarOrigem(); // origem (UTM) da primeira visita
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {supabaseConfigurado ? <Academy /> : <NaoConfigurado />}

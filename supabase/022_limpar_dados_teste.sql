@@ -36,6 +36,11 @@ delete from public.academy_lessons;
 delete from public.academy_modules;
 delete from public.academy_courses;
 
+-- Visitas registradas durante os testes (a tabela só existe depois do 023)
+do $$ begin
+  if to_regclass('public.academy_events') is not null then delete from public.academy_events; end if;
+end $$;
+
 commit;
 
 -- Conferência: tudo deve voltar 0
