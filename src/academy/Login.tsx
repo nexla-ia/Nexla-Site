@@ -17,9 +17,14 @@ export default function Login() {
   const [verSenha, setVerSenha] = useState(false);
   const [erro, setErro] = useState('');
   // Desconectado porque a conta entrou em outro dispositivo? Mostra o motivo uma vez.
-  const [aviso, setAviso] = useState(() => lerAvisoOutroDispositivo()
-    ? 'Sua conta foi acessada em outro dispositivo, por isso este foi desconectado. Cada conta fica conectada em um dispositivo por vez.'
-    : '');
+  const [aviso, setAviso] = useState(() => {
+    let excluida = false;
+    try { excluida = sessionStorage.getItem('nexla_conta_excluida') === '1'; sessionStorage.removeItem('nexla_conta_excluida'); } catch { /* sem armazenamento */ }
+    if (excluida) return 'Sua conta e os seus dados foram excluídos da Nexla Academy.';
+    return lerAvisoOutroDispositivo()
+      ? 'Sua conta foi acessada em outro dispositivo, por isso este foi desconectado. Cada conta fica conectada em um dispositivo por vez.'
+      : '';
+  });
 
   const [entrando, setEntrando] = useState(false);
 

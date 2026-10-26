@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, MessageCircle, Monitor, Moon, Phone, Sun, User } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, Lock, Mail, MessageCircle, Monitor, Moon, Phone, Sun, Trash2, User } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { supabase, erroAuth } from './supabase';
-import { Link } from './router';
+import { Link, navegar } from './router';
 import { useTema, type Tema } from './tema';
 
 const WHATSAPP_NEXLA = '556999300101';
@@ -64,6 +64,78 @@ function Aparencia() {
         );
       })}
     </div>
+  );
+}
+
+/* Excluir a própria conta (LGPD): confirma com a senha e digitando EXCLUIR */
+function ExcluirConta({ sessao }: { sessao: Session }) {
+  const [aberto, setAberto] = useState(false);
+  const [senha, setSenha] = useState('');
+  const [palavra, setPalavra] = useState('');
+  const [excluindo, setExcluindo] = useState(false);
+  const [erro, setErro] = useState('');
+  const pode = senha.length > 0 && palavra.trim().toUpperCase() === 'EXCLUIR' && !excluindo;
+
+  const excluir = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pode) return;
+    setErro(''); setExcluindo(true);
+    // Confirma que é mesmo o dono da conta
+    const { error: erroSenha } = await supabase.auth.signInWithPassword({ email: sessao.user.email ?? '', password: senha });
+    if (erroSenha) { setExcluindo(false); return setErro('Senha incorreta.'); }
+    const { data, error } = await supabase.functions.invoke('academy-excluir-conta', { body: { confirmacao: 'EXCLUIR' } });
+    if (error || !data?.ok) {
+      let codigo = '';
+      try { codigo = ((await (error as { context?: Response })?.context?.json()) ?? {}).erro ?? ''; } catch { /* sem corpo */ }
+      setExcluindo(false);
+      return setErro(codigo === 'admin' ? 'Contas de administrador não podem ser excluídas por aqui.' : 'Não foi possível excluir a conta agora. Tente de novo ou fale com a gente pelo WhatsApp.');
+    }
+    try { sessionStorage.setItem('nexla_conta_excluida', '1'); } catch { /* sem armazenamento */ }
+    await supabase.auth.signOut({ scope: 'local' });
+    navegar('/', { substituir: true });
+  };
+
+  if (!aberto) {
+    return (
+      <button onClick={() => setAberto(true)}
+        className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] text-[14px] font-semibold transition-colors hover:bg-red-50"
+        style={{ color: 'var(--a-red)', border: '1px solid rgba(185,28,28,0.25)' }}>
+        <Trash2 size={16} strokeWidth={1.75} /> Excluir minha conta
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={excluir} noValidate className="rounded-2xl p-5 space-y-4" style={{ border: '1px solid rgba(185,28,28,0.3)', background: 'rgba(239,68,68,0.05)' }}>
+      <p className="inline-flex items-center gap-2 font-semibold text-[15px]" style={{ color: 'var(--a-red)' }}>
+        <AlertTriangle size={18} strokeWidth={2} /> Isso não pode ser desfeito
+      </p>
+      <ul className="space-y-1.5 text-[14px] leading-relaxed" style={{ color: T.ink2 }}>
+        <li>• Você perde o acesso a <strong>todos os cursos</strong>, inclusive os comprados.</li>
+        <li>• Seu progresso, comentários, avaliações e certificados são apagados (os códigos de validação deixam de valer).</li>
+        <li>• Excluir a conta não gera reembolso. Se comprou há menos de 7 dias e quer o dinheiro de volta, peça o reembolso antes pelo WhatsApp.</li>
+        <li>• Os registros de compra ficam guardados sem os seus dados pessoais, porque a lei exige.</li>
+      </ul>
+      <Campo label="Sua senha" icon={Lock}>
+        <input type="password" className={campoCls} value={senha} onChange={e => setSenha(e.target.value)} autoComplete="current-password" placeholder="Para confirmar que é você" />
+      </Campo>
+      <label className="block">
+        <span className="block text-[13.5px] font-semibold mb-1.5" style={{ color: T.ink2 }}>Digite <strong>EXCLUIR</strong> para confirmar</span>
+        <input className="acad-field w-full h-12 rounded-[10px] px-4 text-[15px] uppercase" value={palavra} onChange={e => setPalavra(e.target.value)} placeholder="EXCLUIR" autoComplete="off" />
+      </label>
+      <Mensagem erro={erro} aviso="" />
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" disabled={!pode}
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white disabled:opacity-45 disabled:cursor-not-allowed"
+          style={{ background: '#DC2626' }}>
+          <Trash2 size={16} strokeWidth={2} /> {excluindo ? 'Excluindo…' : 'Excluir minha conta para sempre'}
+        </button>
+        <button type="button" onClick={() => { setAberto(false); setSenha(''); setPalavra(''); setErro(''); }}
+          className="h-11 px-4 rounded-[10px] text-[14px] font-medium transition-colors hover:bg-slate-100" style={{ color: T.ink2 }}>
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -182,16 +254,16 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             </form>
           </Secao>
 
-          <Secao titulo="Seus dados (LGPD)" sub="Você pode pedir a exclusão da sua conta e dos seus dados a qualquer momento.">
+          <Secao titulo="Seus dados (LGPD)" sub="Você pode excluir a sua conta e os seus dados a qualquer momento.">
             <p className="text-[14px] leading-relaxed mb-4" style={{ color: T.ink2 }}>
-              Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados. Para pedir a exclusão, fale com a gente.
+              Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados.
               {' '}Veja como cuidamos dos seus dados na <Link para="/privacidade" className="font-medium underline underline-offset-2" style={{ color: T.accent }}>Política de privacidade</Link>.
             </p>
-            <a href={`https://wa.me/${WHATSAPP_NEXLA}?text=${encodeURIComponent(`Olá! Quero excluir minha conta da Nexla Academy (${sessao.user.email}).`)}`}
+            <ExcluirConta sessao={sessao} />
+            <a href={`https://wa.me/${WHATSAPP_NEXLA}?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre os meus dados na Nexla Academy (${sessao.user.email}).`)}`}
               target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 h-11 px-4 rounded-[10px] text-[14px] font-semibold transition-colors hover:bg-red-50"
-              style={{ color: 'var(--a-red)', border: '1px solid rgba(185,28,28,0.25)' }}>
-              <MessageCircle size={16} strokeWidth={1.75} /> Pedir exclusão da conta
+              className="flex w-fit items-center gap-1.5 mt-4 text-[13.5px] font-medium hover:underline underline-offset-4" style={{ color: T.mute }}>
+              <MessageCircle size={15} strokeWidth={1.75} /> Prefere falar com a gente? WhatsApp
             </a>
           </Secao>
         </div>

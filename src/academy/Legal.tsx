@@ -163,7 +163,7 @@ const PRIVACIDADE = (): Secao[] => [
       'revogar o consentimento e pedir a eliminação dos dados tratados com base nele;',
       'pedir a exclusão da sua conta.',
     ],
-    `Para exercer esses direitos, use Meu perfil → Seus dados (LGPD) ou fale com a gente ${canais()}. Respondemos em até 15 dias. Você também pode apresentar reclamação à ANPD.`,
+    `Para excluir a conta, use Meu perfil → Seus dados (LGPD) → Excluir minha conta: a exclusão é feita na hora, e os registros de compra ficam guardados sem os seus dados pessoais pelo prazo legal. Para os demais direitos, fale com a gente ${canais()}. Respondemos em até 15 dias. Você também pode apresentar reclamação à ANPD.`,
   ] },
   { id: 'cookies', titulo: 'Cookies e armazenamento no navegador', blocos: [
     'A Academy usa o armazenamento do navegador para manter você conectado, lembrar preferências (como o modo claro ou escuro e o modo teatro do player) e guardar um código anônimo e a origem da sua primeira visita, usados nas nossas próprias métricas.',
