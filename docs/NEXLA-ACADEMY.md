@@ -1,158 +1,148 @@
 # Nexla Academy: onde paramos
 
 Documento de passagem para continuar o desenvolvimento. Base: o briefing "Plataforma de Cursos Nexla" (19/10/2026).
-Última atualização: 20/10/2026.
+Última atualização: 26/10/2026.
 
 ## Situação em uma frase
 
-A área do aluno está pronta e funcionando com o Supabase: login, painel, curso, certificado, perfil, vitrine, comunidade, avaliações e área admin. **A venda funciona com o Mercado Pago (Checkout Pro), em modo de teste.** Ainda não existe vídeo de verdade (Bunny), e-mails automáticos nem métricas de funil.
+**A plataforma está pronta para lançar.** Já funcionam:
+- **Acesso:** login com e-mail e com Google, recuperação de senha e exclusão da conta pelo aluno.
+- **Estudo:** vídeos protegidos no Bunny, certificado com validação pública e área admin completa.
+- **Venda:** com o Mercado Pago, em produção.
+- **Avisos e medição:** e-mails automáticos pelo n8n, métricas do funil, Meta Pixel, termos e privacidade.
+
+Falta o conteúdo: gravar e cadastrar os cursos reais. Falta também testar uma compra paga com reembolso.
 
 ## Onde está o código
 
-- **Branch:** `feat/academy`. Não foi enviada (sem push) nem juntada na `main`.
-- **Endereço:** `nexla.com.br/academy`, com entrada própria e separada do site: `academy/index.html` + `src/academy/`.
-- **Banco:** Supabase, com as tabelas prefixadas `academy_` para não conflitar com outros sistemas no mesmo projeto. Os scripts estão em `supabase/`.
+- **Branch:** `main`, publicada na Vercel (projeto `nexla-oficial`). A antiga `feat/academy` já foi juntada.
+- **Endereço:** `nexla.com.br/academy`, com entrada própria e separada do site: `academy/index.html` + `src/academy/`. O menu do site tem o item "Academy".
+- **Banco:** Supabase `lyvknbggtimdivywfeys`. As tabelas da Academy têm o prefixo `academy_`.
+  - O projeto é **compartilhado com outro sistema da Nexla**, que é dono da tabela `public.profiles`.
+  - **Não mexer** nas tabelas desse sistema nem no **Site URL** do Auth (`http://localhost:3000`).
+- **Edge Functions** (`supabase/functions/`):
+
+| Função | O que faz |
+|---|---|
+| `academy-checkout` | Cria o pedido (preço sempre do banco) e a preferência do Mercado Pago. Curso grátis libera direto. Cancela pedidos pendentes abandonados |
+| `academy-webhook-mp` | Recebe o aviso do Mercado Pago, confere o pagamento na API (com assinatura), libera ou tira o acesso e manda a compra para a API de Conversões do Meta |
+| `academy-video` | Confere se o aluno pode ver a aula (RLS) e devolve o link assinado do player do Bunny (vale 4 h) |
+| `academy-excluir-conta` | O aluno exclui a própria conta. Pedidos ficam anônimos e o login só sai se não for usado pelo outro sistema |
+
+Para publicar: `npx supabase@2.121.0 functions deploy <nome> --project-ref lyvknbggtimdivywfeys --use-api`. O `academy-webhook-mp` leva também `--no-verify-jwt`.
 
 ### Mapa dos arquivos (`src/academy/`)
 
 | Arquivo | O que faz |
 |---|---|
-| `main.tsx` | Rotas e proteção: deslogado vai para o login; logado em tela pública vai para o painel |
+| `main.tsx` | Rotas e proteção. Deslogado vai para o login, admin vai para `/admin`, conta nova pelo Google vai para "Complete seu cadastro". Registra visitas e o Pixel |
 | `router.tsx` | Roteador próprio com base `/academy` (`navegar`, `Link`, `useRota`) |
-| `supabase.ts` | Cliente Supabase (só chave anon), sessão, mensagens de erro em português e `CERTIFICADO_MIN = 90` |
-| `dados.ts` | Carrega os cursos do aluno, o progresso, a vitrine e as médias de estrelas (usado no painel, em Explorar e em Certificados) |
-| `ui.tsx` / `AppLayout.tsx` | Visual comum: telas de acesso, topo com menu do perfil, barras de progresso |
-| `Login.tsx`, `CriarConta.tsx` | Entrar e cadastrar (nome, e-mail, WhatsApp, senha, termos e consentimento de marketing) |
-| `Painel.tsx` | Boas-vindas, resumo, "Continue de onde parou", meus cursos, "Você também pode gostar" |
-| `Curso.tsx` | Aulas, marcar como concluída, materiais, comunidade, parabéns ao concluir, pedido de avaliação |
-| `Certificado.tsx`, `certificadoCanvas.ts`, `Certificados.tsx` | Certificado em PDF/PNG a partir de 90% e a lista de certificados |
-| `Explorar.tsx` | Vitrine de todos os cursos publicados |
-| `Perfil.tsx` | Dados pessoais, senha e pedido de exclusão (LGPD) |
+| `supabase.ts` | Cliente Supabase (só chave anon), sessão, 1 dispositivo por conta, `entrarComGoogle` e `CERTIFICADO_MIN = 100` |
+| `Login.tsx`, `CriarConta.tsx` | Entrar e cadastrar com e-mail ou Google |
+| `CompletarCadastro.tsx` | Primeiro acesso pelo Google: nome, WhatsApp, aceite dos termos e marketing |
+| `Recuperar.tsx` | "Esqueci minha senha" (`/recuperar`) e criação da senha nova pelo link do e-mail (`/nova-senha`) |
+| `AppLayout.tsx`, `ui.tsx`, `tema.tsx` | Menu lateral do aluno, telas de acesso e modo claro/escuro (claro é o padrão) |
+| `Painel.tsx` | Meus cursos, "Continue de onde parou" e sugestões |
+| `Explorar.tsx` | Catálogo com busca, filtros laterais (mostrar, categoria, nível), ordenação, cadeado e selo "Em breve" |
+| `PaginaCurso.tsx` | Página de vendas pública: preço, instrutor, ferramentas, bônus, FAQ e "mais comprados" |
+| `Compra.tsx` | Tela de compra (oferta extra e cupom), retorno do pagamento e liberação de curso grátis |
+| `Curso.tsx`, `Video.tsx` | Tela da aula (modelo Alura): lista lateral, modo teatro (tecla T) e próxima aula automática. O player do Bunny tem marca d'água com o e-mail e retoma de onde parou |
+| `Certificado.tsx`, `certificadoCanvas.ts`, `Certificados.tsx` | Certificado em PDF/PNG com código registrado no banco |
+| `Validar.tsx` | Página pública `/validar/:codigo` para conferir um certificado |
+| `Perfil.tsx` | Dados, senha, aparência e exclusão da conta |
+| `Legal.tsx` | Termos de uso e Política de privacidade, com os dados da empresa |
 | `Comunidade.tsx`, `Avaliacao.tsx` | Comentários por aula e avaliação do curso com estrelas |
-| `admin/` | Área admin (só para `role = 'admin'`): **Visão geral** (alunos por curso, progresso, notas, cadastros), **Cursos** (blocos; cada curso com as abas Aulas e Configurações: foto, textos, módulos, vitrine, certificado) e **Comunidade** (comentários das aulas, com resposta como instrutor, e avaliações dos cursos). Cada curso tem as abas **Aulas**, **Alunos** (liberar/remover acesso por e-mail) e **Configurações** |
+| `rastreio.ts`, `pixel.ts` | Origem (UTM) da primeira visita, eventos do funil e Meta Pixel (`1410172823723220`) |
+| `admin/` | Menu lateral com Visão geral, Métricas, Cursos, Comunidade, Vendas e Leads. Os cursos têm aulas, alunos, configurações, venda (preço, curso gratuito, oferta extra), bônus, FAQ e instrutor |
 
-### Regras importantes (seguem o briefing)
+### Regras importantes
 
-- **O acesso ao curso é decidido só pela tabela `academy_enrollments`.** Aula marcada como `gratuita` abre para qualquer conta.
-- Tudo é protegido por **RLS** no banco. O site usa só a chave **anon**. A **service_role nunca vai para o front-end.**
-- O certificado libera com **90% das aulas concluídas** (regra ainda em definição no briefing).
+- **O acesso ao curso vem só do pagamento**, ou do curso marcado como gratuito. Reembolso ou estorno tira o acesso sozinho. O admin não remove o acesso de quem pagou.
+- Quem não comprou vê a página de vendas e só a 1ª aula (amostra, exige estar logado). A grade de aulas fica escondida.
+- Tudo é protegido por **RLS**. O site usa só a chave **anon**. A **service_role nunca vai para o front-end**.
+- **Certificado só com 100% das aulas concluídas.** O código fica salvo em `academy_certificates` e qualquer pessoa confere em `/validar`.
+- **1 dispositivo por conta:** ao entrar em outro aparelho, o anterior é desconectado.
 - Comentários: **só quem escreveu pode apagar**, nem o admin.
-- Avaliação: aparece **uma vez por curso**, ao concluir. Fechar no X não pergunta de novo.
-- **O acesso ao curso vem só do pagamento.** Quem não comprou vê a página de apresentação do curso, com só a 1ª aula (amostra). O pedido é criado pela Edge Function `academy-checkout` (preço sempre do banco) e o curso é liberado pela `academy-webhook-mp`, que confere o pagamento na API do Mercado Pago. Reembolso ou estorno tira o acesso sozinho.
-- **Conta admin usa só a área admin** (`/academy/admin`). Ao entrar, vai direto para lá; a única tela de aluno liberada é o "Ver como aluno" (`/curso/:slug`), com todas as aulas abertas. Admin não conta como aluno nos números.
+- **Conta admin usa só a área admin.** A única tela de aluno liberada é o "Ver como aluno" (`/curso/:slug`).
+- **Exclusão de conta (LGPD):** apaga progresso, comentários, avaliações, certificados e matrículas. Os pedidos ficam guardados sem os dados pessoais. Admin não se exclui por aqui.
 
 ## Como rodar no computador
 
-Para publicar as Edge Functions: `npx supabase functions deploy academy-checkout --project-ref lyvknbggtimdivywfeys --use-api` e `npx supabase functions deploy academy-webhook-mp --project-ref lyvknbggtimdivywfeys --use-api --no-verify-jwt` (a conta logada na CLI precisa ser membro da organização do projeto).
-
 1. Crie o arquivo `.env.local` a partir de `.env.example`, com a URL e a chave **anon** do Supabase. Esse arquivo não vai para o git.
 2. Rode `npm install` e depois `npm run dev`.
-3. Abra `http://localhost:5173/academy`.
+3. Abra `http://localhost:5173/academy`. Use a porta 5173, que é a liberada nas funções e no login.
 
-**Conta de teste:** `teste@nexla.com.br`. A senha **não está no repositório**: peça a quem criou a conta ou redefina em Supabase → Authentication → Users.
+**Conta de teste:** `teste@nexla.com.br`. A senha **não está no repositório**.
 
-## Scripts do banco (`supabase/`), rodar no SQL Editor em ordem
+## Scripts do banco (`supabase/`)
 
-| Arquivo | Para que serve | Situação |
-|---|---|---|
-| `001_academy.sql` | Tabelas, RLS, criação automática do perfil e os 2 cursos iniciais | rodado |
-| `002_acesso_teste.sql` | Matricula a conta de teste e cria um progresso de exemplo (rodar de novo zera o teste) | rodado |
-| `003_curso_extra.sql` | 3º curso de exemplo para a vitrine | rodado |
-| `004_cursos_demo.sql` | 7 cursos `demo-*` só para ver a vitrine cheia. **Apagar antes de lançar:** `delete from public.academy_courses where slug like 'demo-%';` | rodado |
-| `005_comunidade.sql` | Comentários e respostas por aula | rodado |
-| `006_avaliacoes.sql` | Avaliações com estrelas e média por curso | rodado |
-| `007_admin.sql` | Permissões de admin, tabela de materiais e bucket `academy-materiais` | rodado |
-| `008_tornar_admin.sql` / `009_tornar_aluno.sql` | Alterna a conta de teste entre admin e aluno | rodado (conta de teste está como admin) |
-| `010_config_curso.sql` | Campos de configuração do curso (descrição, categoria, nível, destaque, certificado, carga horária) e bucket `academy-capas` | rodado |
-| `011_admin_visao.sql` | Admin passa a ler perfis, progresso, matrículas e avaliações (Visão geral e Comunidade) | **conferir se foi rodado** |
-| `012_seguranca.sql` | Datas definidas pelo servidor, avaliação só após concluir, limite de 5 comentários/minuto, ID do vídeo fora do acesso público | **conferir se foi rodado** |
-| `014_vendas.sql` | Produtos (preço e oferta extra), cupons e pedidos | rodado |
-| `015_aula_amostra.sql` | A 1ª aula de cada curso vira amostra para quem não comprou | **conferir se foi rodado** |
-| `013_matricula_manual.sql` | Admin libera acesso por e-mail (ou deixa convite para quem ainda não tem conta), remove e reativa acesso | **conferir se foi rodado** |
+Todos foram rodados no SQL Editor, na ordem dos números, e podem ser rodados de novo sem erro. Exceção: o `022`, que apaga dados.
 
-Os scripts podem ser rodados de novo sem quebrar nada. A coluna "Situação" reflete o que foi informado nesta etapa. Confira no Supabase antes de seguir.
+| Arquivo | Para que serve |
+|---|---|
+| `001` a `010` | Tabelas, RLS, comunidade, avaliações, admin, materiais e configuração do curso (`002`–`004` e `008`/`009` eram só para testes) |
+| `011_admin_visao.sql` | Admin lê perfis, progresso, matrículas e avaliações |
+| `012_seguranca.sql` | Datas pelo servidor, avaliação só após concluir, limite de comentários, ID do vídeo fora do acesso público |
+| `013_matricula_manual.sql` / `016_sem_acesso_manual.sql` | Liberação manual por e-mail, depois restrita: o acesso vem só do pagamento |
+| `014_vendas.sql` | Produtos, cupons e pedidos |
+| `015_aula_amostra.sql` / `018_amostra_so_logado.sql` | 1ª aula como amostra, só para quem está logado |
+| `017_sessao_unica.sql` | 1 dispositivo por conta |
+| `019_bonus_faq.sql` / `021_pagina_curso.sql` | Bônus, FAQ, ferramentas, instrutor e "mais vendidos" na página de vendas |
+| `020_esconder_conteudo.sql` | Esconde a grade do curso de quem não comprou |
+| `022_limpar_dados_teste.sql` | **Já rodado.** Apagou os dados de teste. Não rodar de novo depois do lançamento |
+| `023_metricas_leads.sql` | E-mail e UTM no perfil, tabela de eventos, métricas do funil e lista de leads |
+| `024_certificados.sql` / `026_certificado_100.sql` | Registro e validação de certificados, regra dos 100% |
+| `025_meta_pixel.sql` | Dados do Pixel no pedido, para a API de Conversões |
+| `027_excluir_conta.sql` | Pedidos continuam guardados (anônimos) quando a conta é excluída |
 
-## Configurações pendentes (fora do código)
+## Configurações feitas fora do código
 
-- [ ] **Vercel → Environment Variables:** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. Sem elas, a Academy publicada não conecta.
-- [ ] **Supabase → Authentication → URL Configuration → Redirect URLs:** `http://localhost:5173/academy/**` e `https://www.nexla.com.br/academy/**`. Sem isso, o link de confirmação do cadastro não funciona.
-- [ ] **Gerar uma nova service_role** em Supabase → Settings → API. A chave atual foi compartilhada numa conversa.
-- [ ] O `vercel.json` (rewrite de `/academy/*`) é a primeira configuração da Vercel no projeto: conferir o primeiro deploy.
+**Supabase → Edge Functions → Secrets**
+- `MP_ACCESS_TOKEN`: produção.
+- `MP_WEBHOOK_SECRET`: confirmar que é a assinatura de produção no teste de compra.
+- `BUNNY_TOKEN_KEY`: chave do token do Bunny.
+- `BUNNY_LIBRARY_ID`: opcional, o padrão é a biblioteca "Aulas", `790467`.
+- `MP_SOMENTE_EMAILS`: **foi apagado**, então as vendas estão abertas a todos.
 
-## O que falta, na ordem das fases do briefing
+**Supabase → Authentication**
+- **SMTP próprio (Gmail):** `adm.nexla@gmail.com` com senha de app, remetente "Nexla Academy".
+- **Modelo "Reset Password"** em português (`supabase/emails/recuperar-senha.html`).
+- **Redirect URLs:** `https://www.nexla.com.br/academy/**`, `https://nexla.com.br/academy/**` e `http://localhost:5173/academy/**`.
+- **Provedor Google:** projeto "Nexla Academy" no Google Cloud, cliente "Cliente Web 1", app publicado (em produção). A tela do Google mostra o domínio `…supabase.co`, e isso foi aceito.
 
-### Fase 2: Conteúdo (em andamento)
-- [x] Painel admin de cursos, módulos e aulas, e materiais para baixar
-- [ ] **Decidir Bunny Stream ou Cloudflare Stream** (decisão em aberto)
-- [ ] Envio do vídeo pelo painel e player com **link assinado que expira**, via Supabase Edge Function. A chave do serviço de vídeo não pode ficar no front-end. Hoje a aula guarda só o `video_id`, e o player é um espaço reservado.
+**Supabase → Integrations → Database Webhooks**
+- Eles mandam os eventos para o n8n com o cabeçalho `x-nexla-segredo`:
+  - `avisos-cadastro`: `academy_profiles`, INSERT
+  - `avisos-pedidos`: `academy_orders`, UPDATE
+  - `avisos-certificados`: não é mais usado, pode ser apagado
 
-### Fase 3: Área do aluno
-- [ ] Marcar a aula como concluída **automaticamente ao fim do vídeo** (hoje é pelo botão)
-- [ ] Retomar o vídeo do segundo em que parou (`posicao_seg` já existe na tabela)
-- [ ] Proteção do vídeo: bloqueio de incorporação fora do domínio, marca d'água com o e-mail do aluno e limite de sessões simultâneas
+**n8n** (`n8n/academy-avisos.json`)
+- E-mails pelo Gmail (OAuth): boas-vindas, curso liberado (pago ou grátis), pagamento recusado, cancelado e reembolso.
+- Pix/boleto pendente e lembretes ficam com os e-mails do próprio Mercado Pago.
 
-### Fase 1: Base (pendências)
-- [ ] Login com Google (configurar no Google Cloud e no Supabase; hoje mostra o aviso "em breve")
-- [ ] "Esqueci minha senha" (precisa de uma tela para definir a nova senha)
+**Bunny Stream**
+- Biblioteca `790467` ("Aulas"), com link assinado (token de segurança).
+- O ID do vídeo vai em cada aula, no admin.
 
-### Fase 4: Venda (feita com Mercado Pago, em teste)
-- [x] Página de apresentação do curso, tela de compra com oferta extra e cupom, retorno com status
-- [x] Edge Functions `academy-checkout` e `academy-webhook-mp` publicadas (`supabase/functions/`); segredo `MP_ACCESS_TOKEN` no Supabase
-- [x] Admin: preço e oferta extra (Configurações → Venda) e seção Vendas (pedidos, faturamento, cupons)
-- [ ] **Antes de lançar:** trocar `MP_ACCESS_TOKEN` pelo token de **produção** (renovado) e fazer uma compra real com reembolso
-- [ ] Entregar a oferta extra (hoje ela é cobrada e registrada no pedido, mas o conteúdo do pacote ainda não é liberado sozinho)
-- [ ] Recuperação de Pix e boleto não pagos (e-mail/WhatsApp)
-- [ ] Nota fiscal (o Mercado Pago não emite como o Asaas; definir como emitir)
+## O que falta
 
-### Fase 4 (plano original com Asaas, substituído pelo Mercado Pago)
-- [ ] Página de vendas pública por curso (promessa, vídeo, módulos, bônus, garantia de 7 dias, perguntas frequentes), editável no admin
-- [ ] Tabelas `products`, `orders` e `coupons`
-- [ ] Checkout Asaas (Pix, cartão, boleto) e oferta extra
-- [ ] **Webhook do Asaas** (Edge Function) que confere a assinatura, não duplica avisos, cria a matrícula no pagamento e desativa no reembolso
-- [ ] Recuperação de Pix e boleto não pagos
-- [ ] Hoje, "Quero este curso" abre o WhatsApp da Nexla: trocar pelo checkout
+**Antes de abrir as vendas**
+- [ ] Gravar os vídeos e cadastrar os cursos reais: aulas, preço, capa, FAQ e instrutor.
+- [ ] Teste de compra paga real com reembolso. Conferir se o pedido vira "Pago", se o curso é liberado e se chega o e-mail "Seu curso foi liberado". Se o pedido ficar em "Pendente", revisar o `MP_WEBHOOK_SECRET`.
 
-### Fase 5: Comunicação
-- [ ] E-mails automáticos via Resend: boas-vindas, pagamento confirmado, Pix ou boleto pendente, recuperação de senha, certificado
-- [ ] n8n + Evolution: recuperação pelo WhatsApp, boas-vindas e avisos para a equipe
-- [ ] Avisar o aluno quando responderem o comentário dele
+**Depois**
+- [ ] `META_CAPI_TOKEN`: token da API de Conversões do Meta. O Pixel no navegador já funciona sem ele.
+- [ ] Entregar a oferta extra: hoje ela é cobrada e registrada no pedido, mas o conteúdo não é liberado sozinho.
+- [ ] Nota fiscal: o Mercado Pago não emite, falta definir como emitir.
+- [ ] Avisar o aluno quando responderem o comentário dele.
+- [ ] WhatsApp (n8n + Evolution) e GA4: não começados, hoje os avisos são só por e-mail.
+- [ ] Apagar o webhook `avisos-certificados` (opcional).
+- [ ] Conferir se a `service_role` foi renovada depois de ter sido compartilhada numa conversa antiga.
 
-### Fase 6: Medição
-- [ ] Gravar a **UTM** da primeira visita no cadastro (a coluna `academy_profiles.utm` já existe e está vazia)
-- [ ] Tabela `events`, Meta Pixel com API de Conversões e GA4
-- [ ] Painel de métricas do briefing (funil, conversões, ticket médio, vendas por origem)
-- [x] Admin: liberar ou remover acesso manualmente por e-mail (aba Alunos do curso)
-- [ ] Admin: lista de leads com filtros e exportação em CSV
+## Fora da Academy (site)
 
-### Fase 7: Lançamento
-- [ ] Páginas de **Termos de uso** e **Política de privacidade** (hoje são só texto no cadastro)
-- [ ] Tabela `certificates`, com o código salvo, e uma página pública para validar o código (hoje o código é calculado no navegador)
-- [ ] Apagar os cursos `demo-*` e os dados de teste
-- [ ] Teste de compra real com reembolso e checklist de segurança
-
-## Decisões em aberto (do briefing)
-- Nome, preço e formato da primeira turma da 5×2 (ao vivo ou workshop)
-- Bunny Stream ou Cloudflare Stream
-- Parcelamento no cartão: quantas vezes, com ou sem juros
-- Quais aulas ficam gratuitas como amostra
-- Quem desenvolve e o prazo de cada fase
-
-## Fora da Academy (site e página /5x2)
-
-- **Página inicial:** o slide do robô no carrossel leva para `/academy`. **Falta o item "Academy" no menu do site**, como pede o briefing.
-- **Página /5x2 (lista de espera):**
-  - o Meta Pixel está desligado (`META_PIXEL_ID` vazio em `src/lp5x2/Landing5x2.tsx`);
-  - o formulário não pede e-mail;
-  - faltam os links de termos e privacidade.
 - **Desempenho do site:**
   - as imagens "ChatGPT Image…" em `public/` têm de 1,6 a 2,8 MB cada: converter para WebP;
-  - os vídeos de depoimento estão duplicados em `public/` e `src/depoimentos/`;
-  - as animações `WaterRipples` da página inicial rodam o tempo todo, mesmo fora da tela.
+  - os vídeos de depoimento estão duplicados;
+  - as animações `WaterRipples` rodam mesmo fora da tela.
 - **Projeto dentro do OneDrive:** deixa o servidor local lento. O ideal é mover a pasta para fora do OneDrive.
-
-## Próximo passo sugerido
-
-1. Conferir se o `011` foi rodado (a Visão geral só mostra os números de todos os alunos depois dele).
-2. Fazer as configurações pendentes (Vercel e Redirect URLs).
-3. Decidir o serviço de vídeo e montar o player com link assinado (fase 2).
-4. Seguir para a venda com o Asaas (fase 4).
