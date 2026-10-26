@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
-  ArrowRight, ArrowLeft, Check, CheckCheck, ChevronDown, Loader2, Plus, UserPlus, ScanSearch, Sunrise,
+  ArrowRight, ArrowLeft, Check, CheckCheck, ChevronDown, Loader2, Plus, Sun,
   MessageCircle, Instagram, Globe, Video, Phone, MoreVertical, Smile, Paperclip, Camera, Mic,
 } from 'lucide-react';
 
@@ -15,13 +15,12 @@ const WHATSAPP      = '556999300101';
 /* ─── Paleta (a mesma do site e da /5x2) ───────────────────────── */
 const T = {
   paper: '#F1F5F9', paper2: '#E7ECF4', card: '#FFFFFF',
-  ink: '#0F172A', ink2: '#1E293B', mute: '#475569', rule: 'rgba(15,23,42,0.10)',
-  accent: '#4F46E5', violet: '#7C3AED',
+  ink: '#0F172A', ink2: '#1E293B', mute: '#475569', rule: 'rgba(15,23,42,0.12)',
+  accent: '#4F46E5', violet: '#7C3AED', coral: '#F97316', dawn: '#FDBA74',
   dark: '#0F172A', dark2: '#1E293B', darkText: '#F1F5F9',
-  darkMute: 'rgba(241,245,249,0.68)', darkRule: 'rgba(241,245,249,0.12)',
+  darkMute: 'rgba(241,245,249,0.66)', darkRule: 'rgba(241,245,249,0.14)',
   wa: '#25D366',
 } as const;
-const GRAD = `linear-gradient(135deg, ${T.accent}, ${T.violet})`;
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const fadeUp = {
@@ -30,6 +29,11 @@ const fadeUp = {
 };
 const vp = { once: true, margin: '-60px' } as const;
 const WRAP = 'max-w-[1180px] mx-auto px-5 md:px-10';
+
+/* Linha de data do cabeçalho: a data de hoje (por extenso no desktop, curta no celular) */
+const capitaliza = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const DATA_HOJE  = capitaliza(new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()));
+const DATA_CURTA = capitaliza(new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date()).replace(/\./g, ''));
 
 /* ─── Dados ────────────────────────────────────────────────────── */
 const SEGMENTOS = [
@@ -53,25 +57,30 @@ const MENSAGEM: Linha[] = [
   { t: '✅ *Pra fazer hoje:* revise as etiquetas das ofertas da Black Friday.', espaco: true },
 ];
 
+const TICKER = [
+  'Governo', 'Vilhena e Rondônia', 'Seu setor', 'Pra fazer hoje',
+  'Todo dia útil às 7h', '1 mensagem por dia', 'Link da fonte em toda notícia',
+];
+
 const PASSOS = [
-  { icon: UserPlus,   t: 'Você se cadastra em 30 segundos', d: 'Nome, WhatsApp e o segmento da sua empresa. Sem cartão.' },
-  { icon: ScanSearch, t: 'A IA lê dezenas de fontes por você toda madrugada', d: 'Governo, portais de notícia e fontes do seu setor. Fica só o que mexe com o seu negócio.' },
-  { icon: Sunrise,    t: 'Às 7h chega só o que importa pro seu negócio', d: 'Um resumo curto no WhatsApp, com o link da fonte em cada notícia.' },
+  { hora: 'Agora',     t: 'Você se cadastra em 30 segundos',                 d: 'Nome, WhatsApp e o segmento da sua empresa. Sem cartão.' },
+  { hora: 'Madrugada', t: 'A IA lê dezenas de fontes por você toda madrugada', d: 'Governo, portais de notícia e fontes do seu setor. Fica só o que mexe com o seu negócio.' },
+  { hora: '07:00',     t: 'Às 7h chega só o que importa pro seu negócio',     d: 'Um resumo curto no WhatsApp, com o link da fonte em cada notícia.' },
 ];
 
 const RECEBE = [
-  { e: '🏛️', t: 'Governo',              d: 'Leis, impostos e prazos que valem para a sua empresa.' },
-  { e: '📍', t: 'Vilhena e Rondônia',   d: 'O que a prefeitura e o estado decidem e muda o seu dia a dia.' },
-  { e: '📰', t: 'Seu setor',            d: 'Notícias do comércio, da alimentação ou de serviços e saúde.' },
-  { e: '✅', t: 'Pra fazer hoje',       d: 'Uma ação prática por dia, pra transformar a notícia em atitude.' },
+  { e: '🏛️', t: 'Governo',            d: 'Leis, impostos e prazos que valem para a sua empresa.' },
+  { e: '📍', t: 'Vilhena e Rondônia', d: 'O que a prefeitura e o estado decidem e muda o seu dia a dia.' },
+  { e: '📰', t: 'Seu setor',          d: 'Notícias do comércio, da alimentação ou de serviços e saúde.' },
+  { e: '✅', t: 'Pra fazer hoje',     d: 'Uma ação prática por dia, pra transformar a notícia em atitude.' },
 ];
 
 const FAQ = [
-  { q: 'Vai lotar meu WhatsApp?',        a: 'Não. É 1 mensagem por dia útil, às 7h, que se lê em 1 minuto.' },
-  { q: 'De onde vêm as notícias?',       a: 'De portais de notícia, órgãos do governo e fontes do seu setor. Toda notícia tem o link da fonte.' },
-  { q: 'Tem política?',                  a: 'Não. A gente ignora política partidária, crime e fofoca. Só entra o que muda algo prático no seu negócio.' },
-  { q: 'Como cancelo?',                  a: 'Responde SAIR a qualquer momento.' },
-  { q: 'Preciso cadastrar cartão?',      a: 'Não, o 1º mês é grátis e sem cartão.' },
+  { q: 'Vai lotar meu WhatsApp?',   a: 'Não. É 1 mensagem por dia útil, às 7h, que se lê em 1 minuto.' },
+  { q: 'De onde vêm as notícias?',  a: 'De portais de notícia, órgãos do governo e fontes do seu setor. Toda notícia tem o link da fonte.' },
+  { q: 'Tem política?',             a: 'Não. A gente ignora política partidária, crime e fofoca. Só entra o que muda algo prático no seu negócio.' },
+  { q: 'Como cancelo?',             a: 'Responde SAIR a qualquer momento.' },
+  { q: 'Preciso cadastrar cartão?', a: 'Não, o 1º mês é grátis e sem cartão.' },
 ];
 
 /* ─── Utilidades (mesma lógica da /5x2) ─────────────────────────── */
@@ -133,25 +142,26 @@ const scrollToForm = () =>
   document.getElementById('cadastro')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 /* ─── Componentes base ─────────────────────────────────────────── */
-function SectionLabel({ n, children, dark = false }: { n: string; children: React.ReactNode; dark?: boolean }) {
+/* Cabeçalho de seção estilo jornal: régua grossa, número à esquerda, nome à direita */
+function Secao({ n, titulo, dark = false }: { n: string; titulo: string; dark?: boolean }) {
+  const cor = dark ? T.darkText : T.ink;
   return (
-    <div className="flex items-center gap-4 mb-8">
-      <span className="ts-mono text-[11px] uppercase tracking-[0.16em] whitespace-nowrap" style={{ color: dark ? T.darkMute : T.mute }}>
-        {n} <span className="mx-1.5 opacity-50">/</span> {children}
-      </span>
-      <span className="flex-1 h-px" style={{ background: dark ? T.darkRule : T.rule }} />
+    <div className="flex items-baseline justify-between gap-4 pt-3 ts-mono text-[11px] uppercase tracking-[0.18em]"
+      style={{ borderTop: `3px solid ${cor}`, color: dark ? T.darkMute : T.mute }}>
+      <span style={{ color: cor }}>Nº {n}</span>
+      <span>{titulo}</span>
     </div>
   );
 }
 
-const Arrow = ({ size = 17 }: { size?: number }) => <ArrowRight size={size} strokeWidth={1.75} className="ts-arrow" />;
+const Arrow = ({ size = 17 }: { size?: number }) => <ArrowRight size={size} strokeWidth={2} className="ts-arrow" />;
 
 function PrimaryBtn({ children, onClick, type = 'button', disabled = false, full = false }: {
   children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; full?: boolean;
 }) {
   return (
     <button type={type} onClick={onClick} disabled={disabled} data-tone="accent"
-      className={`ts-btn inline-flex items-center justify-center gap-2.5 px-6 h-[54px] rounded-xl font-semibold text-[15.5px] disabled:opacity-60 disabled:cursor-not-allowed ${full ? 'w-full' : ''}`}>
+      className={`ts-btn inline-flex items-center justify-center gap-2.5 px-7 h-[54px] rounded-full font-semibold text-[15.5px] disabled:opacity-60 disabled:cursor-not-allowed ${full ? 'w-full' : ''}`}>
       {children}
     </button>
   );
@@ -175,8 +185,7 @@ function FormatoWA({ t }: { t: string }) {
 function Celular() {
   return (
     <div className="relative mx-auto w-full max-w-[340px]">
-      <div className="absolute -inset-6 rounded-[56px] blur-3xl opacity-30 pointer-events-none" style={{ background: GRAD }} />
-      <div className="relative rounded-[44px] p-[10px]" style={{ background: '#111827', boxShadow: '0 40px 80px -30px rgba(15,23,42,0.55)' }}>
+      <div className="relative rounded-[44px] p-[10px]" style={{ background: '#111827', boxShadow: '0 50px 90px -40px rgba(15,23,42,0.6), 0 0 0 1px rgba(255,255,255,0.08) inset' }}>
         <div className="relative rounded-[36px] overflow-hidden flex flex-col h-[680px]" style={{ background: '#EFEAE2' }}>
           {/* Barra de status */}
           <div className="flex items-center justify-between px-6 pt-3 pb-1 text-[12px] font-semibold text-white" style={{ background: T.wa }}>
@@ -201,7 +210,7 @@ function Celular() {
               HOJE
             </div>
             <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.6, ease }}
+              transition={{ duration: 0.6, delay: 0.7, ease }}
               className="ts-wa-bubble max-w-[92%] rounded-lg rounded-tl-none px-2.5 pt-2 pb-1.5 text-[12.5px] leading-[1.42] shadow-sm"
               style={{ background: '#FFFFFF', color: '#111B21' }}>
               {MENSAGEM.map((l, i) => (
@@ -241,13 +250,14 @@ const MSG_ERRO: Record<Exclude<CampoErro, 'geral'>, string> = {
   segmento: 'Escolha o segmento da sua empresa.',
   aceite: 'Marque para receber o Tá Sabendo AI no WhatsApp.',
 };
+const ERRO_COR = '#C2410C';
 
 function Campo({ label, erro, children, className = '' }: { label: string; erro?: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="block ts-mono text-[10.5px] uppercase tracking-[0.14em] mb-2" style={{ color: T.darkMute }}>{label}</span>
+      <span className="block ts-mono text-[10.5px] uppercase tracking-[0.16em] mb-1" style={{ color: T.mute }}>{label}</span>
       {children}
-      {erro && <span className="block text-[13px] mt-1.5" style={{ color: '#FDBA74' }} role="alert">{erro}</span>}
+      {erro && <span className="block text-[13px] mt-1.5" style={{ color: ERRO_COR }} role="alert">{erro}</span>}
     </label>
   );
 }
@@ -317,78 +327,78 @@ function Formulario() {
 
   if (status === 'ok') {
     return (
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="py-4" role="status">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="py-2" role="status">
         <div className="w-12 h-12 rounded-full flex items-center justify-center mb-6"
-          style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)' }}>
-          <Check size={22} strokeWidth={2.5} color="#4ADE80" />
+          style={{ background: 'rgba(34,197,94,0.12)', border: `1.5px solid ${T.ink}` }}>
+          <Check size={22} strokeWidth={2.5} color="#15803D" />
         </div>
-        <h3 className="ts-display text-[28px] md:text-[32px] leading-[1.12] mb-4" style={{ color: T.darkText }}>
+        <h3 className="ts-display text-[28px] md:text-[32px] leading-[1.1] mb-4" style={{ color: T.ink }}>
           Pronto, {nome.trim().split(/\s+/)[0]}! Olha seu WhatsApp: a primeira edição já está chegando.
         </h3>
-        <p className="text-[16px] leading-relaxed" style={{ color: T.darkMute }}>
+        <p className="text-[16px] leading-relaxed" style={{ color: T.ink2 }}>
           Salva o número nos contatos pra não perder nenhuma.
         </p>
       </motion.div>
     );
   }
 
-  const field = 'ts-field w-full h-12 px-3.5 text-[16px]';
-
   return (
-    <form onSubmit={submit} noValidate className="space-y-4">
+    <form onSubmit={submit} noValidate className="space-y-6">
       <Campo label="Nome" erro={erros.nome}>
-        <input className={field} placeholder="Seu nome" value={nome} aria-invalid={!!erros.nome}
+        <input className="ts-field" placeholder="Seu nome" value={nome} aria-invalid={!!erros.nome}
           onChange={e => { setNome(e.target.value); limpa('nome'); }} autoComplete="name" />
       </Campo>
       <Campo label="WhatsApp" erro={erros.whatsapp}>
-        <input className={field} placeholder="(69) 99999-9999" value={whats} inputMode="tel" aria-invalid={!!erros.whatsapp}
+        <input className="ts-field ts-num" placeholder="(69) 99999-9999" value={whats} inputMode="tel" aria-invalid={!!erros.whatsapp}
           onChange={e => { setWhats(maskPhone(e.target.value)); limpa('whatsapp'); }} autoComplete="tel" />
       </Campo>
       <Campo label="Segmento" erro={erros.segmento}>
         <div className="relative">
-          <select className={`${field} appearance-none pr-10`} aria-invalid={!!erros.segmento}
-            style={{ color: segmento ? T.darkText : 'rgba(241,245,249,0.38)' }}
+          <select className="ts-field appearance-none" aria-invalid={!!erros.segmento}
+            style={{ color: segmento ? T.ink : 'rgba(15,23,42,0.35)' }}
             value={segmento} onChange={e => { setSegmento(e.target.value); limpa('segmento'); }}>
             <option value="" disabled>Selecione</option>
             {SEGMENTOS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
           </select>
-          <ChevronDown size={16} strokeWidth={1.75} className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" color={T.darkMute} />
+          <ChevronDown size={16} strokeWidth={2} className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" color={T.ink} />
         </div>
       </Campo>
       <Campo label="Cidade">
-        <input className={field} value={cidade} onChange={e => setCidade(e.target.value)} autoComplete="address-level2" />
+        <input className="ts-field" value={cidade} onChange={e => setCidade(e.target.value)} autoComplete="address-level2" />
       </Campo>
 
       <div>
-        <label className="flex items-start gap-3 text-[14px] leading-relaxed cursor-pointer select-none pt-1" style={{ color: T.darkText }}>
+        <label className="flex items-start gap-3 text-[14px] leading-relaxed cursor-pointer select-none" style={{ color: T.ink }}>
           <input type="checkbox" checked={aceite} onChange={e => { setAceite(e.target.checked); limpa('aceite'); }}
-            className="mt-0.5 w-[18px] h-[18px] shrink-0 accent-indigo-500" aria-invalid={!!erros.aceite} />
+            className="mt-0.5 w-[18px] h-[18px] shrink-0 accent-indigo-600" aria-invalid={!!erros.aceite} />
           Aceito receber o Tá Sabendo AI no meu WhatsApp
         </label>
-        {erros.aceite && <span className="block text-[13px] mt-1.5" style={{ color: '#FDBA74' }} role="alert">{erros.aceite}</span>}
+        {erros.aceite && <span className="block text-[13px] mt-1.5" style={{ color: ERRO_COR }} role="alert">{erros.aceite}</span>}
       </div>
 
       <AnimatePresence>
         {erros.geral && (
           <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="text-[14px] leading-relaxed" style={{ color: '#FDBA74' }} role="alert">
+            className="text-[14px] leading-relaxed" style={{ color: ERRO_COR }} role="alert">
             {erros.geral}{' '}
             <a href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Quero assinar o Tá Sabendo AI.')}`}
-              target="_blank" rel="noopener noreferrer" className="underline underline-offset-4" style={{ color: T.darkText }}>
+              target="_blank" rel="noopener noreferrer" className="underline underline-offset-4" style={{ color: T.ink }}>
               Ou chama a gente no WhatsApp
             </a>.
           </motion.p>
         )}
       </AnimatePresence>
 
-      <PrimaryBtn type="submit" disabled={status === 'sending'} full>
-        {status === 'sending'
-          ? <><Loader2 size={17} className="animate-spin" /> Enviando...</>
-          : <>Quero meu 1º mês grátis <Arrow /></>}
-      </PrimaryBtn>
-      <p className="text-center text-[12.5px]" style={{ color: T.darkMute }}>
-        Sem cartão. Pra cancelar, é só responder SAIR.
-      </p>
+      <div className="pt-1">
+        <PrimaryBtn type="submit" disabled={status === 'sending'} full>
+          {status === 'sending'
+            ? <><Loader2 size={17} className="animate-spin" /> Enviando...</>
+            : <>Quero meu 1º mês grátis <Arrow /></>}
+        </PrimaryBtn>
+        <p className="text-center text-[12.5px] mt-3" style={{ color: T.mute }}>
+          Sem cartão. Pra cancelar, é só responder SAIR.
+        </p>
+      </div>
     </form>
   );
 }
@@ -422,8 +432,8 @@ export default function TaSabendo() {
 
   return (
     <div className="ts min-h-screen overflow-x-clip" style={{ background: T.paper, color: T.ink }}>
-      {/* Topo */}
-      <header style={{ borderBottom: `1px solid ${T.rule}` }}>
+      {/* Cabeçalho + linha de data */}
+      <header style={{ borderBottom: `1.5px solid ${T.ink}` }}>
         <div className={`${WRAP} h-16 flex items-center justify-between`}>
           <a href="/" className="flex items-center gap-2.5">
             <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="" className="w-7 h-7 object-contain" />
@@ -434,115 +444,164 @@ export default function TaSabendo() {
           </a>
         </div>
       </header>
+      <div style={{ borderBottom: `1px solid ${T.rule}` }}>
+        <div className={`${WRAP} h-9 flex items-center justify-between gap-4 ts-mono text-[10.5px] md:text-[11px] uppercase tracking-[0.14em]`} style={{ color: T.mute }}>
+          <span className="truncate">Vilhena, RO · <span className="hidden sm:inline">{DATA_HOJE}</span><span className="sm:hidden">{DATA_CURTA}</span></span>
+          <span className="shrink-0 flex items-center gap-1.5" style={{ color: T.ink }}>
+            <Sun size={12} strokeWidth={2.5} color={T.coral} /> Edição das 7h
+          </span>
+        </div>
+      </div>
 
       {/* HERO */}
-      <section ref={heroRef} className="pt-10 pb-20 md:pt-20 md:pb-28">
-        <div className={`${WRAP} grid lg:grid-cols-[1.1fr_1fr] gap-14 lg:gap-16 items-center`}>
-          <div>
-            <motion.span {...load(0)} className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-7 text-[13px] font-semibold"
-              style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: T.accent }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: GRAD }} />
-              Tá Sabendo AI · by Nexla
-            </motion.span>
+      <section ref={heroRef} className="ts-grain overflow-hidden">
+        <div className={`${WRAP} relative grid lg:grid-cols-[1.15fr_0.85fr] gap-12 lg:gap-8 items-center pt-10 pb-16 md:pt-16 md:pb-24`}>
+          <div className="relative z-10">
+            <motion.p {...load(0)} className="ts-mono text-[11.5px] uppercase tracking-[0.18em] flex items-center gap-2 mb-7" style={{ color: T.ink }}>
+              <Sun size={14} strokeWidth={2.5} color={T.coral} /> Tá Sabendo AI · by Nexla
+            </motion.p>
 
-            <motion.h1 {...load(0.06)} className="ts-display leading-[1.04] mb-6"
-              style={{ fontSize: 'clamp(38px,5.6vw,68px)' }}>
-              O que muda na sua empresa, <span className="text-gradient">todo dia às 7h</span> no seu WhatsApp.
+            <motion.h1 {...load(0.06)} className="ts-display leading-[0.98] mb-7"
+              style={{ fontSize: 'clamp(40px,6.2vw,84px)' }}>
+              O que muda na sua empresa, <span className="ts-hl">todo dia às 7h</span> no seu WhatsApp.
             </motion.h1>
 
-            <motion.p {...load(0.14)} className="text-[17px] md:text-[18px] leading-[1.6] max-w-[34rem] mb-9" style={{ color: T.ink2 }}>
+            <motion.p {...load(0.14)} className="text-[17px] md:text-[19px] leading-[1.6] max-w-[32rem] mb-9" style={{ color: T.ink2 }}>
               Leis, impostos, prazos e notícias do seu setor, resumidos por IA em{' '}
               <strong className="font-semibold" style={{ color: T.ink }}>menos de 1 minuto</strong>. Sem precisar assistir noticiário.
             </motion.p>
 
-            <motion.div {...load(0.22)}>
+            <motion.div {...load(0.22)} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
               <PrimaryBtn onClick={scrollToForm}>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
-              <p className="text-[13.5px] mt-3.5" style={{ color: T.mute }}>Sem cartão. Pra cancelar, é só responder SAIR.</p>
+              <p className="text-[13.5px] leading-snug max-w-[14rem]" style={{ color: T.mute }}>Sem cartão. Pra cancelar, é só responder SAIR.</p>
             </motion.div>
           </div>
 
-          <motion.div {...load(0.3)}>
-            <Celular />
+          <motion.div {...load(0.3)} className="relative">
+            <div className="ts-sun" aria-hidden />
+            <div className="relative">
+              <Celular />
+            </div>
+            <p className="relative ts-mono text-[10.5px] uppercase tracking-[0.14em] text-center mt-5" style={{ color: T.mute }}>
+              Exemplo de edição · Comércio e varejo · Vilhena/RO
+            </p>
           </motion.div>
         </div>
       </section>
 
+      {/* Horizonte + letreiro */}
+      <div className="ts-horizon" aria-hidden />
+      <div className="overflow-hidden py-3" style={{ background: T.ink, color: T.paper }}>
+        <div className="ts-ticker flex w-max whitespace-nowrap">
+          {[0, 1].map(k => (
+            <div key={k} className="flex items-center" aria-hidden={k === 1}>
+              {TICKER.map(t => (
+                <span key={t} className="ts-mono text-[12px] uppercase tracking-[0.18em] flex items-center">
+                  {t}<span className="mx-7 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: T.coral }} />
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* FORMULÁRIO */}
-      <section id="cadastro" ref={formRef} className="ts-dark py-20 md:py-28 scroll-mt-4" style={{ background: T.dark, color: T.darkText }}>
+      <section id="cadastro" ref={formRef} className="py-16 md:py-24 scroll-mt-4" style={{ background: T.paper2 }}>
         <div className={WRAP}>
-          <SectionLabel n="01" dark>Cadastro</SectionLabel>
-          <div className="grid lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-20 items-start">
+          <Secao n="01" titulo="Cadastro" />
+          <div className="grid lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-16 items-start mt-10 md:mt-12">
             <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
-              <h2 className="ts-display leading-[1.06] mb-5" style={{ fontSize: 'clamp(32px,4.4vw,52px)' }}>
-                Cadastre seu WhatsApp. <span className="ts-grad-light">O 1º mês é grátis.</span>
+              <h2 className="ts-display leading-[1.02] mb-5" style={{ fontSize: 'clamp(34px,4.6vw,58px)' }}>
+                Cadastre seu WhatsApp. <span style={{ color: T.accent }}>O 1º mês é grátis.</span>
               </h2>
-              <p className="text-[17px] leading-[1.65] mb-8" style={{ color: T.darkMute }}>
+              <p className="text-[17px] leading-[1.65] mb-8 max-w-[30rem]" style={{ color: T.ink2 }}>
                 Leva 30 segundos. A primeira edição chega no seu WhatsApp.
               </p>
-              <ul className="space-y-3.5">
-                {['1 mensagem por dia útil, às 7h', 'Toda notícia com o link da fonte', 'Sem cartão. Pra cancelar, responde SAIR'].map(t => (
-                  <li key={t} className="flex items-center gap-3 text-[15px]" style={{ color: T.darkText }}>
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)' }}>
-                      <Check size={13} strokeWidth={2.5} color="#4ADE80" />
-                    </span>
-                    {t}
+              <ul className="space-y-0" style={{ borderTop: `1px solid ${T.ink}` }}>
+                {['1 mensagem por dia útil, às 7h', 'Toda notícia com o link da fonte', 'Sem cartão. Pra cancelar, responde SAIR'].map((t, i) => (
+                  <li key={t} className="flex items-center gap-4 py-3.5 text-[15px]" style={{ borderBottom: `1px solid ${T.rule}`, color: T.ink }}>
+                    <span className="ts-mono text-[11px] w-6 shrink-0" style={{ color: T.mute }}>0{i + 1}</span>
+                    <span className="flex-1">{t}</span>
+                    <Check size={16} strokeWidth={2.5} color="#15803D" />
                   </li>
                 ))}
               </ul>
             </motion.div>
 
-            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-              className="relative rounded-2xl p-5 sm:p-7 md:p-8 overflow-hidden" style={{ background: T.dark2, border: `1px solid ${T.darkRule}` }}>
-              <div className="absolute top-0 inset-x-0 h-[3px]" style={{ background: GRAD }} />
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp} className="ts-card p-6 sm:p-8 lg:mr-3">
+              <div className="flex items-center justify-between gap-4 pb-4 mb-6 ts-mono text-[10.5px] uppercase tracking-[0.16em]"
+                style={{ borderBottom: `1.5px solid ${T.ink}`, color: T.mute }}>
+                <span style={{ color: T.ink }}>Formulário de assinatura</span>
+                <span>30 segundos</span>
+              </div>
               <Formulario />
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* COMO FUNCIONA */}
-      <section className="py-20 md:py-28">
+      {/* COMO FUNCIONA: a madrugada até as 7h */}
+      <section className="ts-dark py-20 md:py-28" style={{ background: T.dark, color: T.darkText }}>
         <div className={WRAP}>
-          <SectionLabel n="02">Como funciona</SectionLabel>
+          <Secao n="02" titulo="Como funciona" dark />
           <motion.h2 initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="ts-display leading-[1.08] max-w-[40rem] mb-12" style={{ fontSize: 'clamp(30px,4vw,48px)' }}>
-            Você dorme. A IA lê. <span className="text-gradient">Às 7h, você já sabe.</span>
+            className="ts-display leading-[1.04] max-w-[40rem] mt-10 md:mt-12 mb-14 md:mb-20" style={{ fontSize: 'clamp(32px,4.4vw,56px)' }}>
+            Você dorme. A IA lê. <span style={{ color: T.dawn }}>Às 7h, você já sabe.</span>
           </motion.h2>
+
           <motion.ol initial="hidden" whileInView="show" viewport={vp}
-            variants={{ show: { transition: { staggerChildren: 0.1 } } }} className="grid md:grid-cols-3 gap-4 md:gap-5">
-            {PASSOS.map((p, i) => (
-              <motion.li key={p.t} variants={fadeUp} className="relative rounded-2xl p-6 md:p-7"
-                style={{ background: T.card, border: `1px solid ${T.rule}`, boxShadow: '0 20px 44px -34px rgba(15,23,42,0.35)' }}>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="w-11 h-11 rounded-xl flex items-center justify-center text-white" style={{ background: GRAD }}>
-                    <p.icon size={20} strokeWidth={1.75} />
+            variants={{ show: { transition: { staggerChildren: 0.14 } } }} className="relative grid md:grid-cols-3 md:gap-10">
+            {/* Linha do tempo: vertical no celular, horizontal no desktop */}
+            <div className="absolute left-[11px] top-2 bottom-2 w-px md:hidden" aria-hidden
+              style={{ background: `linear-gradient(180deg, rgba(241,245,249,0.14), ${T.coral})` }} />
+            <div className="absolute hidden md:block left-0 right-0 top-[11px] h-px" aria-hidden
+              style={{ background: `linear-gradient(90deg, rgba(241,245,249,0.14), rgba(241,245,249,0.3) 50%, ${T.coral})` }} />
+            {PASSOS.map((p, i) => {
+              const sol = i === PASSOS.length - 1;
+              return (
+                <motion.li key={p.t} variants={fadeUp} className="relative pl-10 md:pl-0 md:pt-12 pb-12 md:pb-0 last:pb-0">
+                  <span className={`absolute left-0 top-0 w-6 h-6 rounded-full ${sol ? 'ts-sol' : ''}`} aria-hidden
+                    style={sol
+                      ? { background: T.coral }
+                      : { background: T.dark, border: '2px solid rgba(241,245,249,0.35)' }} />
+                  <span className="ts-mono text-[11px] uppercase tracking-[0.18em] block mb-3" style={{ color: sol ? T.dawn : T.darkMute }}>
+                    {p.hora}
                   </span>
-                  <span className="ts-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: T.mute }}>Passo {i + 1}</span>
-                </div>
-                <h3 className="ts-display text-[22px] leading-tight mb-2.5">{p.t}</h3>
-                <p className="text-[15px] leading-relaxed" style={{ color: T.ink2 }}>{p.d}</p>
-              </motion.li>
-            ))}
+                  <h3 className="ts-display text-[23px] md:text-[25px] leading-[1.12] mb-3">{p.t}</h3>
+                  <p className="text-[15px] leading-relaxed max-w-[22rem]" style={{ color: T.darkMute }}>{p.d}</p>
+                </motion.li>
+              );
+            })}
           </motion.ol>
         </div>
       </section>
 
-      {/* O QUE VOCÊ RECEBE */}
-      <section className="py-20 md:py-28" style={{ background: T.paper2 }}>
+      {/* O QUE VOCÊ RECEBE: colunas de jornal */}
+      <section className="py-20 md:py-28">
         <div className={WRAP}>
-          <SectionLabel n="03">O que você recebe</SectionLabel>
-          <motion.h2 initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="ts-display leading-[1.08] max-w-[40rem] mb-12" style={{ fontSize: 'clamp(30px,4vw,48px)' }}>
-            Só o que mexe com a sua empresa.
-          </motion.h2>
+          <Secao n="03" titulo="O que você recebe" />
+          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+            className="grid lg:grid-cols-[1fr_1fr] gap-6 lg:gap-16 items-end mt-10 md:mt-12 mb-12">
+            <h2 className="ts-display leading-[1.04]" style={{ fontSize: 'clamp(32px,4.4vw,56px)' }}>
+              Só o que mexe com a sua empresa.
+            </h2>
+            <p className="text-[16px] md:text-[17px] leading-[1.65] max-w-[28rem]" style={{ color: T.ink2 }}>
+              Cada edição tem quatro partes. Nada de política partidária, crime ou fofoca.
+            </p>
+          </motion.div>
+
           <motion.div initial="hidden" whileInView="show" viewport={vp}
-            variants={{ show: { transition: { staggerChildren: 0.08 } } }} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {RECEBE.map(r => (
-              <motion.div key={r.t} variants={fadeUp} whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}
-                className="rounded-2xl p-6" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-                <span className="block text-[30px] leading-none mb-5" aria-hidden>{r.e}</span>
-                <h3 className="ts-display text-[21px] leading-tight mb-2">{r.t}</h3>
+            variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+            className="grid sm:grid-cols-2 lg:grid-cols-4" style={{ borderTop: `1.5px solid ${T.ink}`, borderBottom: `1px solid ${T.rule}` }}>
+            {RECEBE.map((r, i) => (
+              <motion.div key={r.t} variants={fadeUp}
+                className={`pt-6 pb-8 sm:pr-8 lg:px-7 ${i ? 'border-t lg:border-t-0 lg:border-l' : ''} ${i === 0 ? 'lg:pl-0' : ''} ${i === RECEBE.length - 1 ? 'lg:pr-0' : ''}`}
+                style={{ borderColor: T.rule }}>
+                <div className="flex items-center justify-between mb-7">
+                  <span className="text-[30px] leading-none" aria-hidden>{r.e}</span>
+                  <span className="ts-mono text-[11px] tracking-[0.18em]" style={{ color: T.mute }}>0{i + 1}</span>
+                </div>
+                <h3 className="ts-display text-[22px] leading-[1.1] mb-2.5">{r.t}</h3>
                 <p className="text-[14.5px] leading-relaxed" style={{ color: T.ink2 }}>{r.d}</p>
               </motion.div>
             ))}
@@ -551,24 +610,27 @@ export default function TaSabendo() {
       </section>
 
       {/* PREÇO */}
-      <section className="py-20 md:py-28">
+      <section className="pb-20 md:pb-28">
         <div className={WRAP}>
-          <SectionLabel n="04">Preço</SectionLabel>
+          <Secao n="04" titulo="Preço" />
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="relative rounded-3xl overflow-hidden p-7 sm:p-10 md:p-14 grid lg:grid-cols-[1.4fr_1fr] gap-8 lg:gap-12 items-center"
+            className="ts-grain ts-grain-dark ts-dark relative overflow-hidden rounded-[28px] mt-10 md:mt-12 p-7 sm:p-10 md:p-14 grid lg:grid-cols-[1.35fr_1fr] gap-10 lg:gap-14 items-center"
             style={{ background: T.dark, color: T.darkText }}>
-            <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-40 pointer-events-none" style={{ background: GRAD }} />
-            <div className="relative">
-              <h2 className="ts-display leading-[1.06] mb-5" style={{ fontSize: 'clamp(32px,4.6vw,56px)' }}>
-                1º mês grátis. <span className="ts-grad-light">Depois, R$ 9,99 por mês.</span>
+            <div className="absolute -bottom-40 -right-24 w-[420px] h-[420px] rounded-full pointer-events-none" aria-hidden
+              style={{ background: `radial-gradient(circle, rgba(249,115,22,0.35), rgba(249,115,22,0) 65%)` }} />
+            <span className="ts-stamp absolute top-6 right-6 sm:top-8 sm:right-10" aria-hidden>Sem cartão</span>
+            <div className="relative z-[2] pt-8 sm:pt-0">
+              <p className="ts-mono text-[11px] uppercase tracking-[0.18em] mb-5" style={{ color: T.darkMute }}>Assinatura</p>
+              <h2 className="ts-display leading-[1.02] mb-5" style={{ fontSize: 'clamp(34px,4.8vw,60px)' }}>
+                1º mês grátis. <span style={{ color: T.dawn }}>Depois, R$ 9,99 por mês.</span>
               </h2>
-              <p className="text-[17px] leading-[1.65] max-w-[34rem]" style={{ color: T.darkMute }}>
+              <p className="text-[16px] md:text-[17px] leading-[1.65] max-w-[32rem]" style={{ color: T.darkMute }}>
                 Antes de acabar o mês grátis, a gente te avisa. Você só continua se quiser.
               </p>
             </div>
-            <div className="relative ts-dark">
+            <div className="relative z-[2]">
               <PrimaryBtn onClick={scrollToForm} full>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
-              <p className="text-center text-[13px] mt-3" style={{ color: T.darkMute }}>Sem cartão. Pra cancelar, é só responder SAIR.</p>
+              <p className="text-center text-[13px] mt-3" style={{ color: T.darkMute }}>Pra cancelar, é só responder SAIR.</p>
             </div>
           </motion.div>
         </div>
@@ -577,54 +639,45 @@ export default function TaSabendo() {
       {/* FAQ */}
       <section className="pb-24 md:pb-32">
         <div className={WRAP}>
-          <SectionLabel n="05">Dúvidas</SectionLabel>
-          <div className="grid lg:grid-cols-[1fr_1.6fr] gap-10 lg:gap-20 items-start">
+          <Secao n="05" titulo="Dúvidas" />
+          <div className="grid lg:grid-cols-[1fr_1.6fr] gap-10 lg:gap-20 items-start mt-10 md:mt-12">
             <div>
-              <h2 className="ts-display leading-[1.08] mb-5" style={{ fontSize: 'clamp(30px,3.8vw,46px)' }}>
+              <h2 className="ts-display leading-[1.04] mb-5" style={{ fontSize: 'clamp(30px,3.8vw,46px)' }}>
                 Perguntas frequentes
               </h2>
               <p className="text-[15px] leading-relaxed mb-5" style={{ color: T.ink2 }}>
                 Não achou sua resposta? Chama a gente.
               </p>
               <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
-                className="ts-link inline-flex items-center gap-3 rounded-xl pl-2 pr-4 py-2 transition-colors hover:bg-white"
-                style={{ border: `1px solid ${T.rule}` }}>
-                <span className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.12)', color: '#16A34A' }}>
-                  <MessageCircle size={18} strokeWidth={1.75} />
-                </span>
-                <span className="text-[15px] font-semibold" style={{ color: T.ink }}>Falar no WhatsApp</span>
-                <Arrow size={15} />
+                className="ts-link inline-flex items-center gap-2 text-[15px] font-semibold underline underline-offset-[6px] decoration-1"
+                style={{ color: T.ink }}>
+                <MessageCircle size={17} strokeWidth={2} /> Falar no WhatsApp <Arrow size={15} />
               </a>
             </div>
 
-            <div className="space-y-3">
+            <div style={{ borderTop: `1.5px solid ${T.ink}` }}>
               {FAQ.map((f, i) => {
                 const open = openFaq === i;
                 return (
-                  <div key={f.q} className="rounded-2xl overflow-hidden"
-                    style={{
-                      background: open ? T.card : 'transparent',
-                      border: `1px solid ${open ? 'rgba(79,70,229,0.25)' : T.rule}`,
-                      boxShadow: open ? '0 20px 44px -26px rgba(79,70,229,0.45)' : 'none',
-                      transition: 'background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease',
-                    }}>
+                  <div key={f.q} style={{ borderBottom: `1px solid ${T.rule}` }}>
                     <button onClick={() => setOpenFaq(open ? null : i)} aria-expanded={open}
-                      className="w-full flex items-center justify-between gap-6 text-left px-5 md:px-6 py-5">
-                      <span className="ts-display text-[18px] md:text-[20px] leading-snug" style={{ color: T.ink }}>{f.q}</span>
+                      className="w-full grid grid-cols-[2.5rem_1fr_2rem] items-center gap-3 text-left py-5">
+                      <span className="ts-mono text-[11px] tracking-[0.18em]" style={{ color: T.mute }}>0{i + 1}</span>
+                      <span className="ts-display text-[19px] md:text-[21px] leading-snug" style={{ color: T.ink }}>{f.q}</span>
                       <motion.span animate={{ rotate: open ? 45 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                        className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center"
+                        className="w-8 h-8 rounded-full flex items-center justify-center justify-self-end"
                         style={{
-                          background: open ? T.accent : 'transparent', color: open ? '#FFFFFF' : T.ink,
-                          border: `1px solid ${open ? T.accent : T.rule}`, transition: 'background-color 200ms ease, color 200ms ease',
+                          background: open ? T.ink : 'transparent', color: open ? T.paper : T.ink,
+                          border: `1.5px solid ${T.ink}`, transition: 'background-color 200ms ease, color 200ms ease',
                         }}>
-                        <Plus size={15} strokeWidth={2} />
+                        <Plus size={15} strokeWidth={2.25} />
                       </motion.span>
                     </button>
                     <AnimatePresence initial={false}>
                       {open && (
                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3, ease }} className="overflow-hidden">
-                          <p className="px-5 md:px-6 pb-6 pr-14 text-[16px] leading-relaxed" style={{ color: T.ink2 }}>{f.a}</p>
+                          <p className="pl-[2.5rem] md:pl-[calc(2.5rem+0.75rem)] pr-12 pb-6 text-[16px] leading-relaxed" style={{ color: T.ink2 }}>{f.a}</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -641,7 +694,7 @@ export default function TaSabendo() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <a href="/" className="flex items-center gap-3">
             <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="Nexla" className="w-12 h-12 object-contain opacity-90" />
-            <span className="ts-display text-2xl" style={{ color: '#EDE9FE', letterSpacing: 'normal' }}>Nexla</span>
+            <span className="ts-display text-2xl" style={{ color: '#EDE9FE', letterSpacing: '-0.01em' }}>Nexla</span>
           </a>
           <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-3 text-sm font-medium" style={{ color: 'rgba(237,233,254,0.7)' }}>
             <a href="/" className="inline-flex items-center gap-2 hover:text-white transition-colors"><Globe size={16} /> nexla.com.br</a>
@@ -650,8 +703,8 @@ export default function TaSabendo() {
             <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 hover:text-white transition-colors"><MessageCircle size={16} /> (69) 99930-0101</a>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(167,139,250,0.45)' }}>
-            Tá Sabendo AI é um produto da Nexla · Vilhena, RO
+          <p className="ts-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: 'rgba(167,139,250,0.5)' }}>
+            Tá Sabendo AI · um produto da Nexla · Vilhena, RO
           </p>
         </div>
       </footer>
@@ -661,7 +714,7 @@ export default function TaSabendo() {
         {showSticky && (
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} transition={{ duration: 0.35, ease }}
             className="fixed bottom-0 inset-x-0 z-40 p-3 md:hidden"
-            style={{ background: 'rgba(241,245,249,0.94)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
+            style={{ background: 'rgba(241,245,249,0.94)', borderTop: `1.5px solid ${T.ink}`, backdropFilter: 'blur(8px)' }}>
             <PrimaryBtn onClick={scrollToForm} full>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
           </motion.div>
         )}
