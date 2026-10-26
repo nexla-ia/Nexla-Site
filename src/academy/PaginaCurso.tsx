@@ -149,7 +149,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
 
             {/* Vídeo de amostra */}
             <div className="mt-7">
-              {sessao && amostra ? <VideoAula aulaId={amostra.id} /> : (
+              {sessao && amostra ? <VideoAula aulaId={amostra.id} marca={sessao.user.email} userId={sessao.user.id} /> : (
               <div className="relative aspect-video rounded-2xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
                 style={{ background: curso.capa ? `linear-gradient(rgba(15,23,42,0.72), rgba(15,23,42,0.72)), url("${curso.capa}") center/cover` : `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, border: `1px solid ${T.rule}` }}>
                 <PlayCircle size={56} strokeWidth={1.25} style={{ color: '#A5B4FC' }} />

@@ -40,7 +40,7 @@ async function buscarLeads(): Promise<Lead[]> {
 
 /* Planilha CSV que abre certo no Excel em português (separador ";" e acentos) */
 function exportar(linhas: Lead[]) {
-  const cab = ['Nome', 'E-mail', 'WhatsApp', 'Cadastro', 'Origem', 'Campanha', 'Aceita marketing', 'Cursos', 'Compras pagas', 'Total gasto (R$)', 'Última aula concluída'];
+  const cab = ['Nome', 'E-mail', 'WhatsApp', 'Cadastro', 'Origem', 'Campanha', 'Aceita marketing', 'Cursos', 'Compras pagas', 'Total gasto (R$)', 'Último acesso às aulas'];
   const campo = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const corpo = linhas.map(l => [
     l.nome, l.email, whatsTexto(l.whatsapp), data(l.criado_em), l.origem, l.campanha, l.marketing ? 'Sim' : 'Não',

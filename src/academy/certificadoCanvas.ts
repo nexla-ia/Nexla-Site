@@ -8,6 +8,7 @@ export type DadosCertificado = {
   horas: number;
   concluidoEm: Date;
   codigo: string;
+  validavel?: boolean; // código registrado no servidor (dá para conferir em /academy/validar)
 };
 
 export const CERT_W = 3508; // A4 deitado a 300 dpi
@@ -141,7 +142,7 @@ export async function desenharCertificado(canvas: HTMLCanvasElement, d: DadosCer
   ctx.fillText('Nexla Automação e IA', W - 330, baseY);
   ctx.font = `500 36px ${TEXTO}`;
   ctx.fillStyle = '#64748B';
-  ctx.fillText('Vilhena, RO · nexla.com.br/academy', W - 330, baseY + 60);
+  ctx.fillText(d.validavel ? 'Confira em nexla.com.br/academy/validar' : 'Vilhena, RO · nexla.com.br/academy', W - 330, baseY + 60);
 
   return canvas;
 }

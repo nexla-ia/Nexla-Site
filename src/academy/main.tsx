@@ -21,20 +21,21 @@ import { useRota, navegar, parametro } from './router';
 import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado } from './supabase';
 import { iniciarTema } from './tema';
 import Legal from './Legal';
+import Validar from './Validar';
 import { capturarOrigem, registrarVisita, salvarOrigemNoPerfil } from './rastreio';
 import '../index.css';
 import './academy.css';
 
 /* Nexla Academy → nexla.com.br/academy
  * Sem login só existem as telas de acesso: / e /entrar (login) e /criar-conta (aceitam ?voltar=... para continuar de onde parou).
- * Públicas para todos (com ou sem login, inclusive admin): /termos e /privacidade.
+ * Públicas para todos (com ou sem login, inclusive admin): /termos, /privacidade e /validar(/:codigo).
  * Depois de entrar, o aluno cai em "Meus cursos" (que mostra todos os cursos disponíveis se ainda não tiver nenhum).
  * Do aluno (exigem login): /painel, /cursos, /comprar/:slug, /compra/:id, /certificado/:slug, /certificados, /perfil.
  * Admin (role = 'admin'): só a área admin — /admin, /admin/cursos, /admin/curso/:id, /admin/vendas, /admin/comunidade —
  * mais /curso/:slug para o "Ver como aluno". */
 const TITULOS: Record<string, string> = {
   '/': 'Entrar', '/entrar': 'Entrar', '/criar-conta': 'Criar conta', '/painel': 'Meus cursos',
-  '/termos': 'Termos de uso', '/privacidade': 'Política de privacidade',
+  '/termos': 'Termos de uso', '/privacidade': 'Política de privacidade', '/validar': 'Validar certificado',
   '/perfil': 'Meu perfil', '/certificados': 'Meus certificados', '/cursos': 'Explorar cursos',
   '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin', '/admin/vendas': 'Vendas · Admin',
   '/admin/metricas': 'Métricas · Admin', '/admin/leads': 'Leads · Admin',
@@ -50,7 +51,8 @@ function Academy() {
   const rota = useRota();
   const sessao = useSessao();
   const telaAcesso = rota === '/' || rota === '/entrar' || rota === '/criar-conta';
-  const publica = rota === '/termos' || rota === '/privacidade';
+  const validar = rota === '/validar' || rota.startsWith('/validar/');
+  const publica = rota === '/termos' || rota === '/privacidade' || validar;
   const curso = rota.match(/^\/curso\/([\w-]+)$/)?.[1];
   const certificado = rota.match(/^\/certificado\/([\w-]+)$/)?.[1];
   const comprar = rota.match(/^\/comprar\/([\w-]+)$/)?.[1];
@@ -82,6 +84,7 @@ function Academy() {
     document.title = `${TITULOS[rota] ?? (curso ? 'Curso' : certificado ? 'Certificado' : 'Nexla Academy')} | Nexla Academy`;
   }, [rota, curso, certificado]);
 
+  if (validar) return <Validar codigo={rota.startsWith('/validar/') ? decodeURIComponent(rota.slice(9)) : undefined} />;
   if (publica) return <Legal doc={rota === '/termos' ? 'termos' : 'privacidade'} />;
   if (sessao === undefined) return <Carregando />;
   if (!sessao) {

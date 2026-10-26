@@ -4,14 +4,15 @@ import { T, LOGO, display } from './ui';
 import { Link } from './router';
 import { BotaoTema } from './tema';
 
-/* ─── Dados da empresa usados nos documentos ────────────────────────
-   Preencha razão social, CNPJ e e-mail: campo vazio não aparece no texto. */
+/* ─── Dados da empresa usados nos documentos (cartão CNPJ) ──────────
+   Campo vazio não aparece no texto. */
 export const EMPRESA = {
   nome: 'Nexla Automação e IA',
-  razaoSocial: '',              // ex.: 'Nexla Automação e Inteligência Artificial Ltda.'
-  cnpj: '',                     // ex.: '00.000.000/0001-00'
+  razaoSocial: 'Nexla Automação e Inteligência Artificial Ltda.',
+  cnpj: '59.838.572/0001-97',
+  endereco: 'Rua Gonçalves Dias, 321, Sala 06, Centro (5º BEC), Vilhena – RO, CEP 76988-055',
   cidade: 'Vilhena, RO',
-  email: '',                    // ex.: 'contato@nexla.com.br'
+  email: 'financeiro@nexla.com.br',
   whatsapp: '556999300101',
   whatsappTexto: '(69) 99930-0101',
 };
@@ -20,7 +21,7 @@ const ATUALIZADO = '26 de outubro de 2026';
 type Bloco = string | string[];                 // texto = parágrafo; lista = itens
 type Secao = { id: string; titulo: string; blocos: Bloco[] };
 
-const empresa = () => `${EMPRESA.razaoSocial || EMPRESA.nome}${EMPRESA.cnpj ? `, CNPJ ${EMPRESA.cnpj}` : ''}, com sede em ${EMPRESA.cidade}`;
+const empresa = () => `${EMPRESA.razaoSocial || EMPRESA.nome}${EMPRESA.cnpj ? `, CNPJ ${EMPRESA.cnpj}` : ''}, com sede na ${EMPRESA.endereco || EMPRESA.cidade}`;
 const canais = () => `pelo WhatsApp ${EMPRESA.whatsappTexto}${EMPRESA.email ? ` ou pelo e-mail ${EMPRESA.email}` : ''}`;
 
 /* ─── Termos de uso ─────────────────────────────────────────────── */

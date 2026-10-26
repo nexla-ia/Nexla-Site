@@ -45,15 +45,21 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
         });
       }
 
+      // O servidor confere a conclusão, registra o certificado e devolve o código que pode ser validado
+      // em /academy/validar. Sem o 024 no banco, segue com o código calculado aqui (só não dá para validar).
+      const { data: emitido } = await supabase.rpc('academy_emitir_certificado', { p_course: curso.id });
+      if (!vivo) return;
+      const srv = emitido as { codigo: string; nome: string; carga_h: number; concluido_em: string } | null;
       const segundos = curso.aulas.reduce((s, a) => s + a.duracao_seg, 0);
       setEstado({
         tipo: 'liberado', nome, slug,
         cert: {
-          nome,
+          nome: srv?.nome || nome,
           curso: curso.titulo,
-          horas: Math.max(1, Math.round(segundos / 3600)),
-          concluidoEm: new Date(Math.max(...feitas.map(p => new Date(p.atualizado_em as string).getTime()))),
-          codigo: codigoValidacao(uid, curso.id),
+          horas: srv?.carga_h ?? Math.max(1, Math.round(segundos / 3600)),
+          concluidoEm: srv ? new Date(srv.concluido_em) : new Date(Math.max(...feitas.map(p => new Date(p.atualizado_em as string).getTime()))),
+          codigo: srv?.codigo ?? codigoValidacao(uid, curso.id),
+          validavel: !!srv,
         },
       });
     })();
@@ -163,7 +169,11 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
 
         <p className="flex items-start gap-2 text-[13px] mt-4" style={{ color: T.mute }}>
           <ShieldCheck size={16} strokeWidth={1.75} className="shrink-0 mt-px" />
-          O código {cert.codigo} identifica este certificado e comprova que ele foi emitido pela Nexla Academy.
+          <span>
+            O código <strong style={{ color: T.ink2 }}>{cert.codigo}</strong> identifica este certificado.
+            {cert.validavel && <> Qualquer pessoa pode conferir se ele é verdadeiro em{' '}
+              <Link para={`/validar/${cert.codigo}`} className="font-medium underline underline-offset-2" style={{ color: T.accent }}>nexla.com.br/academy/validar</Link>.</>}
+          </span>
         </p>
       </motion.div>
     </AppLayout>

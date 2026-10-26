@@ -6,7 +6,7 @@ import { AppLayout, BarraProgresso, Carregando, TituloPagina } from './AppLayout
 import { Link } from './router';
 import { CERTIFICADO_MIN } from './supabase';
 import { useCursosAluno, certificadoLiberado } from './dados';
-import { codigoValidacao, dataPorExtenso } from './certificadoCanvas';
+import { dataPorExtenso } from './certificadoCanvas';
 
 /* Meus certificados: um card por curso — liberado (ver e baixar) ou ainda bloqueado (quanto falta) */
 export default function Certificados({ sessao }: { sessao: Session }) {
@@ -47,9 +47,6 @@ export default function Certificados({ sessao }: { sessao: Session }) {
                       <h3 className="font-bold text-[18px] leading-snug" style={display}>{c.titulo}</h3>
                       <p className="text-[13.5px] mt-1" style={{ color: T.mute }}>
                         Concluído em {dataPorExtenso(new Date(c.ultima))} · {c.percentual}% das aulas
-                      </p>
-                      <p className="text-[12.5px] mt-1" style={{ color: T.mute }}>
-                        Código <strong style={{ color: T.ink2 }}>{codigoValidacao(sessao.user.id, c.id)}</strong>
                       </p>
                     </div>
                   </div>

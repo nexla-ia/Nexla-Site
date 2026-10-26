@@ -1852,7 +1852,12 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* Nexla Academy: plataforma de cursos (entrada própria em /academy) */}
+            <a href="/academy/" className="relative px-3 lg:px-3.5 py-1.5 text-[13px] lg:text-sm font-semibold rounded-full transition-colors duration-300 hover:opacity-80"
+              style={{ color: navText }}>
+              Academy
+            </a>
             <MagneticBtn onClick={() => scrollTo('contato')}
               className="px-4 md:px-5 py-2 md:py-2.5 rounded-full font-semibold text-xs md:text-sm"
               style={{ background:`linear-gradient(135deg,${C.indigo},${C.violet})`, color:'#fff', boxShadow:`0 4px 16px rgba(79,70,229,0.28)` }}>
@@ -2430,6 +2435,10 @@ export default function App() {
                 {l.label}
               </motion.button>
             ))}
+            <motion.a href="/academy/" className="text-sm font-medium" style={{ color:C.darkMuted }}
+              whileHover={{ color:C.darkText, y:-1 }} transition={{ duration:0.2 }}>
+              Academy
+            </motion.a>
             <motion.a
               href="https://www.instagram.com/nexla_ia/"
               target="_blank"
