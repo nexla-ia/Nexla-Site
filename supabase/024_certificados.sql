@@ -4,7 +4,7 @@
 --
 --   • academy_certificates: um certificado por aluno e curso, com código único.
 --   • academy_emitir_certificado(curso): o servidor confere se o aluno tem o curso e
---     concluiu pelo menos 90% das aulas; só então registra e devolve o código.
+--     concluiu todas as aulas; só então registra e devolve o código.
 --   • academy_validar_certificado(código): página pública /academy/validar mostra
 --     nome, curso, carga horária e data — sem e-mail nem outros dados.
 -- ═══════════════════════════════════════════════════════════════════
@@ -48,7 +48,7 @@ begin
   from academy_lessons l
   join academy_modules m on m.id = l.module_id and m.course_id = p_course
   left join academy_lesson_progress p on p.lesson_id = l.id and p.user_id = v_uid and p.concluida;
-  if v_total = 0 or v_feitas * 100 < v_total * 90 then raise exception 'incompleto'; end if;
+  if v_total = 0 or v_feitas < v_total then raise exception 'incompleto'; end if;   -- só com todas as aulas
 
   select coalesce(nullif(btrim(nome), ''), email) into v_nome from academy_profiles where id = v_uid;
 

@@ -71,7 +71,7 @@ export function useSessaoUnica(sessao: Session | null | undefined) {
 }
 
 /* Certificado: liberado a partir deste percentual de aulas concluídas (regra ainda em definição) */
-export const CERTIFICADO_MIN = 90;
+export const CERTIFICADO_MIN = 100; // certificado só com todas as aulas concluídas
 
 /* Sessão atual: undefined = carregando, null = deslogado */
 export function useSessao() {

@@ -4,7 +4,6 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link } from './router';
-import { CERTIFICADO_MIN } from './supabase';
 import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno } from './dados';
 import { CardVitrine, GradeCategorias, GRADE_CURSOS } from './Explorar';
 import { MediaEstrelas, MinhaNota } from './Avaliacao';
@@ -20,7 +19,7 @@ function Certificado({ c }: { c: CursoAluno }) {
   ) : (
     <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1 rounded-full"
       style={{ background: 'var(--a-soft)', color: T.mute }}>
-      <Lock size={13} strokeWidth={2} /> Certificado a partir de {CERTIFICADO_MIN}% · falta{faltam > 1 ? 'm' : ''} {faltam} aula{faltam > 1 ? 's' : ''}
+      <Lock size={13} strokeWidth={2} /> Certificado ao concluir o curso · falta{faltam > 1 ? 'm' : ''} {faltam} aula{faltam > 1 ? 's' : ''}
     </span>
   );
 }

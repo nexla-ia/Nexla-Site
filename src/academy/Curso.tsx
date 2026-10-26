@@ -161,7 +161,7 @@ function ListaAulas({ curso, aulaId, feitas, matriculado, percentual, abrir }: {
           <span className="text-[13px] font-semibold">{percentual}%</span>
         </div>
         <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>
-          {feitas.size} de {curso.aulas.length} aulas concluídas{percentual < CERTIFICADO_MIN && ` · certificado em ${CERTIFICADO_MIN}%`}
+          {feitas.size} de {curso.aulas.length} aulas concluídas{percentual < CERTIFICADO_MIN && ' · certificado ao concluir todas'}
         </p>
       </div>
 
@@ -342,8 +342,8 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
     const prox = new Set(feitas);
     if (novo) prox.add(aula.id); else prox.delete(aula.id);
     setDados({ ...dados, feitas: prox });
-    // Chegou a 90%: registra o certificado na hora (o servidor confere e não duplica; o n8n manda o e-mail)
-    if (novo && !admin && pct(prox.size, curso.aulas.length) >= CERTIFICADO_MIN) {
+    // Concluiu todas as aulas: registra o certificado na hora (o servidor confere e não duplica)
+    if (novo && !admin && prox.size === curso.aulas.length) {
       supabase.rpc('academy_emitir_certificado', { p_course: curso.id }).then(() => undefined, () => undefined);
     }
     if (novo && prox.size === curso.aulas.length && !admin) setParabens(true); // acabou de concluir a última aula

@@ -451,7 +451,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
 
       <CartaoVenda cursoId={curso.id} tituloCurso={curso.titulo} />
 
-      <Cartao titulo="Certificado" sub="O certificado libera quando o aluno conclui 90% das aulas.">
+      <Cartao titulo="Certificado" sub="O certificado libera quando o aluno conclui todas as aulas.">
         <div className="space-y-4">
           <Chave ligado={f.certificado} onChange={v => muda('certificado', v)} texto={f.certificado ? 'Este curso emite certificado' : 'Sem certificado'} />
           {f.certificado && (

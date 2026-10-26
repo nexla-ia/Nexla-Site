@@ -122,7 +122,7 @@ function Painel({ nome }: { nome: string }) {
                 { icone: UserPlus,      v: dados.cadastros,    l: 'cadastros',       d: 'contas de aluno' },
                 { icone: Users,         v: dados.alunos,       l: 'alunos',          d: 'com pelo menos 1 curso' },
                 { icone: GraduationCap, v: dados.matriculas,   l: 'matrículas',      d: 'ativas' },
-                { icone: Award,         v: dados.certificados, l: 'certificados',    d: `alunos com ${CERTIFICADO_MIN}%+` },
+                { icone: Award,         v: dados.certificados, l: 'certificados',    d: 'alunos que concluíram' },
                 { icone: Star,          v: dados.mediaGeral === null ? '—' : nota(dados.mediaGeral), l: 'nota média', d: `${dados.totalAvaliacoes} avaliações` },
               ].map(k => (
                 <div key={k.l} className="rounded-2xl p-4 md:p-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>

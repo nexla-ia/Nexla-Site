@@ -71,7 +71,7 @@ const TERMOS = (): Secao[] => [
     'Você pode apagar os seus comentários quando quiser. Publicações que desrespeitem estas regras podem ser removidas, e a conta pode ser suspensa.',
   ]] },
   { id: 'certificados', titulo: 'Certificados', blocos: [[
-    'Ao concluir pelo menos 90% das aulas de um curso que emite certificado, você pode baixar o seu certificado de conclusão em "Meus certificados".',
+    'Ao concluir todas as aulas de um curso que emite certificado, você pode baixar o seu certificado de conclusão em "Meus certificados".',
     'O certificado traz um código de identificação e comprova a conclusão de um curso livre. Ele não equivale a diploma nem a certificado de curso reconhecido pelo MEC.',
   ]] },
   { id: 'suspensao', titulo: 'Suspensão e encerramento da conta', blocos: [[

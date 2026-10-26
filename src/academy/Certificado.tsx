@@ -116,7 +116,7 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
           </span>
           <h1 className="font-bold text-[24px] md:text-[28px] leading-tight mt-5" style={display}>Seu certificado ainda não foi liberado</h1>
           <p className="text-[15px] mt-2" style={{ color: T.mute }}>
-            O certificado de <strong style={{ color: T.ink2 }}>{estado.titulo}</strong> libera quando você concluir {CERTIFICADO_MIN}% das aulas.
+            O certificado de <strong style={{ color: T.ink2 }}>{estado.titulo}</strong> libera quando você concluir todas as aulas.
           </p>
           <div className="flex items-center gap-3 mt-6 text-left">
             <div className="flex-1"><BarraProgresso valor={estado.percentual} grossa /></div>

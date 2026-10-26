@@ -4,7 +4,6 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando, TituloPagina } from './AppLayout';
 import { Link } from './router';
-import { CERTIFICADO_MIN } from './supabase';
 import { useCursosAluno, certificadoLiberado } from './dados';
 import { dataPorExtenso } from './certificadoCanvas';
 
@@ -21,7 +20,7 @@ export default function Certificados({ sessao }: { sessao: Session }) {
     <AppLayout nome={nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <TituloPagina titulo="Meus certificados"
-          sub={`O certificado de cada curso libera quando você conclui ${CERTIFICADO_MIN}% das aulas.`} />
+          sub="O certificado de cada curso libera quando você conclui todas as aulas." />
 
         {erro && <p className="mb-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
