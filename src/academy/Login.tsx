@@ -84,7 +84,8 @@ export default function Login() {
         <Link para={comVoltar('/criar-conta')} className="font-semibold hover:underline underline-offset-4" style={{ color: T.accent }}>Criar conta grátis</Link>
       </p>
       <p className="text-[12px] text-center mt-8 leading-relaxed" style={{ color: T.mute }}>
-        Ao entrar, você concorda com os Termos de uso e a Política de privacidade da Nexla.
+        Ao entrar, você concorda com os <Link para="/termos" className="underline underline-offset-2 hover:opacity-80">Termos de uso</Link> e
+        a <Link para="/privacidade" className="underline underline-offset-2 hover:opacity-80">Política de privacidade</Link> da Nexla.
       </p>
     </AuthLayout>
   );

@@ -18,17 +18,20 @@ import { Carregando } from './AppLayout';
 import { useRota, navegar, parametro } from './router';
 import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado } from './supabase';
 import { iniciarTema } from './tema';
+import Legal from './Legal';
 import '../index.css';
 import './academy.css';
 
 /* Nexla Academy → nexla.com.br/academy
  * Sem login só existem as telas de acesso: / e /entrar (login) e /criar-conta (aceitam ?voltar=... para continuar de onde parou).
+ * Públicas para todos (com ou sem login, inclusive admin): /termos e /privacidade.
  * Depois de entrar, o aluno cai em "Meus cursos" (que mostra todos os cursos disponíveis se ainda não tiver nenhum).
  * Do aluno (exigem login): /painel, /cursos, /comprar/:slug, /compra/:id, /certificado/:slug, /certificados, /perfil.
  * Admin (role = 'admin'): só a área admin — /admin, /admin/cursos, /admin/curso/:id, /admin/vendas, /admin/comunidade —
  * mais /curso/:slug para o "Ver como aluno". */
 const TITULOS: Record<string, string> = {
   '/': 'Entrar', '/entrar': 'Entrar', '/criar-conta': 'Criar conta', '/painel': 'Meus cursos',
+  '/termos': 'Termos de uso', '/privacidade': 'Política de privacidade',
   '/perfil': 'Meu perfil', '/certificados': 'Meus certificados', '/cursos': 'Explorar cursos',
   '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin', '/admin/vendas': 'Vendas · Admin',
 };
@@ -43,6 +46,7 @@ function Academy() {
   const rota = useRota();
   const sessao = useSessao();
   const telaAcesso = rota === '/' || rota === '/entrar' || rota === '/criar-conta';
+  const publica = rota === '/termos' || rota === '/privacidade';
   const curso = rota.match(/^\/curso\/([\w-]+)$/)?.[1];
   const certificado = rota.match(/^\/certificado\/([\w-]+)$/)?.[1];
   const comprar = rota.match(/^\/comprar\/([\w-]+)$/)?.[1];
@@ -58,15 +62,16 @@ function Academy() {
       navegar(admin ? '/admin' : destinoVoltar() ?? '/painel', { substituir: true });
     }
     // Deslogado em qualquer outra tela → login, guardando para onde ia
-    if (!sessao && !telaAcesso) navegar(`/?voltar=${encodeURIComponent(rota)}`, { substituir: true });
+    if (!sessao && !telaAcesso && !publica) navegar(`/?voltar=${encodeURIComponent(rota)}`, { substituir: true });
     // Admin só usa a área admin (e as páginas de curso, pelo "Ver como aluno")
-    if (sessao && admin && !telaAcesso && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
-  }, [sessao, telaAcesso, admin, rota]);
+    if (sessao && admin && !telaAcesso && !publica && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
+  }, [sessao, telaAcesso, publica, admin, rota]);
 
   useEffect(() => {
     document.title = `${TITULOS[rota] ?? (curso ? 'Curso' : certificado ? 'Certificado' : 'Nexla Academy')} | Nexla Academy`;
   }, [rota, curso, certificado]);
 
+  if (publica) return <Legal doc={rota === '/termos' ? 'termos' : 'privacidade'} />;
   if (sessao === undefined) return <Carregando />;
   if (!sessao) {
     if (rota === '/criar-conta') return <CriarConta />;

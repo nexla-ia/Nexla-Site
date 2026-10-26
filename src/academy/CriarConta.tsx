@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User, Phone, PlayCircle, LineChart, Award, Check } from 'lucide-react';
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor, soDigitos, mascaraWhats } from './ui';
-import { Link, parametro } from './router';
+import { Link, parametro, BASE } from './router';
 
 /* Mantém o ?voltar= (ex.: /comprar/curso) ao alternar entre entrar e criar conta */
 const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
@@ -138,9 +138,9 @@ export default function CriarConta() {
 
         <div className="space-y-3 pt-1">
           <Caixa marcado={termos} onChange={setTermos}>
-            {/* Termos e Política ainda não têm página: quando tiverem, viram links (abrindo em nova aba) */}
-            Li e aceito os <span className="font-medium underline underline-offset-2" style={{ color: T.ink2 }}>Termos de uso</span> e
-            a <span className="font-medium underline underline-offset-2" style={{ color: T.ink2 }}>Política de privacidade</span>.
+            {/* Abrem em nova aba para não perder o que já foi preenchido */}
+            Li e aceito os <a href={`${BASE}/termos`} target="_blank" rel="noopener" className="font-medium underline underline-offset-2" style={{ color: T.ink2 }}>Termos de uso</a> e
+            a <a href={`${BASE}/privacidade`} target="_blank" rel="noopener" className="font-medium underline underline-offset-2" style={{ color: T.ink2 }}>Política de privacidade</a>.
           </Caixa>
           <Caixa marcado={marketing} onChange={setMarketing}>
             Quero receber novidades e ofertas da Nexla por e-mail e WhatsApp. <span style={{ color: '#94A3B8' }}>(opcional)</span>

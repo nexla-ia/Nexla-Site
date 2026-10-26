@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { supabase, erroAuth } from './supabase';
+import { Link } from './router';
 import { useTema, type Tema } from './tema';
 
 const WHATSAPP_NEXLA = '556999300101';
@@ -184,6 +185,7 @@ export default function Perfil({ sessao }: { sessao: Session }) {
           <Secao titulo="Seus dados (LGPD)" sub="Você pode pedir a exclusão da sua conta e dos seus dados a qualquer momento.">
             <p className="text-[14px] leading-relaxed mb-4" style={{ color: T.ink2 }}>
               Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados. Para pedir a exclusão, fale com a gente.
+              {' '}Veja como cuidamos dos seus dados na <Link para="/privacidade" className="font-medium underline underline-offset-2" style={{ color: T.accent }}>Política de privacidade</Link>.
             </p>
             <a href={`https://wa.me/${WHATSAPP_NEXLA}?text=${encodeURIComponent(`Olá! Quero excluir minha conta da Nexla Academy (${sessao.user.email}).`)}`}
               target="_blank" rel="noopener noreferrer"
