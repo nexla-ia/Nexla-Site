@@ -46,8 +46,8 @@ const MENSAGEM: Linha[] = [
   { t: 'Bom dia, Carlos! Hoje tem 3 coisas que mexem com a sua empresa:', espaco: true },
   { t: '🏛️ *Notas do Simples passam pelo Emissor Nacional em novembro*', espaco: true },
   { t: 'Lojas no Simples vão emitir nota no sistema novo. Vale testar antes.', fonte: true },
-  { t: '📍 *Prefeitura de Vilhena muda horário do comércio no fim de ano*', espaco: true },
-  { t: 'Confira se a sua escala de dezembro bate com o novo horário.', fonte: true },
+  { t: '🏛️ *Lei sancionada perdoa dívidas de MEI e eleva teto para R$ 110 mil em 2027*', espaco: true },
+  { t: 'MEIs terão perdão de dívidas e poderão faturar até R$ 110 mil a partir de 2027, facilitando crescimento e regularização.', fonte: true },
   { t: '📰 *75% dos consumidores apontam ofertas enganosas na Black Friday*', espaco: true },
   { t: 'Promoção clara evita reclamação e ganha cliente.', fonte: true },
   { t: '✅ *Pra fazer hoje:* revise as etiquetas das ofertas da Black Friday.', espaco: true },
@@ -177,7 +177,7 @@ function Celular() {
     <div className="relative mx-auto w-full max-w-[340px]">
       <div className="absolute -inset-6 rounded-[56px] blur-3xl opacity-30 pointer-events-none" style={{ background: GRAD }} />
       <div className="relative rounded-[44px] p-[10px]" style={{ background: '#111827', boxShadow: '0 40px 80px -30px rgba(15,23,42,0.55)' }}>
-        <div className="relative rounded-[36px] overflow-hidden flex flex-col h-[640px]" style={{ background: '#EFEAE2' }}>
+        <div className="relative rounded-[36px] overflow-hidden flex flex-col h-[680px]" style={{ background: '#EFEAE2' }}>
           {/* Barra de status */}
           <div className="flex items-center justify-between px-6 pt-3 pb-1 text-[12px] font-semibold text-white" style={{ background: T.wa }}>
             <span>07:00</span>
