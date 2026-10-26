@@ -60,8 +60,7 @@ export default function Login() {
         </Campo>
 
         <Campo label="Senha" icon={Lock}
-          extra={<a href="#" onClick={e => { e.preventDefault(); avisar('A recuperação de senha será liberada junto com a abertura da Nexla Academy.'); }}
-            className="text-[13px] font-medium hover:underline underline-offset-4" style={{ color: T.accent }}>Esqueci minha senha</a>}>
+          extra={<Link para="/recuperar" className="text-[13px] font-medium hover:underline underline-offset-4" style={{ color: T.accent }}>Esqueci minha senha</Link>}>
           <input type={verSenha ? 'text' : 'password'} className={`${campoCls} pr-12`} placeholder="Sua senha" value={senha}
             onChange={e => setSenha(e.target.value)} autoComplete="current-password" />
           <button type="button" onClick={() => setVerSenha(v => !v)} aria-label={verSenha ? 'Esconder senha' : 'Mostrar senha'}

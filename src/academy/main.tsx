@@ -18,17 +18,19 @@ import AdminMetricas from './admin/Metricas';
 import AdminLeads from './admin/Leads';
 import { Carregando } from './AppLayout';
 import { useRota, navegar, parametro } from './router';
-import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado } from './supabase';
+import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado, marcarNovoLogin } from './supabase';
 import { iniciarTema } from './tema';
 import Legal from './Legal';
 import Validar from './Validar';
+import { EsqueciSenha, NovaSenha } from './Recuperar';
 import { capturarOrigem, registrarVisita, salvarOrigemNoPerfil } from './rastreio';
 import { iniciarPixel, evento } from './pixel';
 import '../index.css';
 import './academy.css';
 
 /* Nexla Academy → nexla.com.br/academy
- * Sem login só existem as telas de acesso: / e /entrar (login) e /criar-conta (aceitam ?voltar=... para continuar de onde parou).
+ * Sem login só existem as telas de acesso: / e /entrar (login), /criar-conta (aceitam ?voltar=... para continuar de onde parou)
+ * e /recuperar (pedir link de nova senha). /nova-senha abre pelo link do e-mail (o Supabase já conecta a conta).
  * Públicas para todos (com ou sem login, inclusive admin): /termos, /privacidade e /validar(/:codigo).
  * Depois de entrar, o aluno cai em "Meus cursos" (que mostra todos os cursos disponíveis se ainda não tiver nenhum).
  * Do aluno (exigem login): /painel, /cursos, /comprar/:slug, /compra/:id, /certificado/:slug, /certificados, /perfil.
@@ -37,6 +39,7 @@ import './academy.css';
 const TITULOS: Record<string, string> = {
   '/': 'Entrar', '/entrar': 'Entrar', '/criar-conta': 'Criar conta', '/painel': 'Meus cursos',
   '/termos': 'Termos de uso', '/privacidade': 'Política de privacidade', '/validar': 'Validar certificado',
+  '/recuperar': 'Recuperar senha', '/nova-senha': 'Nova senha',
   '/perfil': 'Meu perfil', '/certificados': 'Meus certificados', '/cursos': 'Explorar cursos',
   '/admin': 'Visão geral · Admin', '/admin/cursos': 'Cursos · Admin', '/admin/comunidade': 'Comunidade · Admin', '/admin/vendas': 'Vendas · Admin',
   '/admin/metricas': 'Métricas · Admin', '/admin/leads': 'Leads · Admin',
@@ -51,7 +54,8 @@ const destinoVoltar = () => {
 function Academy() {
   const rota = useRota();
   const sessao = useSessao();
-  const telaAcesso = rota === '/' || rota === '/entrar' || rota === '/criar-conta';
+  const telaAcesso = rota === '/' || rota === '/entrar' || rota === '/criar-conta' || rota === '/recuperar';
+  const novaSenha = rota === '/nova-senha';
   const validar = rota === '/validar' || rota.startsWith('/validar/');
   const publica = rota === '/termos' || rota === '/privacidade' || validar;
   const curso = rota.match(/^\/curso\/([\w-]+)$/)?.[1];
@@ -69,10 +73,10 @@ function Academy() {
       navegar(admin ? '/admin' : destinoVoltar() ?? '/painel', { substituir: true });
     }
     // Deslogado em qualquer outra tela → login, guardando para onde ia
-    if (!sessao && !telaAcesso && !publica) navegar(`/?voltar=${encodeURIComponent(rota)}`, { substituir: true });
+    if (!sessao && !telaAcesso && !publica && !novaSenha) navegar(`/?voltar=${encodeURIComponent(rota)}`, { substituir: true });
     // Admin só usa a área admin (e as páginas de curso, pelo "Ver como aluno")
-    if (sessao && admin && !telaAcesso && !publica && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
-  }, [sessao, telaAcesso, publica, admin, rota]);
+    if (sessao && admin && !telaAcesso && !publica && !novaSenha && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
+  }, [sessao, telaAcesso, publica, novaSenha, admin, rota]);
 
   // Funil: registra a visita de cada página (menos de quem é admin e da área admin)
   useEffect(() => {
@@ -90,7 +94,9 @@ function Academy() {
   if (validar) return <Validar codigo={rota.startsWith('/validar/') ? decodeURIComponent(rota.slice(9)) : undefined} />;
   if (publica) return <Legal doc={rota === '/termos' ? 'termos' : 'privacidade'} />;
   if (sessao === undefined) return <Carregando />;
+  if (novaSenha) return <NovaSenha sessao={sessao} />;
   if (!sessao) {
+    if (rota === '/recuperar') return <EsqueciSenha />;
     if (rota === '/criar-conta') return <CriarConta />;
     if (rota === '/' || rota === '/entrar') return <Login />;
     return <Carregando />;
@@ -129,6 +135,8 @@ function NaoConfigurado() {
 
 iniciarTema();
 capturarOrigem(); // origem (UTM) da primeira visita
+// Veio pelo link de nova senha: este aparelho assume a conta (senão a trava de 1 aparelho desconectaria no meio da troca)
+if (window.location.pathname.endsWith('/nova-senha') && /type=recovery|code=/.test(window.location.hash + window.location.search)) marcarNovoLogin();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {supabaseConfigurado ? <Academy /> : <NaoConfigurado />}
