@@ -5,7 +5,7 @@ import { supabase } from './supabase';
    • Visitas às páginas e aulas abertas viram linhas em academy_events.
    Nada aqui pode quebrar a Academy: sem a tabela (023 não rodado) ou sem armazenamento, só não registra. */
 
-export type Origem = { origem: string; midia?: string; campanha?: string; anuncio?: string; termo?: string; pagina?: string; em: string };
+export type Origem = { origem: string; midia?: string; campanha?: string; anuncio?: string; termo?: string; pagina?: string; fbclid?: string; em: string };
 
 const CHAVE_ORIGEM = 'academy-origem';
 const CHAVE_VISITANTE = 'academy-visitante';
@@ -38,6 +38,7 @@ export function capturarOrigem() {
     anuncio: corta(q.get('utm_content')),
     termo: corta(q.get('utm_term')),
     pagina: corta(window.location.pathname, 120),
+    fbclid: corta(q.get('fbclid'), 250), // clique em anúncio do Meta (vira o cookie _fbc na compra)
     em: new Date().toISOString(),
   };
   gravar(CHAVE_ORIGEM, JSON.stringify(origem));

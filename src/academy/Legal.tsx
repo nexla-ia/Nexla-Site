@@ -116,6 +116,7 @@ const PRIVACIDADE = (): Secao[] => [
       'Dar suporte e avisar sobre sua conta, suas compras e mudanças importantes (execução de contrato e legítimo interesse).',
       'Proteger a plataforma contra fraudes e compartilhamento de contas (legítimo interesse).',
       'Medir, com dados agregados, quantas pessoas visitam, se cadastram e compram, de quais anúncios vieram e em que aula param, para melhorar cursos, páginas e anúncios (legítimo interesse).',
+      'Medir e melhorar os nossos anúncios no Facebook e no Instagram, informando ao Meta as visitas, os cadastros e as compras que vieram deles (legítimo interesse).',
       'Enviar novidades e ofertas por e-mail e WhatsApp, somente se você autorizar (consentimento).',
     ],
   ] },
@@ -130,6 +131,7 @@ const PRIVACIDADE = (): Secao[] => [
       'Mercado Pago: processamento dos pagamentos e reembolsos.',
       'Bunny.net: hospedagem e transmissão dos vídeos das aulas.',
       'Vercel: hospedagem do site.',
+      'Meta (Facebook e Instagram): medição dos anúncios pelo Meta Pixel e pela API de Conversões. Recebe as páginas visitadas, cadastros e compras; e-mail, telefone e o código da sua conta vão criptografados.',
     ],
     'Também podemos compartilhar dados quando a lei exigir ou por ordem de autoridade competente.',
   ] },
@@ -165,7 +167,7 @@ const PRIVACIDADE = (): Secao[] => [
   ] },
   { id: 'cookies', titulo: 'Cookies e armazenamento no navegador', blocos: [
     'A Academy usa o armazenamento do navegador para manter você conectado, lembrar preferências (como o modo claro ou escuro e o modo teatro do player) e guardar um código anônimo e a origem da sua primeira visita, usados nas nossas próprias métricas.',
-    'Hoje a Nexla Academy não usa cookies de publicidade. Se passarmos a usar ferramentas de medição de anúncios, esta Política será atualizada antes.',
+    'Também usamos o Meta Pixel, que grava cookies do Meta no seu navegador para medir os resultados dos nossos anúncios no Facebook e no Instagram. Você pode limitar esse uso nas configurações de anúncios da sua conta do Facebook ou do Instagram, ou bloqueando cookies de terceiros no navegador. Isso não afeta o acesso aos cursos.',
   ] },
   { id: 'menores', titulo: 'Crianças e adolescentes', blocos: [
     'A Nexla Academy é voltada a maiores de 18 anos. Não coletamos intencionalmente dados de menores sem a autorização do responsável legal. Se identificarmos um cadastro assim, ele poderá ser excluído.',

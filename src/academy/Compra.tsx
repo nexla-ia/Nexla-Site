@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, Loader2, Lock, ShieldCheck, Tag, XCircle } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
@@ -6,6 +6,7 @@ import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link } from './router';
 import { supabase } from './supabase';
+import { evento, cookiesMeta } from './pixel';
 
 type Resumo = {
   curso: string; itens: { titulo: string; valor: number }[]; subtotal: number; desconto: number; total: number;
@@ -45,6 +46,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
   const [calculando, setCalculando] = useState(true);
   const [pagando, setPagando] = useState(false);
   const nome = (sessao.user.user_metadata?.nome as string | undefined) || sessao.user.email || '';
+  const contouCheckout = useRef(false);
 
   const calcular = async (oferta: boolean, codigo: string) => {
     setCalculando(true);
@@ -52,6 +54,10 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
     setCalculando(false);
     if (r.erro) { setErro(ERROS[r.erro] ?? 'Não foi possível carregar o pedido. Recarregue a página.'); return; }
     setErro(''); setResumo(r as Resumo);
+    if (!contouCheckout.current && (r.total ?? 0) > 0) { // Meta Pixel: começou a compra
+      contouCheckout.current = true;
+      evento('InitiateCheckout', { content_ids: [slug], content_type: 'product', value: r.total, currency: 'BRL', num_items: r.itens?.length ?? 1 });
+    }
   };
   useEffect(() => { calcular(false, ''); }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -60,7 +66,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
 
   const pagar = async () => {
     setPagando(true); setErro('');
-    const r = await checkout({ slug, acao: 'pagar', com_oferta: comOferta, cupom: resumo?.cupom ?? '' });
+    const r = await checkout({ slug, acao: 'pagar', com_oferta: comOferta, cupom: resumo?.cupom ?? '', ...cookiesMeta(), pagina: window.location.href });
     if (r.url) { window.location.href = r.url; return; }
     setPagando(false);
     setErro(r.erro === 'mercado_pago' && r.detalhe
@@ -175,6 +181,14 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
   type Pedido = { status: string; total: number; forma_pagamento: string | null; academy_courses: { slug: string; titulo: string } | null };
   const [pedido, setPedido] = useState<Pedido | null | 'nao'>(null);
   const nome = (sessao.user.user_metadata?.nome as string | undefined) || sessao.user.email || '';
+  const contouCompra = useRef(false);
+
+  // Meta Pixel: compra aprovada (event_id = pedido, o mesmo da API de Conversões, para não contar duas vezes)
+  useEffect(() => {
+    if (!pedido || pedido === 'nao' || pedido.status !== 'pago' || Number(pedido.total) <= 0 || contouCompra.current) return;
+    contouCompra.current = true;
+    evento('Purchase', { value: Number(pedido.total), currency: 'BRL', content_ids: [pedido.academy_courses?.slug ?? ''], content_type: 'product' }, id);
+  }, [pedido, id]);
 
   useEffect(() => {
     let vivo = true;

@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
   const usuario = quem?.user;
   if (!usuario) return json({ erro: 'nao_logado' }, 401);
 
-  let entrada: { slug?: string; com_oferta?: boolean; cupom?: string; acao?: string };
+  let entrada: { slug?: string; com_oferta?: boolean; cupom?: string; acao?: string; fbp?: string; fbc?: string; pagina?: string };
   try { entrada = await req.json(); } catch { return json({ erro: 'entrada' }, 400); }
   const slug = String(entrada.slug ?? '');
   const acao = entrada.acao === 'pagar' ? 'pagar' : 'calcular';
@@ -107,6 +107,14 @@ Deno.serve(async (req) => {
     cupom: cupomOk ? codigo : null, com_oferta_extra: itens.length > 1, status: 'pendente',
   }).select('id').single();
   if (erroPedido || !pedido) return json({ erro: 'pedido' }, 500);
+
+  // Para a API de Conversões do Meta ligar a compra ao clique no anúncio (sem o 025 no banco, só não grava)
+  const corta = (v: unknown, n: number) => (typeof v === 'string' && v ? v.slice(0, n) : undefined);
+  await admin.from('academy_orders').update({ rastreio: {
+    fbp: corta(entrada.fbp, 120), fbc: corta(entrada.fbc, 300), url: corta(entrada.pagina, 300),
+    ip: corta((req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim(), 64),
+    ua: corta(req.headers.get('user-agent'), 400),
+  } }).eq('id', pedido.id).then(() => undefined, () => undefined);
 
   // Curso de graça (ex.: cupom de 100%): libera direto, sem passar pelo Mercado Pago
   if (total === 0) {

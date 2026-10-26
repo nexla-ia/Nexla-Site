@@ -3,6 +3,7 @@ import { ArrowRight, Eye, EyeOff, Lock, Mail, User, Phone, PlayCircle, LineChart
 import { T, display, campoCls, AuthLayout, ListaPainel, Campo, Mensagem, BotaoGoogle, Divisor, soDigitos, mascaraWhats } from './ui';
 import { Link, parametro, BASE } from './router';
 import { lerOrigem } from './rastreio';
+import { evento } from './pixel';
 
 /* Mantém o ?voltar= (ex.: /comprar/curso) ao alternar entre entrar e criar conta */
 const comVoltar = (rota: string) => { const v = parametro('voltar'); return v ? `${rota}?voltar=${encodeURIComponent(v)}` : rota; };
@@ -80,6 +81,7 @@ export default function CriarConta() {
     });
     setCriando(false);
     if (error) { desmarcarNovoLogin(); return setErro(erroAuth(error.message)); }
+    evento('CompleteRegistration', { content_name: 'Nexla Academy', status: true }, data.user?.id); // Meta Pixel
     if (!data.session) setAviso(`Conta criada, ${nome.trim().split(' ')[0]}! Enviamos um link de confirmação para ${email.trim()}. Abra o e-mail para ativar o acesso.`);
   };
 

@@ -23,6 +23,7 @@ import { iniciarTema } from './tema';
 import Legal from './Legal';
 import Validar from './Validar';
 import { capturarOrigem, registrarVisita, salvarOrigemNoPerfil } from './rastreio';
+import { iniciarPixel, evento } from './pixel';
 import '../index.css';
 import './academy.css';
 
@@ -78,6 +79,8 @@ function Academy() {
     if (sessao === undefined || (sessao && admin === undefined) || admin || rota.startsWith('/admin')) return;
     registrarVisita(rota, sessao?.user.id);
     if (sessao) salvarOrigemNoPerfil(sessao.user.id);
+    iniciarPixel(sessao ? { email: sessao.user.email, id: sessao.user.id } : null); // Meta Pixel (só na 1ª vez)
+    evento('PageView');
   }, [rota, sessao, admin]);
 
   useEffect(() => {

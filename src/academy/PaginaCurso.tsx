@@ -10,6 +10,7 @@ import { useCursosAluno } from './dados';
 import { CardVitrine, GRADE_CURSOS } from './Explorar';
 import { checkout } from './Compra';
 import VideoAula from './Video';
+import { evento } from './pixel';
 
 type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
 type Detalhes = {
@@ -83,6 +84,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       if (n) setNota({ media: Number(n.media), total: n.total });
     });
   }, [curso.id]);
+
+  // Meta Pixel: viu a página de vendas (uma vez por curso, quando o preço já carregou)
+  useEffect(() => {
+    if (preco === undefined) return;
+    evento('ViewContent', { content_ids: [curso.slug], content_name: curso.titulo, content_type: 'product', value: preco?.valor ?? 0, currency: 'BRL' });
+  }, [preco === undefined, curso.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const amostra = resumo?.amostra ?? null;
   const horas = det?.carga_horaria_h ?? resumo?.horas ?? 1;
