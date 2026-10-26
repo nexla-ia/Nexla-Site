@@ -99,6 +99,14 @@ export function EsqueciSenha() {
   );
 }
 
+/* Como a pessoa chegou em /nova-senha (lido ao abrir a página, antes do Supabase limpar o endereço):
+ * 'usado' = o Supabase recusou o link (já usado, expirado ou trocado por um mais novo); 'direto' = sem link nenhum */
+const CHEGADA = (() => {
+  const p = new URLSearchParams(window.location.hash.slice(1) + '&' + window.location.search.slice(1));
+  if (p.get('error') || p.get('error_code')) return 'usado';
+  return p.get('access_token') || p.get('code') ? 'link' : 'direto';
+})();
+
 /* /nova-senha — aberta pelo link do e-mail (o Supabase já conecta a conta); aqui a pessoa cria a senha nova */
 export function NovaSenha({ sessao }: { sessao: Session | null }) {
   const [senha, setSenha] = useState('');
@@ -128,9 +136,13 @@ export function NovaSenha({ sessao }: { sessao: Session | null }) {
           <span className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--a-red)' }}>
             <KeyRound size={24} strokeWidth={1.75} />
           </span>
-          <h2 className="font-bold leading-tight mt-5 mb-2" style={{ ...display, fontSize: 'clamp(26px,3vw,32px)' }}>Link expirado ou inválido</h2>
+          <h2 className="font-bold leading-tight mt-5 mb-2" style={{ ...display, fontSize: 'clamp(26px,3vw,32px)' }}>
+            {CHEGADA === 'direto' ? 'Abra pelo link do e-mail' : 'Link expirado ou já usado'}
+          </h2>
           <p className="text-[15px] leading-relaxed" style={{ color: T.mute }}>
-            Por segurança, o link de troca de senha vale por pouco tempo e só pode ser usado uma vez. Peça um novo para continuar.
+            {CHEGADA === 'direto'
+              ? 'Esta página abre pelo link que enviamos para o seu e-mail. Peça um link para criar a senha nova.'
+              : 'Por segurança, o link vale por pouco tempo e só funciona uma vez. Ao pedir um link novo, os anteriores deixam de valer: use sempre o e-mail mais recente.'}
           </p>
           <Link para="/recuperar" className="acad-btn mt-7 w-full h-12 rounded-[10px] inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-white">
             Pedir um novo link <ArrowRight size={17} strokeWidth={2} className="acad-arrow" />
