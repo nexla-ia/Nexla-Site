@@ -11,6 +11,8 @@ import {
 const WEBHOOK_URL   = 'https://n8n.nexladesenvolvimento.com.br/webhook/tasabendo';
 const META_PIXEL_ID: string = '1410172823723220';
 const WHATSAPP      = '556999300101';
+const PRIVACIDADE   = '/academy/privacidade';
+const LOGO          = '/nexla-logo.png';
 
 /* ─── Paleta (a mesma do site e da /5x2) ───────────────────────── */
 const T = {
@@ -31,28 +33,41 @@ const fadeUp = {
 const vp = { once: true, margin: '-60px' } as const;
 const WRAP = 'max-w-[1180px] mx-auto px-5 md:px-10';
 
-/* Linha de data do cabeçalho: a data de hoje (por extenso no desktop, curta no celular) */
+/* ─── Datas ──────────────────────────────────────────────────────
+ * A linha de data mostra hoje. O mockup e o título do cadastro falam da
+ * próxima edição, que sai no próximo dia útil às 7h.                    */
 const capitaliza = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const DATA_HOJE  = capitaliza(new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()));
-const DATA_CURTA = capitaliza(new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date()).replace(/\./g, ''));
+const fmtData = (d: Date, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('pt-BR', o).format(d);
+const HOJE = new Date();
+const DATA_HOJE  = capitaliza(fmtData(HOJE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+const DATA_CURTA = capitaliza(fmtData(HOJE, { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, ''));
+const PROXIMA_EDICAO = (() => {
+  const d = new Date(HOJE);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d;
+})();
+const PROXIMA_ROTULO = HOJE.getDay() === 5 || HOJE.getDay() === 6 ? 'segunda' : 'amanhã';
+const PROXIMA_MOCKUP = `${capitaliza(fmtData(PROXIMA_EDICAO, { weekday: 'long' }))}, ${fmtData(PROXIMA_EDICAO, { day: '2-digit', month: '2-digit' })}`;
 
 /* ─── Dados ────────────────────────────────────────────────────── */
 const SEGMENTOS = [
   { v: 'comercio',       l: 'Comércio e varejo' },
   { v: 'alimentacao',    l: 'Alimentação (restaurante, lanchonete, padaria)' },
   { v: 'servicos_saude', l: 'Serviços e saúde (clínica, consultório, salão)' },
+  { v: 'outro',          l: 'Outro (me avise quando chegar)' },
 ];
 
 /* Mensagem de exemplo do mockup. *negrito*, _itálico_; `fonte` vira um link fictício em azul. */
 type Linha = { t: string; fonte?: boolean; espaco?: boolean };
 const MENSAGEM: Linha[] = [
-  { t: '☀️ *Tá Sabendo AI* · Terça-feira, 27/10' },
+  { t: `☀️ *Tá Sabendo AI* · ${PROXIMA_MOCKUP}` },
   { t: '_Comércio e varejo · Vilhena/RO_' },
   { t: 'Bom dia, Carlos! Hoje tem 3 coisas que mexem com a sua empresa:', espaco: true },
   { t: '🏛️ *Notas do Simples passam pelo Emissor Nacional em novembro*', espaco: true },
   { t: 'Lojas no Simples vão emitir nota no sistema novo. Vale testar antes.', fonte: true },
   { t: '🏛️ *Lei sancionada perdoa dívidas de MEI e eleva teto para R$ 110 mil em 2027*', espaco: true },
-  { t: 'MEIs terão perdão de dívidas e poderão faturar até R$ 110 mil a partir de 2027, facilitando crescimento e regularização.', fonte: true },
+  { t: 'Se você é MEI, dá pra regularizar dívidas e faturar mais a partir de 2027.', fonte: true },
   { t: '📰 *75% dos consumidores apontam ofertas enganosas na Black Friday*', espaco: true },
   { t: 'Promoção clara evita reclamação e ganha cliente.', fonte: true },
   { t: '✅ *Pra fazer hoje:* revise as etiquetas das ofertas da Black Friday.', espaco: true },
@@ -63,23 +78,47 @@ const TICKER = [
   'Todo dia útil às 7h', '1 mensagem por dia', 'Link da fonte em toda notícia',
 ];
 
+const DORES = [
+  'O prazo venceu e você soube pelo contador, depois.',
+  'A regra da nota fiscal mudou e a venda travou no caixa.',
+  'O imposto subiu e a margem sumiu sem você perceber.',
+  'A prefeitura mudou a regra e você soube pelo fiscal na porta.',
+  'A notícia chegou no grupo de WhatsApp, metade verdade, metade boato.',
+];
+
 const PASSOS = [
-  { hora: 'Agora',     t: 'Você se cadastra em 30 segundos',                 d: 'Nome, WhatsApp e o segmento da sua empresa. Sem cartão.' },
-  { hora: 'Madrugada', t: 'A IA lê dezenas de fontes por você toda madrugada', d: 'Governo, portais de notícia e fontes do seu setor. Fica só o que mexe com o seu negócio.' },
-  { hora: '07:00',     t: 'Às 7h chega só o que importa pro seu negócio',     d: 'Um resumo curto no WhatsApp, com o link da fonte em cada notícia.' },
+  { hora: 'Agora',     t: 'Você escolhe o seu segmento',                    d: 'A edição é montada para o seu tipo de negócio. Não é a mesma para todo mundo.' },
+  { hora: 'Madrugada', t: 'A IA lê as notícias por você toda madrugada',     d: 'Ela busca o que saiu sobre Simples Nacional, MEI, Receita Federal, Diário Oficial, Vilhena, Rondônia e o seu setor nos portais de notícia. Fica só o que mexe com o seu negócio.' },
+  { hora: '07:00',     t: 'Às 7h chega só o que importa pro seu negócio',   d: 'Um resumo curto no WhatsApp, com o link da fonte em cada notícia.' },
 ];
 
 const RECEBE = [
   { e: '🏛️', t: 'Governo',            d: 'Leis, impostos e prazos que valem para a sua empresa.' },
   { e: '📍', t: 'Vilhena e Rondônia', d: 'O que a prefeitura e o estado decidem e muda o seu dia a dia.' },
   { e: '📰', t: 'Seu setor',          d: 'Notícias do comércio, da alimentação ou de serviços e saúde.' },
-  { e: '✅', t: 'Pra fazer hoje',     d: 'Uma ação prática por dia, pra transformar a notícia em atitude.' },
+  { e: '✅', t: 'Pra fazer hoje',     d: 'Uma ação prática por dia, pra transformar a notícia em atitude.', destaque: true },
+];
+
+const OBJECOES = [
+  { o: 'Meu contador já me avisa.',
+    r: 'Ele avisa quando precisa agir, muitas vezes em cima do prazo, e cuida de dezenas de empresas ao mesmo tempo. Aqui você fica sabendo antes e chega na conversa com ele já entendendo o assunto. Não substitui seu contador: faz você aproveitar melhor o que paga a ele.' },
+  { o: 'Eu vejo as notícias no Instagram e nos grupos.',
+    r: 'Você vê o que viralizou, não o que muda a sua empresa. E nos grupos chega atrasado, cortado ou errado. Aqui cada notícia vem com o link da fonte para você conferir.' },
+  { o: 'Não tenho tempo pra ler notícia.',
+    r: 'Por isso mesmo. A IA lê as notícias de madrugada para você ler 1 minuto de manhã. Quem não tem tempo é quem mais é pego de surpresa.' },
+  { o: 'Se for importante, eu fico sabendo.',
+    r: 'Fica, mas tarde. Quando chega até você "naturalmente", o prazo já está correndo, a regra já está valendo e o concorrente já se ajustou.' },
+  { o: 'É mais uma assinatura.',
+    r: 'São R$ 9,99 por mês, menos de R$ 0,50 por dia útil. Uma multa por prazo perdido, uma nota emitida errado ou uma promoção mal anunciada custa mais que um ano de Tá Sabendo.' },
 ];
 
 const FAQ = [
   { q: 'Vai lotar meu WhatsApp?',   a: 'Não. É 1 mensagem por dia útil, às 7h, que se lê em 1 minuto.' },
   { q: 'De onde vêm as notícias?',  a: 'De portais de notícia, órgãos do governo e fontes do seu setor. Toda notícia tem o link da fonte.' },
+  { q: 'E se a IA errar?',          a: 'Toda notícia vem com o link da fonte original, para você conferir antes de agir.' },
+  { q: 'Isso substitui meu contador?', a: 'Não. O contador cuida da sua empresa; o Tá Sabendo AI faz você chegar na conversa com ele já sabendo o que mudou, antes do prazo apertar.' },
   { q: 'Tem política?',             a: 'Não. A gente ignora política partidária, crime e fofoca. Só entra o que muda algo prático no seu negócio.' },
+  { q: 'Minha cidade ou meu segmento não está na lista.', a: 'Hoje a edição é feita para Vilhena/RO e para comércio, alimentação e serviços e saúde. Cadastre mesmo assim, marcando "Outro" no segmento ou escrevendo a sua cidade: a gente te avisa quando chegar.' },
   { q: 'Como cancelo?',             a: 'Responde SAIR a qualquer momento.' },
   { q: 'Preciso cadastrar cartão?', a: 'Não, o 1º mês é grátis e sem cartão.' },
 ];
@@ -185,7 +224,7 @@ function FormatoWA({ t }: { t: string }) {
 /* ─── Mockup do celular ────────────────────────────────────────── */
 function Celular() {
   return (
-    <div className="relative mx-auto w-full max-w-[340px]">
+    <div id="mockup" className="relative mx-auto w-full max-w-[340px]">
       <div className="absolute -inset-6 rounded-[56px] blur-3xl opacity-30 pointer-events-none" style={{ background: GRAD }} />
       <div className="relative rounded-[44px] p-[10px]" style={{ background: '#111827', boxShadow: '0 40px 80px -30px rgba(15,23,42,0.55)' }}>
         <div className="relative rounded-[36px] overflow-hidden flex flex-col h-[680px]" style={{ background: '#EFEAE2' }}>
@@ -378,6 +417,12 @@ function Formulario() {
           Aceito receber o Tá Sabendo AI no meu WhatsApp
         </label>
         {erros.aceite && <span className="block text-[13px] mt-1.5" style={{ color: ERRO_COR }} role="alert">{erros.aceite}</span>}
+        <p className="text-[12.5px] leading-relaxed mt-2 pl-[30px]" style={{ color: T.darkMute }}>
+          Seu número fica só com a Nexla.{' '}
+          <a href={PRIVACIDADE} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4" style={{ color: T.darkText }}>
+            Política de Privacidade
+          </a>.
+        </p>
       </div>
 
       <AnimatePresence>
@@ -399,8 +444,9 @@ function Formulario() {
             ? <><Loader2 size={17} className="animate-spin" /> Enviando...</>
             : <>Quero meu 1º mês grátis <Arrow /></>}
         </PrimaryBtn>
-        <p className="text-center text-[12.5px] mt-3" style={{ color: T.darkMute }}>
-          Sem cartão. Pra cancelar, é só responder SAIR.
+        <p className="text-center text-[13px] leading-relaxed mt-3" style={{ color: T.darkMute }}>
+          <strong className="font-semibold" style={{ color: T.darkText }}>1º mês grátis. Depois, R$ 9,99/mês.</strong>
+          <br className="sm:hidden" /> Sem cartão. Pra cancelar, é só responder SAIR.
         </p>
       </div>
     </form>
@@ -440,7 +486,7 @@ export default function TaSabendo() {
       <header style={{ borderBottom: `1px solid ${T.rule}` }}>
         <div className={`${WRAP} h-16 flex items-center justify-between`}>
           <a href="/" className="flex items-center gap-2.5">
-            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="" className="w-7 h-7 object-contain" />
+            <img src={LOGO} alt="Logo da Nexla" className="w-7 h-7 object-contain" />
             <span className="font-semibold text-[17px] tracking-tight">Nexla</span>
           </a>
           <a href="/" className="ts-link inline-flex items-center gap-1.5 text-sm" style={{ color: T.mute }}>
@@ -461,22 +507,27 @@ export default function TaSabendo() {
       <section ref={heroRef} className="overflow-hidden">
         <div className={`${WRAP} grid lg:grid-cols-[1.15fr_0.85fr] gap-12 lg:gap-8 items-center pt-10 pb-16 md:pt-16 md:pb-24`}>
           <div>
-            <motion.span {...load(0)} className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-7 text-[13px] font-semibold"
+            <motion.span {...load(0)} className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-6 text-[13px] font-semibold"
               style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(79,70,229,0.2)', color: T.accent }}>
               <Sun size={14} strokeWidth={2.5} /> Tá Sabendo AI · by Nexla
             </motion.span>
 
-            <motion.h1 {...load(0.06)} className="ts-display leading-[1.02] mb-7"
-              style={{ fontSize: 'clamp(38px,5.8vw,74px)' }}>
-              O que muda na sua empresa, <span className="text-gradient">todo dia às 7h</span> no seu WhatsApp.
-            </motion.h1>
-
-            <motion.p {...load(0.14)} className="text-[17px] md:text-[18px] leading-[1.6] max-w-[32rem] mb-9" style={{ color: T.ink2 }}>
-              Leis, impostos, prazos e notícias do seu setor, resumidos por IA em{' '}
-              <strong className="font-semibold" style={{ color: T.ink }}>menos de 1 minuto</strong>. Sem precisar assistir noticiário.
+            <motion.p {...load(0.04)} className="ts-mono text-[11px] md:text-[11.5px] uppercase tracking-[0.16em] mb-4" style={{ color: T.mute }}>
+              Para comércio, alimentação e serviços de Vilhena/RO
             </motion.p>
 
-            <motion.div {...load(0.22)} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <motion.h1 {...load(0.08)} className="ts-display leading-[1.02] mb-7"
+              style={{ fontSize: 'clamp(40px,6.2vw,80px)' }}>
+              Fique sabendo <span className="text-gradient">antes de virar multa.</span>
+            </motion.h1>
+
+            <motion.p {...load(0.16)} className="text-[17px] md:text-[18px] leading-[1.6] max-w-[33rem] mb-9" style={{ color: T.ink2 }}>
+              Lei nova, imposto que mudou, prazo que vence. Todo dia útil, às 7h, a IA te conta no WhatsApp o que mexe
+              com a sua empresa e o que fazer hoje. Em{' '}
+              <strong className="font-semibold" style={{ color: T.ink }}>menos de 1 minuto</strong>.
+            </motion.p>
+
+            <motion.div {...load(0.24)} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
               <PrimaryBtn onClick={scrollToForm}>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
               <p className="text-[13.5px] leading-snug max-w-[14rem]" style={{ color: T.mute }}>Sem cartão. Pra cancelar, é só responder SAIR.</p>
             </motion.div>
@@ -507,6 +558,45 @@ export default function TaSabendo() {
         </div>
       </div>
 
+      {/* SOA FAMILIAR? (a dor) */}
+      <section className="py-20 md:py-28" style={{ background: T.paper2 }}>
+        <div className={WRAP}>
+          <SectionLabel n="00">Soa familiar?</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.15fr] gap-10 lg:gap-20 items-start mt-10 md:mt-12">
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <h2 className="ts-display leading-[1.06] mb-6" style={{ fontSize: 'clamp(30px,4.2vw,52px)' }}>
+                Ninguém avisa o dono da empresa. Ele descobre quando já custou.
+              </h2>
+              <p className="text-[16px] md:text-[17px] leading-[1.65] max-w-[30rem]" style={{ color: T.ink2 }}>
+                Não é falta de interesse. É falta de tempo. Quem toca a empresa não consegue ler Diário Oficial, site da
+                Receita e portal da prefeitura todo dia.
+              </p>
+            </motion.div>
+
+            <motion.ol initial="hidden" whileInView="show" viewport={vp}
+              variants={{ show: { transition: { staggerChildren: 0.08 } } }} style={{ borderTop: `1px solid ${T.rule}` }}>
+              {DORES.map((d, i) => (
+                <motion.li key={d} variants={fadeUp} className="grid grid-cols-[2rem_1fr] gap-3 items-baseline py-4"
+                  style={{ borderBottom: `1px solid ${T.rule}` }}>
+                  <span className="ts-mono text-[11px] tracking-[0.18em]" style={{ color: T.accent }}>0{i + 1}</span>
+                  <span className="text-[16px] md:text-[17px] leading-snug" style={{ color: T.ink }}>{d}</span>
+                </motion.li>
+              ))}
+            </motion.ol>
+          </div>
+
+          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+            className="mt-12 md:mt-16 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <p className="ts-display leading-[1.1]" style={{ fontSize: 'clamp(26px,3.4vw,40px)' }}>
+              O Tá Sabendo AI lê por você. <span className="text-gradient">Às 7h, você já sabe.</span>
+            </p>
+            <div className="shrink-0">
+              <PrimaryBtn onClick={scrollToForm}>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* FORMULÁRIO */}
       <section id="cadastro" ref={formRef} className="ts-dark py-16 md:py-24 scroll-mt-4" style={{ background: T.dark, color: T.darkText }}>
         <div className={WRAP}>
@@ -514,13 +604,13 @@ export default function TaSabendo() {
           <div className="grid lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-16 items-start mt-10 md:mt-12">
             <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
               <h2 className="ts-display leading-[1.04] mb-5" style={{ fontSize: 'clamp(32px,4.4vw,54px)' }}>
-                Cadastre seu WhatsApp. <span className="ts-grad-light">O 1º mês é grátis.</span>
+                Comece {PROXIMA_ROTULO} às 7h. <span className="ts-grad-light">O 1º mês é grátis.</span>
               </h2>
               <p className="text-[17px] leading-[1.65] mb-8 max-w-[30rem]" style={{ color: T.darkMute }}>
-                Leva 30 segundos. A primeira edição chega no seu WhatsApp.
+                Leva 30 segundos. A primeira edição chega no próximo dia útil, às 7h.
               </p>
               <ul className="space-y-3.5">
-                {['1 mensagem por dia útil, às 7h', 'Toda notícia com o link da fonte', 'Sem cartão. Pra cancelar, responde SAIR'].map(t => (
+                {['1 mensagem por dia útil, às 7h', 'Toda notícia com o link da fonte', 'Sem cartão. Pra cancelar, é só responder SAIR'].map(t => (
                   <li key={t} className="flex items-center gap-3 text-[15px]" style={{ color: T.darkText }}>
                     <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)' }}>
@@ -587,9 +677,9 @@ export default function TaSabendo() {
         <div className={WRAP}>
           <SectionLabel n="03">O que você recebe</SectionLabel>
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
-            className="grid lg:grid-cols-[1fr_1fr] gap-6 lg:gap-16 items-end mt-10 md:mt-12 mb-12">
+            className="grid lg:grid-cols-[1.2fr_1fr] gap-6 lg:gap-16 items-end mt-10 md:mt-12 mb-12">
             <h2 className="ts-display leading-[1.06]" style={{ fontSize: 'clamp(30px,4.2vw,52px)' }}>
-              Só o que mexe com a sua empresa.
+              Só o que mexe com a sua empresa. <span className="text-gradient">E o que fazer com isso.</span>
             </h2>
             <p className="text-[16px] md:text-[17px] leading-[1.65] max-w-[28rem]" style={{ color: T.ink2 }}>
               Cada edição tem quatro partes. Nada de política partidária, crime ou fofoca.
@@ -601,11 +691,13 @@ export default function TaSabendo() {
             className="grid sm:grid-cols-2 lg:grid-cols-4" style={{ borderTop: `1px solid ${T.rule}`, borderBottom: `1px solid ${T.rule}` }}>
             {RECEBE.map((r, i) => (
               <motion.div key={r.t} variants={fadeUp}
-                className={`pt-6 pb-8 sm:pr-8 lg:px-7 ${i ? 'border-t lg:border-t-0 lg:border-l' : ''} ${i === 0 ? 'lg:pl-0' : ''} ${i === RECEBE.length - 1 ? 'lg:pr-0' : ''}`}
-                style={{ borderColor: T.rule }}>
+                className={`pt-6 pb-8 px-5 sm:px-6 lg:px-7 ${i ? 'border-t lg:border-t-0 lg:border-l' : ''} ${r.destaque ? 'rounded-b-2xl lg:rounded-none' : ''}`}
+                style={{ borderColor: T.rule, background: r.destaque ? 'rgba(79,70,229,0.06)' : 'transparent' }}>
                 <div className="flex items-center justify-between mb-7">
                   <span className="text-[30px] leading-none" aria-hidden>{r.e}</span>
-                  <span className="ts-mono text-[11px] tracking-[0.18em]" style={{ color: T.accent }}>0{i + 1}</span>
+                  {r.destaque
+                    ? <span className="ts-mono text-[10px] uppercase tracking-[0.16em] rounded-full px-2.5 py-1 text-white" style={{ background: GRAD }}>O diferencial</span>
+                    : <span className="ts-mono text-[11px] tracking-[0.18em]" style={{ color: T.accent }}>0{i + 1}</span>}
                 </div>
                 <h3 className="ts-display text-[22px] leading-[1.1] mb-2.5">{r.t}</h3>
                 <p className="text-[14.5px] leading-relaxed" style={{ color: T.ink2 }}>{r.d}</p>
@@ -615,10 +707,31 @@ export default function TaSabendo() {
         </div>
       </section>
 
-      {/* PREÇO */}
+      {/* MAS EU JÁ… (objeções) */}
       <section className="py-20 md:py-28">
         <div className={WRAP}>
-          <SectionLabel n="04">Preço</SectionLabel>
+          <SectionLabel n="04">Mas eu já…</SectionLabel>
+          <motion.h2 initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+            className="ts-display leading-[1.06] max-w-[40rem] mt-10 md:mt-12 mb-12" style={{ fontSize: 'clamp(30px,4.2vw,52px)' }}>
+            Cinco motivos pra não assinar. <span className="text-gradient">E o que custa cada um.</span>
+          </motion.h2>
+          <motion.dl initial="hidden" whileInView="show" viewport={vp}
+            variants={{ show: { transition: { staggerChildren: 0.08 } } }} style={{ borderTop: `1px solid ${T.rule}` }}>
+            {OBJECOES.map(o => (
+              <motion.div key={o.o} variants={fadeUp} className="grid lg:grid-cols-[1fr_1.6fr] gap-3 lg:gap-16 py-7 md:py-8"
+                style={{ borderBottom: `1px solid ${T.rule}` }}>
+                <dt className="ts-display text-[22px] md:text-[25px] leading-[1.15]" style={{ color: T.ink }}>“{o.o}”</dt>
+                <dd className="text-[15.5px] md:text-[16px] leading-[1.65]" style={{ color: T.ink2 }}>{o.r}</dd>
+              </motion.div>
+            ))}
+          </motion.dl>
+        </div>
+      </section>
+
+      {/* PREÇO */}
+      <section className="pb-20 md:pb-28">
+        <div className={WRAP}>
+          <SectionLabel n="05">Preço</SectionLabel>
           <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
             className="ts-dark relative overflow-hidden rounded-3xl mt-10 md:mt-12 p-7 sm:p-10 md:p-14 grid lg:grid-cols-[1.35fr_1fr] gap-10 lg:gap-14 items-center"
             style={{ background: T.dark, color: T.darkText }}>
@@ -626,25 +739,61 @@ export default function TaSabendo() {
             <span className="ts-stamp absolute top-6 right-6 sm:top-8 sm:right-10" aria-hidden>Sem cartão</span>
             <div className="relative pt-8 sm:pt-0">
               <p className="ts-mono text-[11px] uppercase tracking-[0.18em] mb-5" style={{ color: T.darkMute }}>Assinatura</p>
-              <h2 className="ts-display leading-[1.04] mb-5" style={{ fontSize: 'clamp(32px,4.6vw,56px)' }}>
-                1º mês grátis. <span className="ts-grad-light">Depois, R$ 9,99 por mês.</span>
+              <h2 className="ts-display leading-[1.04] mb-5" style={{ fontSize: 'clamp(30px,4.4vw,54px)' }}>
+                Menos de R$ 0,50 por dia útil <span className="ts-grad-light">para não ser pego de surpresa.</span>
               </h2>
               <p className="text-[16px] md:text-[17px] leading-[1.65] max-w-[32rem]" style={{ color: T.darkMute }}>
+                <strong className="font-semibold" style={{ color: T.darkText }}>1º mês grátis. Depois, R$ 9,99 por mês.</strong>{' '}
                 Antes de acabar o mês grátis, a gente te avisa. Você só continua se quiser.
               </p>
             </div>
             <div className="relative">
               <PrimaryBtn onClick={scrollToForm} full>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
-              <p className="text-center text-[13px] mt-3" style={{ color: T.darkMute }}>Pra cancelar, é só responder SAIR.</p>
+              <p className="text-center text-[13px] mt-3" style={{ color: T.darkMute }}>Sem cartão. Pra cancelar, é só responder SAIR.</p>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="pb-24 md:pb-32">
+      {/* QUEM FAZ (prova local) */}
+      <section className="py-20 md:py-28" style={{ background: T.paper2 }}>
         <div className={WRAP}>
-          <SectionLabel n="05">Dúvidas</SectionLabel>
+          <SectionLabel n="06">Quem faz</SectionLabel>
+          <div className="grid lg:grid-cols-[1fr_1.3fr] gap-10 lg:gap-16 items-center mt-10 md:mt-12">
+            <motion.figure initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <div className="rounded-2xl overflow-hidden aspect-[4/3]"
+                style={{ border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -30px rgba(15,23,42,0.35)' }}>
+                <img src="/nexla.jpg" alt="Alisson Amorim e a equipe Nexla no NASA Space Apps Challenge"
+                  className="w-full h-full object-cover object-top block" loading="lazy" />
+              </div>
+              <figcaption className="mt-3 ts-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: T.mute }}>
+                Equipe Nexla · Vilhena, RO
+              </figcaption>
+            </motion.figure>
+            <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}>
+              <h2 className="ts-display leading-[1.06] mb-5" style={{ fontSize: 'clamp(30px,4.2vw,52px)' }}>
+                Feito em Vilhena, <span className="text-gradient">pela Nexla.</span>
+              </h2>
+              <p className="text-[16px] md:text-[17px] leading-[1.65] mb-4 max-w-[32rem]" style={{ color: T.ink2 }}>
+                O Tá Sabendo AI é montado por <strong className="font-semibold" style={{ color: T.ink }}>Alisson Amorim</strong>, fundador
+                da Nexla e engenheiro de automação com IA. A Nexla constrói agentes de atendimento e automações para clínicas,
+                comércios, restaurantes e escritórios.
+              </p>
+              <p className="text-[16px] md:text-[17px] leading-[1.65] mb-8 max-w-[32rem]" style={{ color: T.ink2 }}>
+                Quem lê a sua edição mora na mesma cidade que você. Ficou com dúvida? É só chamar no WhatsApp.
+              </p>
+              <a href="/" className="ts-link inline-flex items-center gap-2 font-medium underline underline-offset-[6px] decoration-1" style={{ color: T.accent }}>
+                Conhecer a Nexla <Arrow size={16} />
+              </a>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 md:py-28">
+        <div className={WRAP}>
+          <SectionLabel n="07">Dúvidas</SectionLabel>
           <div className="grid lg:grid-cols-[1fr_1.6fr] gap-10 lg:gap-20 items-start mt-10 md:mt-12">
             <div>
               <h2 className="ts-display leading-[1.06] mb-5" style={{ fontSize: 'clamp(30px,3.8vw,46px)' }}>
@@ -698,11 +847,25 @@ export default function TaSabendo() {
         </div>
       </section>
 
+      {/* CTA FINAL */}
+      <section className="pb-24 md:pb-32">
+        <div className={`${WRAP} text-center`}>
+          <motion.div initial="hidden" whileInView="show" viewport={vp} variants={fadeUp}
+            className="rounded-3xl px-6 py-14 md:py-20" style={{ background: T.paper2, border: `1px solid ${T.rule}` }}>
+            <h2 className="ts-display leading-[1.06] max-w-[34rem] mx-auto mb-8" style={{ fontSize: 'clamp(28px,3.8vw,46px)' }}>
+              A próxima mudança já está a caminho. <span className="text-gradient">Você vai saber antes ou depois?</span>
+            </h2>
+            <PrimaryBtn onClick={scrollToForm}>Quero meu 1º mês grátis <Arrow /></PrimaryBtn>
+            <p className="text-[13.5px] mt-4" style={{ color: T.mute }}>Sem cartão. Pra cancelar, é só responder SAIR.</p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Rodapé */}
       <footer className="pt-10 pb-28 md:pb-10 px-6" style={{ background: '#1E1B4B', borderTop: '1px solid rgba(237,233,254,0.1)' }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <a href="/" className="flex items-center gap-3">
-            <img src="/ChatGPT_Image_17_de_mar._de_2026,_10_56_43.png" alt="Nexla" className="w-12 h-12 object-contain opacity-90" />
+            <img src={LOGO} alt="Logo da Nexla" className="w-12 h-12 object-contain opacity-90" />
             <span className="ts-display text-2xl" style={{ color: '#EDE9FE', letterSpacing: 'normal' }}>Nexla</span>
           </a>
           <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-3 text-sm font-medium" style={{ color: 'rgba(237,233,254,0.7)' }}>
@@ -711,6 +874,7 @@ export default function TaSabendo() {
               className="inline-flex items-center gap-2 hover:text-white transition-colors"><Instagram size={16} /> @nexla_ia</a>
             <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 hover:text-white transition-colors"><MessageCircle size={16} /> (69) 99930-0101</a>
+            <a href={PRIVACIDADE} className="hover:text-white transition-colors">Privacidade</a>
           </div>
           <p className="text-xs" style={{ color: 'rgba(167,139,250,0.45)' }}>
             Tá Sabendo AI é um produto da Nexla · Vilhena, RO
