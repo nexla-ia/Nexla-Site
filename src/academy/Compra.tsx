@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link } from './router';
-import { supabase } from './supabase';
+import { supabase, pedidoExpirado } from './supabase';
 import { evento, cookiesMeta } from './pixel';
 
 type Resumo = {
@@ -178,7 +178,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
 
 /* ─── /compra/:id — retorno do Mercado Pago: acompanha o status do pedido ── */
 export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
-  type Pedido = { status: string; total: number; forma_pagamento: string | null; academy_courses: { slug: string; titulo: string } | null };
+  type Pedido = { status: string; total: number; forma_pagamento: string | null; criado_em: string; academy_courses: { slug: string; titulo: string } | null };
   const [pedido, setPedido] = useState<Pedido | null | 'nao'>(null);
   const nome = (sessao.user.user_metadata?.nome as string | undefined) || sessao.user.email || '';
   const contouCompra = useRef(false);
@@ -194,12 +194,12 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
     let vivo = true;
     let tentativas = 0;
     const buscar = async () => {
-      const { data } = await supabase.from('academy_orders').select('status, total, forma_pagamento, academy_courses(slug, titulo)')
+      const { data } = await supabase.from('academy_orders').select('status, total, forma_pagamento, criado_em, academy_courses(slug, titulo)')
         .eq('id', id).eq('user_id', sessao.user.id).maybeSingle();
       if (!vivo) return;
       setPedido(data ? (data as unknown as Pedido) : 'nao');
       // Enquanto o Mercado Pago não confirma (Pix leva alguns segundos), confere de novo
-      if (data?.status === 'pendente' && tentativas++ < 60) setTimeout(buscar, 5000);
+      if (data?.status === 'pendente' && !pedidoExpirado(data) && tentativas++ < 60) setTimeout(buscar, 5000);
     };
     buscar();
     return () => { vivo = false; };
@@ -217,15 +217,17 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
                    texto: pedido.forma_pagamento === 'ticket' ? 'O boleto pode levar até 3 dias úteis para compensar. Assim que o banco confirmar, o curso libera sozinho e avisamos você.' : 'Assim que o Mercado Pago confirmar, o curso libera sozinho. Pode deixar esta página aberta.' },
     recusado:    { icone: XCircle,      cor: 'var(--a-red)', titulo: 'Pagamento não aprovado', texto: 'O pagamento foi recusado. Você pode tentar de novo com outro cartão ou pagar com Pix.' },
     cancelado:   { icone: XCircle,      cor: 'var(--a-red)', titulo: 'Pagamento cancelado', texto: 'Nenhuma cobrança foi feita. Você pode tentar de novo quando quiser.' },
+    expirado:    { icone: Clock,        cor: T.mute, titulo: 'O prazo para pagar terminou', texto: 'Nenhuma cobrança foi feita. Se ainda quiser o curso, é só começar a compra de novo.' },
     reembolsado: { icone: XCircle,      cor: T.mute,    titulo: 'Pedido reembolsado', texto: 'O valor foi devolvido e o acesso ao curso foi encerrado.' },
   };
-  const e = estados[pedido.status] ?? estados.pendente;
+  const situacao = pedidoExpirado(pedido) ? 'expirado' : pedido.status;
+  const e = estados[situacao] ?? estados.pendente;
 
   return (
     <AppLayout nome={nome}>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}
         className="max-w-lg mx-auto text-center rounded-2xl p-8 md:p-10" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-        <e.icone size={48} strokeWidth={1.5} className={`mx-auto ${pedido.status === 'pendente' ? 'animate-pulse' : ''}`} style={{ color: e.cor }} />
+        <e.icone size={48} strokeWidth={1.5} className={`mx-auto ${situacao === 'pendente' ? 'animate-pulse' : ''}`} style={{ color: e.cor }} />
         <h1 className="font-bold text-[24px] leading-tight mt-4" style={display}>{e.titulo}</h1>
         <p className="text-[15px] mt-2" style={{ color: T.mute }}>{e.texto}</p>
         <p className="text-[13.5px] mt-3" style={{ color: T.mute }}>Valor: <strong style={{ color: T.ink }}>{Number(pedido.total) > 0 ? reais(Number(pedido.total)) : 'Grátis'}</strong></p>
@@ -235,7 +237,7 @@ export function RetornoCompra({ sessao, id }: { sessao: Session; id: string }) {
               <Award size={17} /> Começar o curso <ArrowRight size={16} />
             </Link>
           )}
-          {(pedido.status === 'recusado' || pedido.status === 'cancelado') && curso && (
+          {(situacao === 'recusado' || situacao === 'cancelado' || situacao === 'expirado') && curso && (
             <Link para={`/comprar/${curso.slug}`} className="acad-btn inline-flex items-center justify-center gap-2 h-12 rounded-[10px] text-[15px] font-semibold text-white">
               Tentar de novo
             </Link>

@@ -4,7 +4,7 @@ import { Plus, Receipt, Tag, Trash2 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
-import { supabase } from '../supabase';
+import { supabase, pedidoExpirado } from '../supabase';
 import { SoAdmin, AdminLayout, TituloAdmin, inputCls, Rotulo, Chave, botaoPrimario, useParteSalvavel } from './comum';
 
 const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -111,6 +111,7 @@ const STATUS: Record<string, { t: string; bg: string; c: string }> = {
   pendente:    { t: 'Pendente',    bg: '#FEF3C7', c: 'var(--a-amber)' },
   recusado:    { t: 'Recusado',    bg: '#FEE2E2', c: 'var(--a-red)' },
   cancelado:   { t: 'Cancelado',   bg: 'var(--a-soft)', c: T.mute },
+  expirado:    { t: 'Expirado',    bg: 'var(--a-soft)', c: T.mute },
   reembolsado: { t: 'Reembolsado', bg: 'var(--a-soft)', c: T.mute },
 };
 const FORMA: Record<string, string> = { pix: 'Pix', bank_transfer: 'Pix', credit_card: 'Cartão', debit_card: 'Débito', ticket: 'Boleto', account_money: 'Saldo MP', gratuito: 'Gratuito' };
@@ -152,7 +153,9 @@ function Tela({ nome }: { nome: string }) {
     return () => { window.clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar); };
   }, [carregar]);
 
-  const lista = useMemo(() => (pedidos ?? []).filter(p => !filtro || p.status === filtro), [pedidos, filtro]);
+  // Pendente que passou do prazo aparece como "Expirado" (o banco é atualizado no próximo checkout)
+  const situacao = (p: Pedido) => (pedidoExpirado(p) ? 'expirado' : p.status);
+  const lista = useMemo(() => (pedidos ?? []).filter(p => !filtro || situacao(p) === filtro), [pedidos, filtro]);
   const pagos = (pedidos ?? []).filter(p => p.status === 'pago');
   const faturamento = pagos.reduce((s, p) => s + Number(p.total), 0);
   const comOferta = pagos.filter(p => p.com_oferta_extra).length;
@@ -225,7 +228,7 @@ function Tela({ nome }: { nome: string }) {
                     </thead>
                     <tbody>
                       {lista.map((p, i) => {
-                        const s = STATUS[p.status] ?? STATUS.pendente;
+                        const s = STATUS[situacao(p)] ?? STATUS.pendente;
                         return (
                           <tr key={p.id} style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
                             <td className="px-5 py-3 whitespace-nowrap" style={{ color: T.mute }}>{data(p.criado_em)}</td>

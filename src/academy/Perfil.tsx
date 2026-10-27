@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, ChevronRight, Eye, EyeOff, Lock, LogOut, M
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats, Avatar, fotoDaConta } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
-import { supabase, erroAuth, provedoresDa, descricaoDispositivo } from './supabase';
+import { supabase, erroAuth, provedoresDa, descricaoDispositivo, pedidoExpirado } from './supabase';
 import { reais } from './Compra';
 import { lerPreferencia, salvarPreferencia, EVENTO_CARREGADAS, type Preferencia } from './preferencias';
 import { Link, navegar } from './router';
@@ -143,7 +143,7 @@ function MinhasCompras({ sessao }: { sessao: Session }) {
     supabase.from('academy_orders').select('id, itens, total, status, forma_pagamento, criado_em')
       .eq('user_id', sessao.user.id).order('criado_em', { ascending: false })
       .then(({ data }) => setPedidos(((data ?? []) as Pedido[])
-        .filter(p => p.status !== 'cancelado' && !(p.status === 'pendente' && !p.forma_pagamento))));
+        .filter(p => p.status !== 'cancelado' && !(p.status === 'pendente' && !p.forma_pagamento) && !pedidoExpirado(p))));
   }, [sessao]);
 
   if (pedidos === null) return <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p>;

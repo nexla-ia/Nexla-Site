@@ -14,6 +14,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const SITE_PADRAO = 'https://www.nexla.com.br';
 const ORIGENS_OK = ['https://www.nexla.com.br', 'https://nexla.com.br', 'http://localhost:5173', 'http://localhost:4173'];
 const PARCELAS_MAX = 12; // decisão em aberto no briefing (quantas vezes / juros)
+const PRAZO_LINK_H = 2;   // o link de pagamento vale 2 horas (o mesmo prazo de src/academy/supabase.ts)
+const PRAZO_PIX_BOLETO_H = 4 * 24; // Pix ou boleto gerado: até 4 dias para pagar
 
 const cors = (origem: string | null) => ({
   'Access-Control-Allow-Origin': origem && ORIGENS_OK.includes(origem) ? origem : SITE_PADRAO,
@@ -101,6 +103,13 @@ Deno.serve(async (req) => {
   // Se algum deles ainda for pago, o webhook aprova e libera do mesmo jeito.
   await admin.from('academy_orders').update({ status: 'cancelado', atualizado_em: new Date().toISOString() })
     .eq('user_id', usuario.id).eq('course_id', curso.id).eq('status', 'pendente').is('forma_pagamento', null);
+  // E os pendentes de qualquer aluno que passaram do prazo viram "cancelado" (sem cobrança feita).
+  // Se o Mercado Pago ainda aprovar algum, o webhook libera do mesmo jeito.
+  const horasAtras = (h: number) => new Date(Date.now() - h * 3600 * 1000).toISOString();
+  await admin.from('academy_orders').update({ status: 'cancelado', atualizado_em: new Date().toISOString() })
+    .eq('status', 'pendente').is('forma_pagamento', null).lt('criado_em', horasAtras(PRAZO_LINK_H));
+  await admin.from('academy_orders').update({ status: 'cancelado', atualizado_em: new Date().toISOString() })
+    .eq('status', 'pendente').not('forma_pagamento', 'is', null).lt('criado_em', horasAtras(PRAZO_PIX_BOLETO_H));
 
   const { data: pedido, error: erroPedido } = await admin.from('academy_orders').insert({
     user_id: usuario.id, course_id: curso.id, itens, subtotal, desconto, total,
@@ -151,6 +160,11 @@ Deno.serve(async (req) => {
       back_urls: { success: retorno, pending: retorno, failure: retorno },
       ...(local ? {} : { auto_return: 'approved' }),
       payment_methods: { installments: PARCELAS_MAX },
+      // O link expira em 2 h; Pix e boleto gerados nele valem 3 dias
+      expires: true,
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + PRAZO_LINK_H * 3600 * 1000).toISOString(),
+      date_of_expiration: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
       statement_descriptor: 'NEXLA ACADEMY',
     }),
   });
