@@ -8,61 +8,48 @@ import { Link } from './router';
 import { useCursosAluno, type CursoAluno, type CursoVitrine } from './dados';
 import { reais } from './Compra';
 
-/* Fundo de quem ainda não tem foto: gradiente da marca com uma grade bem leve e o símbolo da Nexla */
-const SEM_FOTO = {
-  backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})`,
-  backgroundSize: '24px 24px, 24px 24px, cover',
-};
-/* Capa do card (16:9): a foto aproxima um pouco ao passar o mouse. Embaixo pode ir uma barra fina de progresso. */
+/* Fundo de quem ainda não tem foto: a cor de cartão do tema com o símbolo da Nexla */
+const SEM_FOTO = { background: T.card };
+/* Capa do card (16:9). No curso que o aluno já tem, uma linha fina embaixo mostra o progresso. */
 function Capa({ url, progresso }: { url: string | null; progresso?: number }) {
   return (
-    <div className="relative aspect-video rounded-xl overflow-hidden" style={{ border: `1px solid ${T.rule}` }}>
-      <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-        style={url ? { backgroundImage: `url("${url}")` } : SEM_FOTO} />
-      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 object-contain opacity-80" />}
-      {progresso !== undefined && (
-        <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: 'rgba(15,23,42,0.35)' }}>
-          <div className="h-full" style={{ width: `${progresso}%`, background: progresso >= 100 ? '#22C55E' : '#6366F1' }} />
+    <div className="relative aspect-video rounded-lg overflow-hidden transition-opacity group-hover:opacity-90">
+      <div className="absolute inset-0 bg-cover bg-center" style={url ? { backgroundImage: `url("${url}")` } : SEM_FOTO} />
+      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 object-contain opacity-80" />}
+      {!!progresso && (
+        <div className="absolute inset-x-0 bottom-0 h-[3px]" style={{ background: 'rgba(15,23,42,0.3)' }}>
+          <div className="h-full" style={{ width: `${progresso}%`, background: '#FFFFFF' }} />
         </div>
       )}
     </div>
   );
 }
 
-/* Card minimalista: capa, título e uma linha de informação (o card inteiro é o link) */
-const cardCls = 'group flex flex-col rounded-xl focus-visible:outline-offset-4';
-const titulo = 'font-semibold text-[15px] leading-snug line-clamp-2 mt-3 transition-colors group-hover:text-[var(--a-accent)]';
-
-/* Curso que o aluno ainda não tem: preço (ou Grátis / Em breve) */
-export function CardVitrine({ c }: { c: CursoVitrine }) {
-  const gratis = c.preco?.valor === 0;
+/* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link) */
+function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string }) {
   return (
-    <Link para={`/curso/${c.slug}`} className={cardCls}>
-      <Capa url={c.capa} />
-      <h3 className={titulo} style={{ color: T.ink }}>{c.titulo}</h3>
-      <p className="text-[13px] mt-1" style={{ color: T.mute }}>{c.totalAulas} {c.totalAulas === 1 ? 'aula' : 'aulas'} · {c.horas}h</p>
-      <p className="mt-1.5 text-[14px] whitespace-nowrap">
-        {gratis ? <span className="font-semibold" style={{ color: 'var(--a-green)' }}>Grátis</span>
-          : c.preco ? (
-            <>
-              <span className="font-semibold" style={{ color: T.ink }}>{reais(c.preco.valor)}</span>
-              {c.preco.de != null && <span className="text-[12.5px] line-through ml-1.5" style={{ color: T.mute }}>{reais(c.preco.de)}</span>}
-            </>
-          ) : <span style={{ color: T.mute }}>Em breve</span>}
-      </p>
+    <Link para={para} className="group block rounded-lg focus-visible:outline-offset-4">
+      <Capa url={capa} progresso={progresso} />
+      <h3 className="mt-2.5 text-[14.5px] font-semibold leading-snug line-clamp-2" style={{ color: T.ink }}>{titulo}</h3>
+      <p className="mt-0.5 text-[13px]" style={{ color: T.mute }}>{linha}</p>
     </Link>
   );
 }
 
-/* Curso que o aluno já tem: barra fina de progresso na capa */
+const aulas = (n: number) => `${n} ${n === 1 ? 'aula' : 'aulas'}`;
+
+/* Curso que o aluno ainda não tem: aulas e preço */
+export function CardVitrine({ c }: { c: CursoVitrine }) {
+  const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
+  return <Card para={`/curso/${c.slug}`} capa={c.capa} titulo={c.titulo} linha={`${aulas(c.totalAulas)} · ${preco}`} />;
+}
+
+/* Curso que o aluno já tem: quanto já fez */
 function CardMeu({ c }: { c: CursoAluno }) {
   const status = c.percentual >= 100 ? 'Concluído' : c.feitas.size ? `${c.percentual}% concluído` : 'Não iniciado';
   return (
-    <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className={cardCls}>
-      <Capa url={c.capa} progresso={c.percentual} />
-      <h3 className={titulo} style={{ color: T.ink }}>{c.titulo}</h3>
-      <p className="text-[13px] mt-1" style={{ color: T.mute }}>{c.aulas.length} {c.aulas.length === 1 ? 'aula' : 'aulas'} · {status}</p>
-    </Link>
+    <Card para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} capa={c.capa} progresso={c.percentual}
+      titulo={c.titulo} linha={`${aulas(c.aulas.length)} · ${status}`} />
   );
 }
 
@@ -81,7 +68,7 @@ function porCategoria(itens: Item[]) {
 }
 
 /* Grade dos cards (a mesma no Explorar, no painel e nos resultados da busca) */
-export const GRADE_CURSOS = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-8';
+export const GRADE_CURSOS = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-7';
 
 /* Grade de cursos separada por categoria (usada no Explorar e no painel de quem ainda não tem cursos) */
 export function GradeCategorias({ outros, cursos = [] }: { outros: CursoVitrine[]; cursos?: CursoAluno[] }) {
