@@ -21,6 +21,7 @@ import { Carregando } from './AppLayout';
 import { useRota, navegar, parametro } from './router';
 import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado, marcarNovoLogin } from './supabase';
 import { iniciarTema } from './tema';
+import { sincronizarPreferencias } from './preferencias';
 import Legal from './Legal';
 import Validar from './Validar';
 import { EsqueciSenha, NovaSenha } from './Recuperar';
@@ -68,6 +69,8 @@ function Academy() {
   const admin = useEhAdmin(sessao);
   useSessaoUnica(sessao); // 1 dispositivo por conta
   const [pendente, cadastroCompleto] = useCadastroPendente(sessao, admin); // conta nova pelo Google sem WhatsApp
+  const uid = sessao?.user.id ?? null;
+  useEffect(() => { sincronizarPreferencias(uid); }, [uid]); // tema e preferências de estudo salvos na conta
 
   useEffect(() => {
     if (sessao === undefined) return;

@@ -6,7 +6,7 @@ import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats, A
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { supabase, erroAuth, provedoresDa, descricaoDispositivo } from './supabase';
 import { reais } from './Compra';
-import { lerPreferencia, salvarPreferencia, type Preferencia } from './preferencias';
+import { lerPreferencia, salvarPreferencia, EVENTO_CARREGADAS, type Preferencia } from './preferencias';
 import { Link, navegar } from './router';
 import { useTema, type Tema } from './tema';
 
@@ -179,7 +179,14 @@ const PREFERENCIAS: { id: Preferencia; texto: string; sub: string }[] = [
 ];
 
 function PreferenciasEstudo() {
-  const [valores, setValores] = useState(() => Object.fromEntries(PREFERENCIAS.map(p => [p.id, lerPreferencia(p.id)])) as Record<Preferencia, boolean>);
+  const ler = () => Object.fromEntries(PREFERENCIAS.map(p => [p.id, lerPreferencia(p.id)])) as Record<Preferencia, boolean>;
+  const [valores, setValores] = useState(ler);
+  // As da conta podem chegar depois de a tela abrir (primeiro acesso neste aparelho)
+  useEffect(() => {
+    const recarregar = () => setValores(ler());
+    window.addEventListener(EVENTO_CARREGADAS, recarregar);
+    return () => window.removeEventListener(EVENTO_CARREGADAS, recarregar);
+  }, []);
   const mudar = (id: Preferencia, v: boolean) => { salvarPreferencia(id, v); setValores(atual => ({ ...atual, [id]: v })); };
   return (
     <ul>
@@ -375,11 +382,11 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             </form>
           </Secao>
 
-          <Secao titulo="Aparência" sub="Escolha entre o modo claro e o escuro. Vale para este navegador.">
+          <Secao titulo="Aparência" sub="Escolha entre o modo claro e o escuro. Fica salvo na sua conta.">
             <Aparencia />
           </Secao>
 
-          <Secao titulo="Preferências de estudo" sub="Como as aulas funcionam para você. Vale para este navegador.">
+          <Secao titulo="Preferências de estudo" sub="Como as aulas funcionam para você. Fica salvo na sua conta e vale em qualquer aparelho.">
             <PreferenciasEstudo />
           </Secao>
 

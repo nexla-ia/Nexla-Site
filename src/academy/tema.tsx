@@ -22,10 +22,15 @@ export function aplicarTema() {
   ouvintes.forEach(f => f());
 }
 
-export function salvarTema(t: Tema) {
+/* Avisado quando o aluno muda o tema ou uma preferência: o preferencias.ts guarda na conta */
+export const EVENTO_PREFERENCIAS = 'academy-preferencias';
+
+/* daConta = valor que veio da conta (não precisa mandar de volta) */
+export function salvarTema(t: Tema, daConta = false) {
   try { localStorage.setItem(CHAVE, t); } catch { /* sem armazenamento: vale só até recarregar */ }
   document.documentElement.dataset.tema = temaEscuro(t) ? 'escuro' : 'claro';
   ouvintes.forEach(f => f());
+  if (!daConta) window.dispatchEvent(new Event(EVENTO_PREFERENCIAS));
 }
 
 /* Liga uma vez na abertura: no automático, acompanha quando o sistema troca de tema */
@@ -42,7 +47,7 @@ export function useTema() {
     ouvintes.add(f);
     return () => { ouvintes.delete(f); };
   }, []);
-  return { tema, escuro, salvar: salvarTema, alternar: () => salvarTema(escuro ? 'claro' : 'escuro') };
+  return { tema, escuro, salvar: (t: Tema) => salvarTema(t), alternar: () => salvarTema(escuro ? 'claro' : 'escuro') };
 }
 
 /* Botão de sol/lua para trocar o tema na hora (topo do curso e do admin) */
