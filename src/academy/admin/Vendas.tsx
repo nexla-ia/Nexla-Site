@@ -106,13 +106,14 @@ type Pedido = {
 };
 type Cupom = { codigo: string; tipo: 'percentual' | 'valor'; valor: number; course_id: string | null; validade: string | null; limite_usos: number | null; usos: number; ativo: boolean };
 
+// Uma cor para cada situação (fundo transparente, então funciona no tema claro e no escuro)
 const STATUS: Record<string, { t: string; bg: string; c: string }> = {
-  pago:        { t: 'Pago',        bg: 'var(--a-green-bg)', c: 'var(--a-green)' },
-  pendente:    { t: 'Pendente',    bg: '#FEF3C7', c: 'var(--a-amber)' },
-  recusado:    { t: 'Recusado',    bg: '#FEE2E2', c: 'var(--a-red)' },
-  cancelado:   { t: 'Cancelado',   bg: 'var(--a-soft)', c: T.mute },
-  expirado:    { t: 'Expirado',    bg: 'var(--a-soft)', c: T.mute },
-  reembolsado: { t: 'Reembolsado', bg: 'var(--a-soft)', c: T.mute },
+  pago:        { t: 'Pago',        bg: 'var(--a-green-bg)',      c: 'var(--a-green)' },
+  pendente:    { t: 'Pendente',    bg: 'rgba(245,158,11,0.16)',  c: 'var(--a-amber)' },
+  recusado:    { t: 'Recusado',    bg: 'rgba(239,68,68,0.13)',   c: 'var(--a-red)' },
+  cancelado:   { t: 'Cancelado',   bg: 'var(--a-soft)',          c: T.mute },
+  expirado:    { t: 'Expirado',    bg: 'rgba(249,115,22,0.14)',  c: 'var(--a-orange)' },
+  reembolsado: { t: 'Reembolsado', bg: 'rgba(99,102,241,0.14)',  c: T.accent },
 };
 const FORMA: Record<string, string> = { pix: 'Pix', bank_transfer: 'Pix', credit_card: 'Cartão', debit_card: 'Débito', ticket: 'Boleto', account_money: 'Saldo MP', gratuito: 'Gratuito' };
 const data = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -243,7 +244,9 @@ function Tela({ nome }: { nome: string }) {
                             </td>
                             <td className="px-3 py-3" style={{ color: T.mute }}>{p.forma_pagamento ? (FORMA[p.forma_pagamento] ?? p.forma_pagamento) : '—'}</td>
                             <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">{reais(Number(p.total))}</td>
-                            <td className="px-5 py-3"><span className="text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.c }}>{s.t}</span></td>
+                            <td className="px-5 py-3"><span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: s.bg, color: s.c }}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'currentColor' }} />{s.t}
+                            </span></td>
                           </tr>
                         );
                       })}
