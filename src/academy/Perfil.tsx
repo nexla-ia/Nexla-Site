@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, ChevronRight, Download, Eye, EyeOff, Lock, LogOut, Mail, MessageCircle, Monitor, Moon, Phone, Receipt, Sun, Trash2, User } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Eye, EyeOff, Lock, LogOut, Mail, MessageCircle, Monitor, Moon, Phone, Receipt, Sun, Trash2, User } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats, Avatar, fotoDaConta } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { supabase, erroAuth, provedoresDa, descricaoDispositivo } from './supabase';
 import { reais } from './Compra';
+import { lerPreferencia, salvarPreferencia, type Preferencia } from './preferencias';
 import { Link, navegar } from './router';
 import { useTema, type Tema } from './tema';
 
@@ -169,43 +170,28 @@ function MinhasCompras({ sessao }: { sessao: Session }) {
   );
 }
 
-/* LGPD: baixa um arquivo com tudo o que a Academy guarda sobre o aluno */
-function BaixarDados({ sessao }: { sessao: Session }) {
-  const [baixando, setBaixando] = useState(false);
-  const [erro, setErro] = useState('');
-  const baixar = async () => {
-    setBaixando(true); setErro('');
-    const uid = sessao.user.id;
-    const [perfil, matriculas, progresso, certificados, comentarios, avaliacoes, pedidos] = await Promise.all([
-      supabase.from('academy_profiles').select('nome, email, whatsapp, consentimento_marketing, criado_em').eq('id', uid).maybeSingle(),
-      supabase.from('academy_enrollments').select('course_id, ativo, criado_em, academy_courses(titulo)').eq('user_id', uid),
-      supabase.from('academy_lesson_progress').select('lesson_id, concluida, posicao_seg, atualizado_em').eq('user_id', uid),
-      supabase.from('academy_certificates').select('codigo, curso, nome, carga_h, concluido_em, emitido_em').eq('user_id', uid),
-      supabase.from('academy_lesson_comments').select('lesson_id, texto, criado_em').eq('user_id', uid),
-      supabase.from('academy_course_reviews').select('*').eq('user_id', uid),
-      supabase.from('academy_orders').select('id, itens, subtotal, desconto, total, cupom, status, forma_pagamento, criado_em, pago_em').eq('user_id', uid),
-    ]);
-    setBaixando(false);
-    if (perfil.error) return setErro('Não foi possível gerar o arquivo agora. Tente de novo.');
-    const arquivo = {
-      gerado_em: new Date().toISOString(),
-      conta: { email: sessao.user.email, criada_em: sessao.user.created_at, forma_de_entrar: formaDeEntrar(sessao) },
-      perfil: perfil.data, matriculas: matriculas.data ?? [], progresso_das_aulas: progresso.data ?? [],
-      certificados: certificados.data ?? [], comentarios: comentarios.data ?? [], avaliacoes: avaliacoes.data ?? [], compras: pedidos.data ?? [],
-    };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(arquivo, null, 2)], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = 'meus-dados-nexla-academy.json';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+/* Preferências de estudo (salvas neste navegador; o curso e o player leem na hora) */
+const PREFERENCIAS: { id: Preferencia; texto: string; sub: string }[] = [
+  { id: 'concluirAuto', texto: 'Concluir a aula sozinha', sub: 'Ao terminar o vídeo, a aula é marcada como concluída.' },
+  { id: 'proximaAuto', texto: 'Próxima aula automática', sub: 'Depois de concluir, a próxima aula começa em 5 segundos.' },
+  { id: 'retomar', texto: 'Continuar de onde parei', sub: 'O vídeo volta no ponto em que você parou da última vez.' },
+  { id: 'teatro', texto: 'Abrir as aulas no modo teatro', sub: 'Vídeo maior, sem a lista de aulas ao lado (atalho: tecla T).' },
+];
+
+function PreferenciasEstudo() {
+  const [valores, setValores] = useState(() => Object.fromEntries(PREFERENCIAS.map(p => [p.id, lerPreferencia(p.id)])) as Record<Preferencia, boolean>);
+  const mudar = (id: Preferencia, v: boolean) => { salvarPreferencia(id, v); setValores(atual => ({ ...atual, [id]: v })); };
   return (
-    <div>
-      <button onClick={baixar} disabled={baixando} className={botaoClaro} style={{ color: T.ink2, border: `1px solid ${T.rule}` }}>
-        <Download size={16} strokeWidth={1.75} /> {baixando ? 'Gerando arquivo…' : 'Baixar meus dados'}
-      </button>
-      {erro && <div className="mt-3"><Mensagem erro={erro} aviso="" /></div>}
-    </div>
+    <ul>
+      {PREFERENCIAS.map((p, i) => (
+        <li key={p.id} className={i ? 'pt-4 mt-4' : ''} style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
+          <Interruptor ligado={valores[p.id]} onChange={v => mudar(p.id, v)}>
+            <span className="block font-semibold" style={{ color: T.ink }}>{p.texto}</span>
+            <span className="block text-[13px]" style={{ color: T.mute }}>{p.sub}</span>
+          </Interruptor>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -393,6 +379,10 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             <Aparencia />
           </Secao>
 
+          <Secao titulo="Preferências de estudo" sub="Como as aulas funcionam para você. Vale para este navegador.">
+            <PreferenciasEstudo />
+          </Secao>
+
           <Secao titulo="Senha" sub={soGoogle
             ? 'Você entra pelo Google. Se quiser, defina uma senha para também entrar com e-mail e senha.'
             : 'Use pelo menos 8 caracteres, misturando letras e números.'}>
@@ -424,18 +414,12 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             <MinhasCompras sessao={sessao} />
           </Secao>
 
-          <Secao titulo="Seus dados (LGPD)" sub="Você pode baixar uma cópia dos seus dados ou excluir a sua conta a qualquer momento.">
+          <Secao titulo="Seus dados (LGPD)" sub="Você pode excluir a sua conta e os seus dados a qualquer momento.">
             <p className="text-[14px] leading-relaxed mb-4" style={{ color: T.ink2 }}>
-              O arquivo traz seu perfil, cursos, progresso, certificados, comentários, avaliações e compras.
+              Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados.
               {' '}Veja como cuidamos dos seus dados na <Link para="/privacidade" className="font-medium underline underline-offset-2" style={{ color: T.accent }}>Política de privacidade</Link>.
             </p>
-            <BaixarDados sessao={sessao} />
-            <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${T.rule}` }}>
-              <p className="text-[14px] leading-relaxed mb-4" style={{ color: T.ink2 }}>
-                Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados.
-              </p>
-              <ExcluirConta sessao={sessao} />
-            </div>
+            <ExcluirConta sessao={sessao} />
             <a href={`https://wa.me/${WHATSAPP_NEXLA}?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre os meus dados na Nexla Academy (${sessao.user.email}).`)}`}
               target="_blank" rel="noopener noreferrer"
               className="flex w-fit items-center gap-1.5 mt-4 text-[13.5px] font-medium hover:underline underline-offset-4" style={{ color: T.mute }}>

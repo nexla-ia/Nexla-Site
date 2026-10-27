@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, PlayCircle, RotateCcw, VideoOff } from 'lucide-react';
 import { T } from './ui';
 import { supabase } from './supabase';
+import { lerPreferencia } from './preferencias';
 
 type Estado = { tipo: 'carregando' } | { tipo: 'ok'; url: string } | { tipo: 'sem_video' } | { tipo: 'erro'; msg: string };
 
@@ -48,7 +49,7 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
     const pos = salvo.current ?? 0;
     if (retomou.current || !pronto.current || salvo.current === null) return;
     retomou.current = true;
-    if (pos >= 3) { mandar({ method: 'setCurrentTime', value: pos }); setRetomado(pos); }
+    if (pos >= 3 && lerPreferencia('retomar')) { mandar({ method: 'setCurrentTime', value: pos }); setRetomado(pos); }
   };
   const retomarRef = useRef(retomar);
   retomarRef.current = retomar;

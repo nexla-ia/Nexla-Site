@@ -12,6 +12,7 @@ import PaginaCurso from './PaginaCurso';
 import VideoAula from './Video';
 import { registrarAula } from './rastreio';
 import { BotaoTema } from './tema';
+import { lerPreferencia, salvarPreferencia } from './preferencias';
 
 type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
 type Dados = {
@@ -86,10 +87,13 @@ function ProximoCurso({ s }: { s: Sugestao }) {
   );
 }
 
-/* Fim da aula (estilo Alura): chama a próxima aula com contagem; o aluno pode ir na hora ou cancelar */
+/* Fim da aula (estilo Alura): chama a próxima aula com contagem; o aluno pode ir na hora ou cancelar.
+   Com "próxima aula automática" desligada no perfil, não conta: espera o aluno clicar. */
 function FimAula({ proxima, ir, cancelar }: { proxima: Aula; ir: () => void; cancelar: () => void }) {
+  const [auto] = useState(() => lerPreferencia('proximaAuto'));
   const [resta, setResta] = useState(5);
   useEffect(() => {
+    if (!auto) return;
     if (resta <= 0) { ir(); return; }
     const t = setTimeout(() => setResta(r => r - 1), 1000);
     return () => clearTimeout(t);
@@ -101,7 +105,7 @@ function FimAula({ proxima, ir, cancelar }: { proxima: Aula; ir: () => void; can
       <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: '#86EFAC' }}>
         <CheckCircle2 size={15} strokeWidth={2} /> Aula concluída
       </p>
-      <p className="text-[13px] mt-4" style={{ color: 'rgba(241,245,249,0.6)' }}>Próxima aula em {resta}s</p>
+      <p className="text-[13px] mt-4" style={{ color: 'rgba(241,245,249,0.6)' }}>{auto ? `Próxima aula em ${resta}s` : 'Próxima aula'}</p>
       <p className="font-bold text-[20px] sm:text-[24px] leading-snug mt-1 max-w-lg" style={display}>{proxima.titulo}</p>
       <div className="flex items-center gap-3 mt-6">
         <button onClick={ir} className="acad-btn inline-flex items-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white">
@@ -219,7 +223,7 @@ function ListaAulas({ curso, aulaId, feitas, matriculado, percentual, abrir }: {
   );
 }
 
-const lerTeatro = () => { try { return localStorage.getItem('academy-teatro') === '1'; } catch { return false; } };
+const lerTeatro = () => lerPreferencia('teatro');
 
 export default function Curso({ sessao, slug }: { sessao: Session; slug: string }) {
   const [dados, setDados] = useState<Dados | null | 'nao-encontrado'>(null);
@@ -232,7 +236,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
   const [gaveta, setGaveta] = useState(false); // celular: aulas do curso abertas
 
   const alternarTeatro = () => setTeatro(t => {
-    try { localStorage.setItem('academy-teatro', t ? '0' : '1'); } catch { /* sem armazenamento: só não lembra */ }
+    salvarPreferencia('teatro', !t);
     return !t;
   });
   // Tecla T liga/desliga o modo teatro, como no YouTube (menos quando está escrevendo um comentário)
@@ -429,7 +433,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
 
             <div className={`mx-auto ${teatro ? '' : 'mt-5'}`} style={teatro ? { maxWidth: 'calc((100vh - 13.5rem) * 16 / 9)' } : undefined}>
               <Player key={aula.id} aulaId={aula.id} liberada={liberada} fim={fim} proxima={proxima} abrir={abrir} setFim={setFim}
-                onFimVideo={() => { if (!concluida) alternar(); else if (proxima) setFim(true); }}
+                onFimVideo={() => { if (!concluida && lerPreferencia('concluirAuto')) alternar(); else if (concluida && proxima) setFim(true); }}
                 marca={sessao.user.email} userId={admin ? undefined : sessao.user.id} />
 
             {/* Ações da aula: concluir, teatro, anterior e próxima (estilo "Próxima atividade" da Alura) */}
