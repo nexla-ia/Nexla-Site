@@ -342,7 +342,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
     titulo: curso.titulo, slug: curso.slug, subtitulo: curso.subtitulo ?? '', descricao: curso.descricao ?? '',
     categoria: curso.categoria ?? '', nivel: curso.nivel ?? '', instrutor: curso.instrutor ?? '',
     aprendizados: curso.aprendizados.join('\n'), publicado: curso.publicado, destaque: curso.destaque,
-    ordem: String(curso.ordem), certificado: curso.certificado, carga: curso.carga_horaria_h ? String(curso.carga_horaria_h) : '',
+    ordem: String(curso.ordem),
   });
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState({ erro: '', ok: '' });
@@ -364,7 +364,8 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
       categoria: f.categoria.trim() || null, nivel: f.nivel || null, instrutor: f.instrutor.trim() || null,
       aprendizados: f.aprendizados.split('\n').map(s => s.trim()).filter(Boolean),
       publicado: f.publicado, destaque: f.destaque, ordem: Number(f.ordem) || 0,
-      certificado: f.certificado, carga_horaria_h: Number(f.carga) > 0 ? Math.round(Number(f.carga)) : null,
+      // Todo curso emite certificado; a carga horária é a soma da duração das aulas (calculada ao emitir)
+      certificado: true, carga_horaria_h: null,
     }).eq('id', curso.id);
     setSalvando(false);
     if (error) return setMsg({ erro: error.code === '23505' ? 'Já existe outro curso com esse endereço.' : 'Não foi possível salvar. Confira se o 010_config_curso.sql foi rodado.', ok: '' });
@@ -496,23 +497,10 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
 
       <CartaoVenda cursoId={curso.id} tituloCurso={curso.titulo} />
 
-      <Cartao titulo="Certificado" sub="O certificado libera quando o aluno conclui todas as aulas.">
-        <div className="space-y-4">
-          <Chave ligado={f.certificado} onChange={v => muda('certificado', v)} texto={f.certificado ? 'Este curso emite certificado' : 'Sem certificado'} />
-          {f.certificado && (
-            <div className="w-56">
-              <Rotulo texto="Carga horária (horas)" dica={`Vazio = soma das aulas (${horasAulas(curso)}h).`}>
-                <input type="number" min={1} className={inputCls} value={f.carga} placeholder={String(horasAulas(curso))} onChange={e => muda('carga', e.target.value)} />
-              </Rotulo>
-            </div>
-          )}
-        </div>
-      </Cartao>
-
       <div className="sticky bottom-4 z-10 rounded-2xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         style={{ background: 'var(--a-vidro)', border: `1px solid ${T.rule}`, boxShadow: '0 12px 30px -16px rgba(15,23,42,0.35)', backdropFilter: 'blur(8px)' }}>
         <span className="text-[13.5px]" style={{ color: msg.erro ? 'var(--a-red)' : msg.ok ? 'var(--a-green)' : T.mute }}>
-          {msg.erro || msg.ok || 'Informações, vitrine e certificado são salvos neste botão. Foto e módulos salvam na hora.'}
+          {msg.erro || msg.ok || 'Informações e vitrine são salvas neste botão. Foto e módulos salvam na hora.'}
         </span>
         <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar configurações'}</button>
       </div>
