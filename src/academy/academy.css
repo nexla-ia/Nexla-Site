@@ -14,6 +14,8 @@
   --a-red: #F87171; --a-green: #4ADE80; --a-green-bg: rgba(34,197,94,0.16); --a-amber: #FBBF24; --a-orange: #FB923C;
 }
 body { background: var(--a-paper); }
+/* Lista que abre nos <select>: com o campo transparente, o navegador usaria fundo branco e o texto claro do tema escuro sumiria */
+select option { background: var(--a-card); color: var(--a-ink); }
 
 /* Troca de tema animada (tema.tsx): o círculo é feito no JavaScript, aqui só desliga o esmaecer padrão */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
