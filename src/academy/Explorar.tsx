@@ -35,7 +35,7 @@ function Capa({ url, progresso }: { url: string | null; progresso?: number }) {
 
 /* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link).
    Surge de baixo para cima quando entra na tela. */
-function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string }) {
+function Card({ para, capa, progresso, titulo, linha, extra }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string; extra?: React.ReactNode }) {
   const parado = useReducedMotion();
   return (
     <motion.div initial={parado ? false : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}
@@ -47,6 +47,7 @@ function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: st
         </h3>
         <p className="mt-0.5 text-[13px]" style={{ color: T.mute }}>{linha}</p>
       </Link>
+      {extra}
     </motion.div>
   );
 }
@@ -59,12 +60,12 @@ export function CardVitrine({ c }: { c: CursoVitrine }) {
   return <Card para={`/curso/${c.slug}`} capa={c.capa} titulo={c.titulo} linha={`${aulas(c.totalAulas)} · ${preco}`} />;
 }
 
-/* Curso que o aluno já tem: quanto já fez */
-function CardMeu({ c }: { c: CursoAluno }) {
+/* Curso que o aluno já tem: quanto já fez (extra: um link a mais embaixo, como o do certificado no painel) */
+export function CardMeu({ c, extra }: { c: CursoAluno; extra?: React.ReactNode }) {
   const status = c.percentual >= 100 ? 'Concluído' : c.feitas.size ? `${c.percentual}% concluído` : 'Não iniciado';
   return (
     <Card para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} capa={c.capa} progresso={c.percentual}
-      titulo={c.titulo} linha={`${aulas(c.aulas.length)} · ${status}`} />
+      titulo={c.titulo} linha={`${aulas(c.aulas.length)} · ${status}`} extra={extra} />
   );
 }
 
