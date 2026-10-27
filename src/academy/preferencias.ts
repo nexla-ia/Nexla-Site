@@ -36,22 +36,33 @@ export function salvarPreferencia(p: Preferencia, ligado: boolean) {
 }
 
 /* ─── Na conta ───────────────────────────────────────────────────── */
+// Vale a escolha mais recente: cada mudança guarda o momento (em) aqui e na conta.
+// A conta de quem fez a última mudança neste navegador também fica anotada (para não levar
+// as escolhas de uma conta para outra quando alguém troca de conta no mesmo computador).
+const EM = 'academy-preferencias-em';
+const DE_QUEM = 'academy-preferencias-conta';
+const lerLocal = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+const gravar = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
+
 let conta: string | null = null; // só grava depois de ler o que já estava salvo (para não sobrescrever)
 let espera: number | undefined;
 
-const todas = () => ({ tema: lerTema(), ...Object.fromEntries(NOMES.map(p => [p, lerPreferencia(p)])) });
+const todas = () => ({ tema: lerTema(), ...Object.fromEntries(NOMES.map(p => [p, lerPreferencia(p)])), em: Number(lerLocal(EM) ?? 0) });
 
-// Mudou algo: grava na conta (junta cliques seguidos numa gravação só)
+const enviar = (uid: string) =>
+  supabase.from('academy_profiles').update({ preferencias: todas() }).eq('id', uid).then(() => undefined, () => undefined);
+
+// Mudou algo: anota quando e grava na conta (junta cliques seguidos numa gravação só)
 window.addEventListener(EVENTO_PREFERENCIAS, () => {
+  gravar(EM, String(Date.now()));
   if (!conta) return;
   const uid = conta;
+  gravar(DE_QUEM, uid);
   window.clearTimeout(espera);
-  espera = window.setTimeout(() => {
-    supabase.from('academy_profiles').update({ preferencias: todas() }).eq('id', uid).then(() => undefined, () => undefined);
-  }, 600);
+  espera = window.setTimeout(() => enviar(uid), 600);
 });
 
-/* Ao entrar: traz as preferências da conta para este navegador.
+/* Ao entrar: junta as preferências da conta com as deste navegador, valendo a mais recente.
    Conta sem nada salvo ainda → leva as deste navegador para a conta. */
 export async function sincronizarPreferencias(uid: string | null) {
   conta = null;
@@ -60,11 +71,16 @@ export async function sincronizarPreferencias(uid: string | null) {
   if (error || !data) return; // sem o 030 no banco: fica só no navegador
   const salvas = (data.preferencias ?? {}) as Record<string, unknown>;
   conta = uid;
-  if (!Object.keys(salvas).length) {
-    window.dispatchEvent(new Event(EVENTO_PREFERENCIAS));
+  const deQuem = lerLocal(DE_QUEM);
+  const localMaisNova = (deQuem === uid || deQuem === null) && Number(lerLocal(EM) ?? 0) > Number(salvas.em ?? 0);
+  if (!Object.keys(salvas).length || localMaisNova) {
+    gravar(DE_QUEM, uid);
+    enviar(uid);
     return;
   }
   NOMES.forEach(p => { if (typeof salvas[p] === 'boolean') gravarLocal(p, salvas[p] as boolean); });
   if (TEMAS.includes(salvas.tema as Tema) && salvas.tema !== lerTema()) salvarTema(salvas.tema as Tema, true);
+  gravar(EM, String(Number(salvas.em ?? 0)));
+  gravar(DE_QUEM, uid);
   window.dispatchEvent(new Event(EVENTO_CARREGADAS));
 }
