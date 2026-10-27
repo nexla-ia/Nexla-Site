@@ -3,7 +3,7 @@ import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion
 import { ArrowUpDown, ChevronDown, Download, GripVertical, Plus, Trash2, Upload } from 'lucide-react';
 import { T, display } from '../ui';
 import { supabase } from '../supabase';
-import { inputCls, botaoPrimario } from './comum';
+import { inputCls, useParteSalvavel } from './comum';
 
 /* Ferramentas usadas no curso e apresentação do instrutor (aparecem na página de vendas) */
 export function CartaoInstrutor({ cursoId }: { cursoId: string }) {
@@ -11,27 +11,33 @@ export function CartaoInstrutor({ cursoId }: { cursoId: string }) {
   const [bio, setBio] = useState('');
   const [carregado, setCarregado] = useState(false);
   const [semColuna, setSemColuna] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [msg, setMsg] = useState({ erro: '', ok: '' });
+  const [erro, setErro] = useState('');
+  const [salvo, setSalvo] = useState(''); // o que está gravado (para saber se mudou)
 
   useEffect(() => {
     supabase.from('academy_courses').select('ferramentas, instrutor_bio').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
       if (error) { setSemColuna(true); setCarregado(true); return; }
-      setFerramentas(((data?.ferramentas ?? []) as string[]).join('\n'));
-      setBio((data?.instrutor_bio as string | null) ?? '');
+      const fs = ((data?.ferramentas ?? []) as string[]).join('\n');
+      const b = (data?.instrutor_bio as string | null) ?? '';
+      setFerramentas(fs); setBio(b); setSalvo(JSON.stringify([fs, b]));
       setCarregado(true);
     });
   }, [cursoId]);
 
-  const salvar = async () => {
-    setSalvando(true); setMsg({ erro: '', ok: '' });
+  // Gravado pelo botão Salvar da página (devolve o erro ou null)
+  const atual = JSON.stringify([ferramentas, bio]);
+  const salvar = async (): Promise<string | null> => {
     const { error } = await supabase.from('academy_courses').update({
       ferramentas: [...new Set(ferramentas.split('\n').map(f => f.trim()).filter(Boolean))],
       instrutor_bio: bio.trim() || null,
     }).eq('id', cursoId);
-    setSalvando(false);
-    setMsg(error ? { erro: 'Não foi possível salvar.', ok: '' } : { erro: '', ok: 'Ferramentas e instrutor salvos.' });
+    const problema = error ? 'Não foi possível salvar as ferramentas e o instrutor.' : '';
+    setErro(problema);
+    if (problema) return problema;
+    setSalvo(atual);
+    return null;
   };
+  useParteSalvavel('instrutor', 'ferramentas e instrutor', carregado && !semColuna && atual !== salvo, salvar);
 
   return (
     <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
@@ -53,9 +59,7 @@ export function CartaoInstrutor({ cursoId }: { cursoId: string }) {
             <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={4}
               placeholder="Quem é, experiência e por que entende do assunto (2 a 4 linhas)." value={bio} onChange={e => setBio(e.target.value)} />
           </label>
-          {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
-          {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
-          <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar ferramentas e instrutor'}</button>
+          {erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
         </div>
       )}
     </section>
@@ -224,35 +228,32 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
   const [pegando, setPegando] = useState<Pegando>(null);
   const [aberta, setAberta] = useState<number | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
-  const salvo = useRef(''); // o que está gravado no banco, para avisar quando há mudança sem salvar
+  const [salvo, setSalvo] = useState(''); // o que está gravado no banco (para saber se mudou)
   const [carregado, setCarregado] = useState(false);
   const [semColuna, setSemColuna] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [msg, setMsg] = useState({ erro: '', ok: '' });
-  const [aviso, setAviso] = useState(''); // recado da importação (some ao salvar)
+  const [msg, setMsg] = useState({ erro: '', ok: '' }); // erro ao salvar/importar e o recado da importação
 
   useEffect(() => {
     supabase.from('academy_courses').select('bonus, faq').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
       if (error) { setSemColuna(true); setCarregado(true); return; }
       const b = ((data?.bonus ?? []) as Bonus[]).map(x => ({ titulo: x.titulo ?? '', descricao: x.descricao ?? '' }));
       const f = ((data?.faq ?? []) as Pergunta[]).map(x => comId({ pergunta: x.pergunta ?? '', resposta: x.resposta ?? '' }));
-      salvo.current = JSON.stringify(limpo(b, f));
+      setSalvo(JSON.stringify(limpo(b, f)));
       setBonus(b); setFaq(f);
       setCarregado(true);
     });
   }, [cursoId]);
 
-  const salvar = async () => {
-    setSalvando(true); setMsg({ erro: '', ok: '' }); setAviso('');
-    const dados = limpo(bonus, faq);
+  // Gravado pelo botão Salvar da página (devolve o erro ou null). Pergunta sem resposta não é publicada.
+  const dados = limpo(bonus, faq);
+  const salvar = async (): Promise<string | null> => {
     const { error } = await supabase.from('academy_courses').update(dados).eq('id', cursoId);
-    setSalvando(false);
-    if (error) { setMsg({ erro: 'Não foi possível salvar.', ok: '' }); return; }
-    salvo.current = JSON.stringify(dados);
-    const ignoradas = faq.length - dados.faq.length;
-    setMsg({ erro: '', ok: ignoradas ? `Salvo. ${ignoradas} pergunta${ignoradas > 1 ? 's' : ''} sem resposta não ${ignoradas > 1 ? 'foram' : 'foi'} publicada${ignoradas > 1 ? 's' : ''}.` : 'Salvo.' });
+    if (error) { setMsg({ erro: 'Não foi possível salvar os bônus e as perguntas.', ok: '' }); return 'Não foi possível salvar os bônus e as perguntas.'; }
+    setSalvo(JSON.stringify(dados));
+    setMsg({ erro: '', ok: '' });
+    return null;
   };
-  const mudou = carregado && JSON.stringify(limpo(bonus, faq)) !== salvo.current;
+  useParteSalvavel('bonus-faq', 'bônus e perguntas', carregado && !semColuna && JSON.stringify(dados) !== salvo, salvar);
 
   const muda = <X,>(lista: X[], set: (l: X[]) => void, i: number, campo: keyof X, v: string) =>
     set(lista.map((x, k) => (k === i ? { ...x, [campo]: v } : x)));
@@ -280,7 +281,7 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
       const novas = paraPerguntas(await lerPlanilha(arq));
       if (!novas.length) { setMsg({ erro: 'Não achamos perguntas nessa planilha. Use as colunas Pergunta e Resposta (baixe o modelo).', ok: '' }); return; }
       setFaq([...faq.filter(f => f.pergunta.trim() || f.resposta.trim()), ...novas.map(comId)]);
-      setAviso(`${novas.length} pergunta${novas.length > 1 ? 's' : ''} da planilha. Confira e clique em Salvar.`);
+      setMsg({ erro: '', ok: `${novas.length} pergunta${novas.length > 1 ? 's' : ''} da planilha. Confira e clique em Salvar, embaixo da página.` });
     } catch {
       setMsg({ erro: 'Não foi possível ler a planilha. Envie um arquivo .xlsx ou .csv.', ok: '' });
     } finally {
@@ -364,15 +365,7 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
             )}
           </div>
 
-          {/* Salvar: avisa quando há mudança que ainda não foi gravada */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-5" style={{ borderTop: `1px solid ${T.rule}` }}>
-            <button onClick={salvar} disabled={salvando || !mudou} className={`${botaoPrimario} disabled:opacity-50 disabled:cursor-not-allowed`}>
-              {salvando ? 'Salvando…' : 'Salvar'}
-            </button>
-            <span className="text-[13px]" style={{ color: msg.erro ? 'var(--a-red)' : mudou ? 'var(--a-amber)' : msg.ok ? 'var(--a-green)' : T.mute }}>
-              {msg.erro || (mudou ? aviso || 'Alterações não salvas' : msg.ok || 'Tudo salvo')}
-            </span>
-          </div>
+          {(msg.erro || msg.ok) && <p className="text-[13px]" style={{ color: msg.erro ? 'var(--a-red)' : 'var(--a-amber)' }}>{msg.erro || msg.ok}</p>}
         </div>
       )}
     </section>

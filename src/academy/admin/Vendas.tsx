@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
 import { supabase } from '../supabase';
-import { SoAdmin, AdminLayout, TituloAdmin, inputCls, Rotulo, Chave, botaoPrimario } from './comum';
+import { SoAdmin, AdminLayout, TituloAdmin, inputCls, Rotulo, Chave, botaoPrimario, useParteSalvavel } from './comum';
 
 const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const numero = (v: string) => { const n = Number(v.replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : NaN; };
@@ -24,8 +24,9 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
   const [extraAtivo, setExtraAtivo] = useState(false);
   const [extraTitulo, setExtraTitulo] = useState('Pacote de modelos prontos');
   const [extraPreco, setExtraPreco] = useState('');
-  const [salvando, setSalvando] = useState(false);
-  const [msg, setMsg] = useState({ erro: '', ok: '' });
+  const [erro, setErro] = useState('');
+  const [salvo, setSalvo] = useState(''); // o que está gravado (para saber se mudou)
+  const atual = JSON.stringify([preco, promo, aVenda, gratis, extraAtivo, extraTitulo, extraPreco]);
 
   useEffect(() => {
     supabase.from('academy_products').select('*').eq('course_id', cursoId).then(({ data, error }) => {
@@ -34,26 +35,33 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
       const e = (data ?? []).find(p => p.tipo === 'oferta_extra') as Produto | undefined;
       if (c) { setPreco(Number(c.preco) === 0 ? '' : paraCampo(c.preco)); setPromo(paraCampo(c.preco_promocional)); setAVenda(c.ativo); setGratis(Number(c.preco) === 0); }
       if (e) { setExtraAtivo(e.ativo); setExtraTitulo(e.titulo); setExtraPreco(paraCampo(e.preco)); }
+      setSalvo(JSON.stringify([
+        c ? (Number(c.preco) === 0 ? '' : paraCampo(c.preco)) : '', c ? paraCampo(c.preco_promocional) : '', c ? c.ativo : true, c ? Number(c.preco) === 0 : false,
+        e ? e.ativo : false, e ? e.titulo : 'Pacote de modelos prontos', e ? paraCampo(e.preco) : '',
+      ]));
       setCarregado(true);
     });
   }, [cursoId]);
 
-  const salvar = async () => {
+  // Gravado pelo botão Salvar da página (devolve o erro ou null)
+  const salvar = async (): Promise<string | null> => {
     // Curso gratuito: preço 0 (o servidor libera direto, sem Mercado Pago) e sem oferta extra
     const p = gratis ? 0 : numero(preco); const pr = !gratis && promo.trim() ? numero(promo) : null; const ep = numero(extraPreco);
-    if (!gratis && !(p > 0)) return setMsg({ erro: 'Informe o preço do curso (ou marque como gratuito).', ok: '' });
-    if (pr !== null && !(pr > 0 && pr < p)) return setMsg({ erro: 'O preço promocional precisa ser menor que o preço normal.', ok: '' });
-    if (!gratis && extraAtivo && (!extraTitulo.trim() || !(ep > 0))) return setMsg({ erro: 'Informe o nome e o preço da oferta extra.', ok: '' });
-    setSalvando(true); setMsg({ erro: '', ok: '' });
+    const invalido = !gratis && !(p > 0) ? 'Informe o preço do curso (ou marque como gratuito).'
+      : pr !== null && !(pr > 0 && pr < p) ? 'O preço promocional precisa ser menor que o preço normal.'
+      : !gratis && extraAtivo && (!extraTitulo.trim() || !(ep > 0)) ? 'Informe o nome e o preço da oferta extra.' : '';
+    setErro(invalido);
+    if (invalido) return invalido;
     const linhas = [
       { course_id: cursoId, tipo: 'curso', titulo: tituloCurso, preco: p, preco_promocional: pr, ativo: aVenda },
       ...(extraTitulo.trim() && ep > 0 ? [{ course_id: cursoId, tipo: 'oferta_extra', titulo: extraTitulo.trim(), preco: ep, preco_promocional: null, ativo: extraAtivo && !gratis }] : []),
     ];
     const { error } = await supabase.from('academy_products').upsert(linhas, { onConflict: 'course_id,tipo' });
-    setSalvando(false);
-    if (error) return setMsg({ erro: 'Não foi possível salvar os preços.', ok: '' });
-    setMsg({ erro: '', ok: 'Preços salvos.' });
+    if (error) { setErro('Não foi possível salvar os preços.'); return 'Não foi possível salvar os preços.'; }
+    setSalvo(atual);
+    return null;
   };
+  useParteSalvavel('venda', 'preços', carregado && !semTabela && atual !== salvo, salvar);
 
   return (
     <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
@@ -84,9 +92,7 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
             )}
           </div>
           </>}
-          {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
-          {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
-          <div><button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar preços'}</button></div>
+          {erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
         </div>
       )}
     </section>

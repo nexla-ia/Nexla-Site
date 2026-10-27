@@ -12,7 +12,7 @@ import { supabase } from '../supabase';
 import AbaAlunos from './AbaAlunos';
 import { CartaoVenda } from './Vendas';
 import { CartaoBonusFaq, CartaoInstrutor } from './BonusFaq';
-import { SoAdmin, AdminLayout, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario, CAPA_PADRAO } from './comum';
+import { SoAdmin, AdminLayout, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario, CAPA_PADRAO, SalvarTudo, type ParteSalvavel } from './comum';
 
 /* ─── Tipos ─────────────────────────────────────────────────────── */
 type Material = { id: string; nome: string; arquivo: string; tamanho: number | null };
@@ -346,6 +346,14 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
   });
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState({ erro: '', ok: '' });
+  const [salvoF, setSalvoF] = useState(() => JSON.stringify(f)); // informações como estão gravadas
+  // Cartões que se registram para o botão Salvar único (preços, perguntas, instrutor)
+  const [partes, setPartes] = useState<Record<string, ParteSalvavel>>({});
+  const registrar = useCallback((id: string, parte: ParteSalvavel | null) => setPartes(x => {
+    const resto = { ...x };
+    if (parte) resto[id] = parte; else delete resto[id];
+    return resto;
+  }), []);
   const [enviandoCapa, setEnviandoCapa] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const muda = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }));
@@ -356,9 +364,9 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
       setCategorias([...new Set((data ?? []).map(d => (d.categoria as string).trim()).filter(Boolean))].sort()));
   }, []);
 
-  const salvar = async () => {
-    if (!f.titulo.trim() || !f.slug) return setMsg({ erro: 'Nome e endereço são obrigatórios.', ok: '' });
-    setSalvando(true); setMsg({ erro: '', ok: '' });
+  // Informações e vitrine (devolve o erro ou null)
+  const salvarInfo = async (): Promise<string | null> => {
+    if (!f.titulo.trim() || !f.slug) return 'Nome e endereço são obrigatórios.';
     const { error } = await supabase.from('academy_courses').update({
       titulo: f.titulo.trim(), slug: f.slug, subtitulo: f.subtitulo.trim() || null, descricao: f.descricao.trim() || null,
       categoria: f.categoria.trim() || null, nivel: f.nivel || null, instrutor: f.instrutor.trim() || null,
@@ -367,11 +375,31 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
       // Todo curso emite certificado; a carga horária é a soma da duração das aulas (calculada ao emitir)
       certificado: true, carga_horaria_h: null,
     }).eq('id', curso.id);
-    setSalvando(false);
-    if (error) return setMsg({ erro: error.code === '23505' ? 'Já existe outro curso com esse endereço.' : 'Não foi possível salvar. Confira se o 010_config_curso.sql foi rodado.', ok: '' });
-    setMsg({ erro: '', ok: 'Configurações salvas.' });
-    await recarregar();
+    if (error) return error.code === '23505' ? 'Já existe outro curso com esse endereço.' : 'Não foi possível salvar as informações do curso.';
+    setSalvoF(JSON.stringify(f));
+    return null;
   };
+
+  // Um botão só: grava as informações e todos os cartões que mudaram
+  const mudouInfo = JSON.stringify(f) !== salvoF;
+  const pendentes = [...(mudouInfo ? ['informações'] : []), ...Object.values(partes).filter(x => x.mudou).map(x => x.nome)];
+  const salvar = async () => {
+    if (!pendentes.length) return;
+    setSalvando(true); setMsg({ erro: '', ok: '' });
+    const erros: string[] = [];
+    if (mudouInfo) { const e = await salvarInfo(); if (e) erros.push(e); }
+    for (const parte of Object.values(partes).filter(x => x.mudou)) { const e = await parte.salvar(); if (e) erros.push(e); }
+    setSalvando(false);
+    setMsg(erros.length ? { erro: erros.join(' '), ok: '' } : { erro: '', ok: 'Tudo salvo.' });
+    if (mudouInfo) await recarregar();
+  };
+  // Saindo da página com algo sem salvar: o navegador pergunta antes
+  useEffect(() => {
+    if (!pendentes.length) return;
+    const aviso = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', aviso);
+    return () => window.removeEventListener('beforeunload', aviso);
+  }, [pendentes.length]);
 
   const trocarCapa = async (arquivo: File | undefined) => {
     if (!arquivo) return;
@@ -412,6 +440,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
   const iconeBtn = 'w-8 h-8 rounded-md flex items-center justify-center hover:bg-slate-100 disabled:opacity-30';
 
   return (
+    <SalvarTudo.Provider value={registrar}>
     <div className="space-y-5">
       <Cartao titulo="Foto do curso" sub="Aparece nos blocos da vitrine e do painel. Use uma imagem horizontal (16:9), JPG, PNG ou WebP até 5 MB.">
         <div className="flex flex-col sm:flex-row gap-5 items-start">
@@ -499,10 +528,12 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
 
       <div className="sticky bottom-4 z-10 rounded-2xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         style={{ background: 'var(--a-vidro)', border: `1px solid ${T.rule}`, boxShadow: '0 12px 30px -16px rgba(15,23,42,0.35)', backdropFilter: 'blur(8px)' }}>
-        <span className="text-[13.5px]" style={{ color: msg.erro ? 'var(--a-red)' : msg.ok ? 'var(--a-green)' : T.mute }}>
-          {msg.erro || msg.ok || 'Informações e vitrine são salvas neste botão. Foto e módulos salvam na hora.'}
+        <span className="text-[13.5px]" style={{ color: msg.erro ? 'var(--a-red)' : pendentes.length ? 'var(--a-amber)' : msg.ok ? 'var(--a-green)' : T.mute }}>
+          {msg.erro || (pendentes.length ? `Alterações não salvas: ${pendentes.join(', ')}` : msg.ok || 'Tudo salvo. A foto e os módulos salvam na hora.')}
         </span>
-        <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar configurações'}</button>
+        <button onClick={salvar} disabled={salvando || !pendentes.length} className={`${botaoPrimario} disabled:opacity-50 disabled:cursor-not-allowed`}>
+          {salvando ? 'Salvando…' : 'Salvar'}
+        </button>
       </div>
 
       <Cartao titulo="Apagar curso" sub="Remove o curso, as aulas, as matrículas e o progresso dos alunos. Para só esconder, deixe como rascunho." perigo>
@@ -511,6 +542,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
         </button>
       </Cartao>
     </div>
+    </SalvarTudo.Provider>
   );
 }
 

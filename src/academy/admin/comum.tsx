@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, BookOpen, LineChart, LogOut, Menu, MessagesSquare, Moon, Receipt, ShieldAlert, Users, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
@@ -217,3 +217,17 @@ export function Chave({ ligado, onChange, texto }: { ligado: boolean; onChange: 
 
 export const botaoPrimario = 'acad-btn inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white';
 export const botaoSecundario = 'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[14px] font-semibold transition-colors hover:bg-slate-50';
+
+/* ─── Um botão de salvar para a página toda ──────────────────────────
+   Cada cartão (preços, perguntas, instrutor...) se registra aqui dizendo se tem mudança e como gravar.
+   A barra de "Salvar" da página grava todos os que mudaram de uma vez. salvar() devolve o erro ou null. */
+export type ParteSalvavel = { nome: string; mudou: boolean; salvar: () => Promise<string | null> };
+export const SalvarTudo = createContext<((id: string, p: ParteSalvavel | null) => void) | null>(null);
+
+export function useParteSalvavel(id: string, nome: string, mudou: boolean, salvar: () => Promise<string | null>) {
+  const registrar = useContext(SalvarTudo);
+  const atual = useRef(salvar);
+  atual.current = salvar;
+  useEffect(() => { registrar?.(id, { nome, mudou, salvar: () => atual.current() }); }, [registrar, id, nome, mudou]);
+  useEffect(() => () => registrar?.(id, null), [registrar, id]);
+}
