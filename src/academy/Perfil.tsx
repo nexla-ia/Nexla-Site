@@ -74,21 +74,25 @@ function ExcluirConta({ sessao }: { sessao: Session }) {
   const [palavra, setPalavra] = useState('');
   const [excluindo, setExcluindo] = useState(false);
   const [erro, setErro] = useState('');
-  const pode = senha.length > 0 && palavra.trim().toUpperCase() === 'EXCLUIR' && !excluindo;
+  // Conta criada pelo Google não tem senha: o servidor pede só que a pessoa tenha entrado há pouco
+  const comSenha = ((sessao.user.app_metadata?.providers as string[] | undefined) ?? [sessao.user.app_metadata?.provider]).includes('email');
+  const pode = (!comSenha || senha.length > 0) && palavra.trim().toUpperCase() === 'EXCLUIR' && !excluindo;
 
   const excluir = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pode) return;
     setErro(''); setExcluindo(true);
-    // Confirma que é mesmo o dono da conta
-    const { error: erroSenha } = await supabase.auth.signInWithPassword({ email: sessao.user.email ?? '', password: senha });
-    if (erroSenha) { setExcluindo(false); return setErro('Senha incorreta.'); }
-    const { data, error } = await supabase.functions.invoke('academy-excluir-conta', { body: { confirmacao: 'EXCLUIR' } });
+    // O servidor confere a senha (ou, na conta do Google, se a pessoa entrou há pouco) antes de apagar
+    const { data, error } = await supabase.functions.invoke('academy-excluir-conta', { body: { confirmacao: 'EXCLUIR', senha } });
     if (error || !data?.ok) {
       let codigo = '';
       try { codigo = ((await (error as { context?: Response })?.context?.json()) ?? {}).erro ?? ''; } catch { /* sem corpo */ }
       setExcluindo(false);
-      return setErro(codigo === 'admin' ? 'Contas de administrador não podem ser excluídas por aqui.' : 'Não foi possível excluir a conta agora. Tente de novo ou fale com a gente pelo WhatsApp.');
+      return setErro(
+        codigo === 'senha' ? 'Senha incorreta.'
+        : codigo === 'reautenticar' ? 'Por segurança, saia da conta, entre de novo com o Google e volte aqui para excluir (vale por 15 minutos).'
+        : codigo === 'admin' ? 'Contas de administrador não podem ser excluídas por aqui.'
+        : 'Não foi possível excluir a conta agora. Tente de novo ou fale com a gente pelo WhatsApp.');
     }
     try { sessionStorage.setItem('nexla_conta_excluida', '1'); } catch { /* sem armazenamento */ }
     await supabase.auth.signOut({ scope: 'local' });
@@ -116,9 +120,11 @@ function ExcluirConta({ sessao }: { sessao: Session }) {
         <li>• Excluir a conta não gera reembolso. Se comprou há menos de 7 dias e quer o dinheiro de volta, peça o reembolso antes pelo WhatsApp.</li>
         <li>• Os registros de compra ficam guardados sem os seus dados pessoais, porque a lei exige.</li>
       </ul>
-      <Campo label="Sua senha" icon={Lock}>
-        <input type="password" className={campoCls} value={senha} onChange={e => setSenha(e.target.value)} autoComplete="current-password" placeholder="Para confirmar que é você" />
-      </Campo>
+      {comSenha && (
+        <Campo label="Sua senha" icon={Lock}>
+          <input type="password" className={campoCls} value={senha} onChange={e => setSenha(e.target.value)} autoComplete="current-password" placeholder="Para confirmar que é você" />
+        </Campo>
+      )}
       <label className="block">
         <span className="block text-[13.5px] font-semibold mb-1.5" style={{ color: T.ink2 }}>Digite <strong>EXCLUIR</strong> para confirmar</span>
         <input className="acad-field w-full h-12 rounded-[10px] px-4 text-[15px] uppercase" value={palavra} onChange={e => setPalavra(e.target.value)} placeholder="EXCLUIR" autoComplete="off" />

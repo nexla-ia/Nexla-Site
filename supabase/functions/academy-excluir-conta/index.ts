@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 // Nexla Academy — o aluno exclui a própria conta (LGPD)
 //
-// POST { confirmacao: 'EXCLUIR' } com o login do aluno.
+// POST { confirmacao: 'EXCLUIR', senha } com o login do aluno (conta só do Google: sem senha, mas
+// precisa ter entrado nos últimos 15 minutos).
 // Apaga tudo da Academy dessa pessoa: progresso, comentários, avaliações, certificados,
 // matrículas, sessão, visitas e o perfil. Os PEDIDOS ficam guardados, mas anônimos
 // (obrigação fiscal e de defesa do consumidor; precisa do 027 no banco).
@@ -35,9 +36,22 @@ Deno.serve(async (req) => {
   const usuario = quem?.user;
   if (!usuario) return json({ erro: 'nao_logado' }, 401);
 
-  let entrada: { confirmacao?: string } = {};
+  let entrada: { confirmacao?: string; senha?: string } = {};
   try { entrada = await req.json(); } catch { /* sem corpo */ }
   if (entrada.confirmacao !== 'EXCLUIR') return json({ erro: 'confirmacao' }, 400);
+
+  // Confirma que é o dono da conta (aqui no servidor, não só na tela):
+  //   • conta com senha → a senha precisa estar certa;
+  //   • conta só do Google (sem senha) → precisa ter entrado há pouco (até 15 min).
+  const provedores = (usuario.app_metadata?.providers as string[] | undefined) ?? [usuario.app_metadata?.provider as string];
+  if (provedores.includes('email')) {
+    const conferir = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
+    const { error: erroSenha } = await conferir.auth.signInWithPassword({ email: usuario.email ?? '', password: String(entrada.senha ?? '') });
+    if (erroSenha) return json({ erro: 'senha' }, 403);
+  } else {
+    const entrouEm = Date.parse(usuario.last_sign_in_at ?? '');
+    if (!(Date.now() - entrouEm < 15 * 60 * 1000)) return json({ erro: 'reautenticar' }, 403);
+  }
 
   const uid = usuario.id;
   const { data: perfil } = await admin.from('academy_profiles').select('role').eq('id', uid).maybeSingle();

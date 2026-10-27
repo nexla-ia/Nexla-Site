@@ -44,10 +44,14 @@ Deno.serve(async (req) => {
   const aulaId = String(entrada.aula ?? '');
   if (!/^[0-9a-f-]{36}$/i.test(aulaId)) return json({ erro: 'entrada' }, 400);
 
+  // Sem a identificação do aparelho, a trava de 1 dispositivo por conta não teria como conferir
+  const dispositivo = (req.headers.get('x-dispositivo') ?? '').trim();
+  if (!dispositivo) return json({ erro: 'sem_acesso' }, 403);
+
   // Lê a aula com o token e o dispositivo do próprio aluno: a RLS diz se ele pode assistir
   const comoAluno = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
     auth: { persistSession: false },
-    global: { headers: { Authorization: req.headers.get('authorization') ?? '', 'x-dispositivo': req.headers.get('x-dispositivo') ?? '' } },
+    global: { headers: { Authorization: req.headers.get('authorization') ?? '', 'x-dispositivo': dispositivo } },
   });
   const { data: aula } = await comoAluno.from('academy_lessons').select('id, video_id').eq('id', aulaId).maybeSingle();
   if (!aula) return json({ erro: 'sem_acesso' }, 403);

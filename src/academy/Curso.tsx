@@ -338,7 +338,11 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
       { onConflict: 'user_id,lesson_id' },
     );
     setSalvando(false);
-    if (error) return setErro('Não foi possível salvar agora. Tente de novo.');
+    if (error) {
+      return setErro(/assista_aula/.test(error.message)
+        ? 'Assista à aula para marcar como concluída.'
+        : 'Não foi possível salvar agora. Tente de novo.');
+    }
     const prox = new Set(feitas);
     if (novo) prox.add(aula.id); else prox.delete(aula.id);
     setDados({ ...dados, feitas: prox });
