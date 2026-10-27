@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Award } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link } from './router';
-import { useCursosAluno, primeiroNome, certificadoLiberado } from './dados';
-import { CardMeu, CardVitrine, GradeCategorias, GRADE_CURSOS } from './Explorar';
+import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno } from './dados';
+import { CardVitrine, GradeCategorias, GRADE_CURSOS } from './Explorar';
+import { MediaEstrelas, MinhaNota } from './Avaliacao';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
@@ -26,6 +27,68 @@ function Secao({ titulo, link, children }: { titulo: string; link?: { para: stri
   );
 }
 
+/* Tempo total do curso: "45 min" ou "2h 10min" */
+const duracao = (seg: number) => {
+  const min = Math.max(1, Math.round(seg / 60));
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${min % 60 ? ` ${min % 60}min` : ''}`;
+};
+
+/* Curso do aluno: capa à esquerda e, ao lado, o que importa — nome, avaliação, progresso, certificado e o próximo passo */
+function CursoLinha({ c }: { c: CursoAluno }) {
+  const concluido = c.percentual >= 100;
+  const liberado = certificadoLiberado(c);
+  const faltam = c.faltamCertificado;
+  const total = c.aulas.reduce((s, a) => s + (a.duracao_seg || 0), 0);
+  const detalhes = [c.categoria?.trim(), plural(c.academy_modules.length, 'módulo', 'módulos'), plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : '']
+    .filter(Boolean).join(' · ');
+  const curso = `/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`;
+  return (
+    <motion.article initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.5, ease }}
+      className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row gap-4 sm:gap-6 border border-[color:var(--a-rule)]" style={{ background: T.card }}>
+      <Link para={curso} className="group relative block sm:w-72 shrink-0 aspect-video rounded-lg overflow-hidden" aria-label={c.titulo}>
+        <div className="absolute inset-0 bg-cover bg-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]"
+          style={c.capa ? { backgroundImage: `url("${c.capa}")` } : { background: 'var(--a-soft)' }} />
+        {!c.capa && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 object-contain opacity-90" />}
+      </Link>
+
+      <div className="flex-1 min-w-0 flex flex-col sm:py-1">
+        <p className="text-[12.5px]" style={{ color: T.mute }}>{detalhes}</p>
+        <Link para={curso} className="mt-1 font-bold text-[18px] leading-snug hover:underline underline-offset-4" style={display}>{c.titulo}</Link>
+        {c.subtitulo && <p className="text-[13.5px] mt-1 line-clamp-1" style={{ color: T.mute }}>{c.subtitulo}</p>}
+        {(c.media !== null || c.minhaNota) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+            {c.media !== null && <MediaEstrelas media={c.media} total={c.avaliacoes} />}
+            {c.minhaNota && <MinhaNota nota={c.minhaNota} />}
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex-1"><BarraProgresso valor={c.percentual} /></div>
+          <span className="text-[12.5px] whitespace-nowrap" style={{ color: T.mute }}>
+            {c.feitas.size} de {plural(c.aulas.length, 'aula', 'aulas')} · <strong style={{ color: concluido ? 'var(--a-green)' : T.ink }}>{c.percentual}%</strong>
+          </span>
+        </div>
+
+        <div className="mt-4 sm:mt-auto pt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          {liberado ? (
+            <Link para={`/certificado/${c.slug}`} className="group inline-flex items-center gap-1.5 text-[13.5px] font-medium" style={{ color: 'var(--a-green)' }}>
+              <Award size={15} strokeWidth={2} /> Ver certificado
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: T.mute }}>
+              <Award size={15} strokeWidth={1.75} /> Certificado: falta{faltam > 1 ? 'm' : ''} {plural(faltam, 'aula', 'aulas')}
+            </span>
+          )}
+          <Link para={curso} className="group inline-flex items-center gap-1 text-[14px] font-semibold" style={{ color: T.accent }}>
+            {concluido ? 'Rever curso' : c.feitas.size ? 'Continuar' : 'Começar'}
+            <ArrowRight size={15} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
 export default function Painel({ sessao }: { sessao: Session }) {
   const dados = useCursosAluno(sessao);
   if (!dados) return <AppLayout nome=""><Carregando /></AppLayout>;
@@ -43,10 +106,24 @@ export default function Painel({ sessao }: { sessao: Session }) {
           Olá, {primeiroNome(nome)}! <span style={{ color: T.accent }}>Bem-vindo à Nexla Academy</span>.
         </h1>
         <p className="text-[15px] mt-2" style={{ color: T.mute }}>
-          {cursos.length
-            ? [plural(cursos.length, 'curso', 'cursos'), plural(totalFeitas, 'aula concluída', 'aulas concluídas'), plural(certificados, 'certificado', 'certificados')].join(' · ')
-            : 'Assim que você tiver um curso, ele aparece aqui.'}
+          {cursos.length ? 'Continue de onde parou. Cada aula concluída fica salva aqui.' : 'Assim que você tiver um curso, ele aparece aqui.'}
         </p>
+
+        {/* Números: uma faixa só, dividida em três */}
+        {cursos.length > 0 && (
+          <div className="mt-8 grid grid-cols-3 rounded-xl border border-[color:var(--a-rule)] divide-x divide-[color:var(--a-rule)]" style={{ background: T.card }}>
+            {[
+              { v: cursos.length, l: cursos.length === 1 ? 'curso' : 'cursos' },
+              { v: totalFeitas, l: totalFeitas === 1 ? 'aula concluída' : 'aulas concluídas' },
+              { v: certificados, l: certificados === 1 ? 'certificado' : 'certificados' },
+            ].map(n => (
+              <div key={n.l} className="px-4 py-4 md:px-6">
+                <div className="font-bold text-[24px] md:text-[28px] leading-none" style={display}>{n.v}</div>
+                <div className="text-[12.5px] md:text-[13px] mt-1.5" style={{ color: T.mute }}>{n.l}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {erro && <p className="mt-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
@@ -85,14 +162,8 @@ export default function Painel({ sessao }: { sessao: Session }) {
           </p>
         ) : (
           <Secao titulo="Meus cursos">
-            <div className={GRADE_CURSOS}>
-              {cursos.map(c => (
-                <CardMeu key={c.id} c={c} extra={certificadoLiberado(c) && (
-                  <Link para={`/certificado/${c.slug}`} className="group inline-flex items-center gap-1 mt-1.5 text-[13px] font-medium" style={{ color: T.accent }}>
-                    Ver certificado <ArrowRight size={13} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                )} />
-              ))}
+            <div className="space-y-4">
+              {cursos.map(c => <CursoLinha key={c.id} c={c} />)}
             </div>
           </Secao>
         )}
