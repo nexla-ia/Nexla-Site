@@ -11,7 +11,6 @@ import Avaliacao from './Avaliacao';
 import PaginaCurso from './PaginaCurso';
 import VideoAula from './Video';
 import { registrarAula } from './rastreio';
-import { BotaoTema } from './tema';
 import { lerPreferencia, salvarPreferencia } from './preferencias';
 
 type Sugestao = { slug: string; titulo: string; subtitulo: string | null };
@@ -397,7 +396,6 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
         <span className="hidden sm:block w-px h-6 shrink-0" style={{ background: T.rule }} />
         <p className="font-semibold text-[14.5px] truncate min-w-0">{curso.titulo}</p>
         <div className="ml-auto flex items-center gap-2 sm:gap-4 shrink-0">
-          <BotaoTema />
           <div className="hidden md:flex items-center gap-2.5 w-40">
             <div className="flex-1"><BarraProgresso valor={percentual} /></div>
             <span className="text-[13px] font-semibold">{percentual}%</span>

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, BookOpen, Compass, LayoutDashboard, LogOut, Menu, Moon, UserRound, X } from 'lucide-react';
+import { Award, BookOpen, Compass, LayoutDashboard, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { T, LOGO, display, ease, Avatar, fotoDaConta } from './ui';
 import { Link, navegar, useRota } from './router';
 import { supabase, useSessao, useEhAdmin } from './supabase';
-import { useTema } from './tema';
 
 /* Itens do menu lateral do aluno */
 const NAV = [
@@ -42,7 +41,6 @@ function useNomeConta(nome: string) {
 function MenuLateral({ foto, nome, email, admin }: { foto: string; nome: string; email: string; admin: boolean }) {
   const rota = useRota();
   const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
-  const { escuro, alternar } = useTema();
   return (
     <div className="h-full flex flex-col">
       <Link para={admin ? '/admin' : '/painel'} className="h-16 px-5 shrink-0 inline-flex items-center gap-2.5">
@@ -63,21 +61,15 @@ function MenuLateral({ foto, nome, email, admin }: { foto: string; nome: string;
       </nav>
 
       <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${T.rule}` }}>
-        <div className="flex items-center gap-3 px-2 py-2">
+        {/* Conta (abre o perfil, onde ficam as configurações, inclusive o tema) */}
+        <Link para={admin ? '/admin' : '/perfil'} className="flex items-center gap-3 px-2 py-2 rounded-lg transition-colors hover:bg-slate-100">
           <Avatar foto={foto} nome={nome} email={email} fundo={`linear-gradient(135deg, ${T.accent}, ${T.violet})`} />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || email.split('@')[0]}</p>
             <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
           </div>
-        </div>
-        <button role="switch" aria-checked={escuro} onClick={alternar}
-          className="w-full mt-1 flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-slate-100" style={{ color: T.ink2 }}>
-          <Moon size={18} strokeWidth={1.75} style={{ color: T.mute }} /> Modo escuro
-          <span className="ml-auto relative w-9 h-5 rounded-full shrink-0 transition-colors" style={{ background: escuro ? '#4F46E5' : 'var(--a-track)' }}>
-            <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-[left]" style={{ left: escuro ? 18 : 2 }} />
-          </span>
-        </button>
-        <button onClick={sair} className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
+        </Link>
+        <button onClick={sair} className="w-full mt-1 flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-red-50" style={{ color: 'var(--a-red)' }}>
           <LogOut size={18} strokeWidth={1.75} /> Sair da conta
         </button>
       </div>
