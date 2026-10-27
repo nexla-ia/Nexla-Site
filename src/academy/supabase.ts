@@ -56,7 +56,7 @@ export const lerErroGoogle = () => { const e = erroGoogle; erroGoogle = false; r
 /* A tela de login mostra o aviso uma vez quando a conta foi aberta em outro dispositivo */
 export const lerAvisoOutroDispositivo = () => leMarca('nexla_sessao_encerrada') === '1'; // limpo no próximo login
 
-const descricaoDispositivo = () => {
+export const descricaoDispositivo = () => {
   const ua = navigator.userAgent;
   const nav = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Navegador';
   const so = /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : '';
@@ -89,6 +89,10 @@ export function useSessaoUnica(sessao: Session | null | undefined) {
     return () => { vivo = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', aoVoltar); };
   }, [uid]);
 }
+
+/* Formas de entrar da conta: 'email' (e-mail e senha) e/ou 'google' */
+export const provedoresDa = (sessao: Session) =>
+  (sessao.user.app_metadata?.providers as string[] | undefined) ?? [sessao.user.app_metadata?.provider as string];
 
 /* Certificado: liberado a partir deste percentual de aulas concluídas (regra ainda em definição) */
 export const CERTIFICADO_MIN = 100; // certificado só com todas as aulas concluídas

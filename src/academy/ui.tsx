@@ -153,13 +153,14 @@ export const fotoDaConta = (sessao: Session | null | undefined) => {
   const url = String(meta.avatar_url ?? meta.picture ?? '');
   return /^https:\/\//.test(url) ? url : '';
 };
-export function Avatar({ foto, nome, email, fundo }: { foto: string; nome: string; email: string; fundo: string }) {
+export function Avatar({ foto, nome, email, fundo, grande }: { foto: string; nome: string; email: string; fundo: string; grande?: boolean }) {
   const [falhou, setFalhou] = useState(false);
+  const tam = grande ? 'w-16 h-16' : 'w-9 h-9';
   if (foto && !falhou) {
-    return <img src={foto} alt="" referrerPolicy="no-referrer" onError={() => setFalhou(true)} className="w-9 h-9 shrink-0 rounded-full object-cover" />;
+    return <img src={foto} alt="" referrerPolicy="no-referrer" onError={() => setFalhou(true)} className={`${tam} shrink-0 rounded-full object-cover`} />;
   }
   return (
-    <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
+    <span className={`${tam} shrink-0 rounded-full flex items-center justify-center ${grande ? 'text-[24px]' : 'text-[14px]'} font-bold text-white`}
       style={{ background: fundo }} aria-hidden>{(nome.trim()[0] || email[0] || '?').toUpperCase()}</span>
   );
 }

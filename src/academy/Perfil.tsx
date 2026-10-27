@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, Lock, Mail, MessageCircle, Monitor, Moon, Phone, Sun, Trash2, User } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Download, Eye, EyeOff, Lock, LogOut, Mail, MessageCircle, Monitor, Moon, Phone, Receipt, Sun, Trash2, User } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
-import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats } from './ui';
+import { T, display, ease, campoCls, Campo, Mensagem, soDigitos, mascaraWhats, Avatar, fotoDaConta } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
-import { supabase, erroAuth } from './supabase';
+import { supabase, erroAuth, provedoresDa, descricaoDispositivo } from './supabase';
+import { reais } from './Compra';
 import { Link, navegar } from './router';
 import { useTema, type Tema } from './tema';
 
@@ -67,6 +68,147 @@ function Aparencia() {
   );
 }
 
+/* Forma de entrar, para mostrar na tela */
+const formaDeEntrar = (sessao: Session) => {
+  const p = provedoresDa(sessao);
+  return p.includes('google') && p.includes('email') ? 'Google ou e-mail e senha' : p.includes('google') ? 'Google' : 'E-mail e senha';
+};
+
+const botaoClaro = 'inline-flex items-center gap-2 h-11 px-4 rounded-[10px] text-[14px] font-semibold transition-colors hover:bg-slate-100 disabled:opacity-50';
+
+/* Este aparelho e "sair de todos" (a conta já fica conectada em 1 aparelho por vez) */
+function Acesso({ sessao }: { sessao: Session }) {
+  const [saindo, setSaindo] = useState(false);
+  const [erro, setErro] = useState('');
+  const sairDeTodos = async () => {
+    setSaindo(true); setErro('');
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
+    if (error) { setSaindo(false); return setErro('Não foi possível sair agora. Tente de novo.'); }
+    navegar('/', { substituir: true });
+  };
+  const linhas = [
+    { icone: Monitor, titulo: 'Este aparelho', texto: `${descricaoDispositivo() || 'Navegador'} · conectado agora` },
+    { icone: Lock, titulo: 'Forma de entrar', texto: formaDeEntrar(sessao) },
+  ];
+  return (
+    <div className="space-y-4">
+      <ul className="rounded-xl" style={{ border: `1px solid ${T.rule}` }}>
+        {linhas.map((l, i) => (
+          <li key={l.titulo} className="flex items-center gap-3 px-4 py-3.5" style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
+            <l.icone size={18} strokeWidth={1.75} className="shrink-0" style={{ color: T.mute }} />
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold" style={{ color: T.ink }}>{l.titulo}</p>
+              <p className="text-[13px]" style={{ color: T.mute }}>{l.texto}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Mensagem erro={erro} aviso="" />
+      <button onClick={sairDeTodos} disabled={saindo} className={botaoClaro} style={{ color: T.ink2, border: `1px solid ${T.rule}` }}>
+        <LogOut size={16} strokeWidth={1.75} /> {saindo ? 'Saindo…' : 'Sair de todos os aparelhos'}
+      </button>
+    </div>
+  );
+}
+
+type Pedido = { id: string; itens: { titulo?: string }[] | null; total: number; status: string; forma_pagamento: string | null; criado_em: string };
+const STATUS_PEDIDO: Record<string, { texto: string; cor: string }> = {
+  pago: { texto: 'Pago', cor: 'var(--a-green)' },
+  pendente: { texto: 'Aguardando pagamento', cor: 'var(--a-amber)' },
+  recusado: { texto: 'Recusado', cor: 'var(--a-red)' },
+  reembolsado: { texto: 'Reembolsado', cor: T.mute },
+};
+const FORMA: Record<string, string> = { pix: 'Pix', bank_transfer: 'Pix', credit_card: 'Cartão de crédito', debit_card: 'Cartão de débito', ticket: 'Boleto', account_money: 'Saldo Mercado Pago', gratuito: 'Gratuito' };
+const dataCurta = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+/* Histórico de compras do aluno (pedidos abandonados antes de pagar não aparecem) */
+function MinhasCompras({ sessao }: { sessao: Session }) {
+  const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
+  useEffect(() => {
+    supabase.from('academy_orders').select('id, itens, total, status, forma_pagamento, criado_em')
+      .eq('user_id', sessao.user.id).order('criado_em', { ascending: false })
+      .then(({ data }) => setPedidos(((data ?? []) as Pedido[])
+        .filter(p => p.status !== 'cancelado' && !(p.status === 'pendente' && !p.forma_pagamento))));
+  }, [sessao]);
+
+  if (pedidos === null) return <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p>;
+  if (!pedidos.length) {
+    return (
+      <p className="text-[14px] leading-relaxed" style={{ color: T.ink2 }}>
+        Você ainda não fez nenhuma compra.{' '}
+        <Link para="/cursos" className="font-medium underline underline-offset-2" style={{ color: T.accent }}>Explorar cursos</Link>
+      </p>
+    );
+  }
+  return (
+    <ul className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.rule}` }}>
+      {pedidos.map((p, i) => {
+        const st = STATUS_PEDIDO[p.status] ?? { texto: p.status, cor: T.mute };
+        const itens = p.itens ?? [];
+        const titulo = (itens[0]?.titulo ?? 'Curso') + (itens.length > 1 ? ` + ${itens.length - 1} bônus` : '');
+        return (
+          <li key={p.id} style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
+            <Link para={`/compra/${p.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50">
+              <Receipt size={18} strokeWidth={1.75} className="shrink-0" style={{ color: T.mute }} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{titulo}</p>
+                <p className="text-[13px]" style={{ color: T.mute }}>
+                  {dataCurta(p.criado_em)}{p.forma_pagamento && ` · ${FORMA[p.forma_pagamento] ?? p.forma_pagamento}`}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[14px] font-semibold" style={{ color: T.ink }}>{reais(Number(p.total))}</p>
+                <p className="text-[12.5px] font-medium" style={{ color: st.cor }}>{st.texto}</p>
+              </div>
+              <ChevronRight size={16} strokeWidth={1.75} className="shrink-0" style={{ color: T.mute }} />
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/* LGPD: baixa um arquivo com tudo o que a Academy guarda sobre o aluno */
+function BaixarDados({ sessao }: { sessao: Session }) {
+  const [baixando, setBaixando] = useState(false);
+  const [erro, setErro] = useState('');
+  const baixar = async () => {
+    setBaixando(true); setErro('');
+    const uid = sessao.user.id;
+    const [perfil, matriculas, progresso, certificados, comentarios, avaliacoes, pedidos] = await Promise.all([
+      supabase.from('academy_profiles').select('nome, email, whatsapp, consentimento_marketing, criado_em').eq('id', uid).maybeSingle(),
+      supabase.from('academy_enrollments').select('course_id, ativo, criado_em, academy_courses(titulo)').eq('user_id', uid),
+      supabase.from('academy_lesson_progress').select('lesson_id, concluida, posicao_seg, atualizado_em').eq('user_id', uid),
+      supabase.from('academy_certificates').select('codigo, curso, nome, carga_h, concluido_em, emitido_em').eq('user_id', uid),
+      supabase.from('academy_lesson_comments').select('lesson_id, texto, criado_em').eq('user_id', uid),
+      supabase.from('academy_course_reviews').select('*').eq('user_id', uid),
+      supabase.from('academy_orders').select('id, itens, subtotal, desconto, total, cupom, status, forma_pagamento, criado_em, pago_em').eq('user_id', uid),
+    ]);
+    setBaixando(false);
+    if (perfil.error) return setErro('Não foi possível gerar o arquivo agora. Tente de novo.');
+    const arquivo = {
+      gerado_em: new Date().toISOString(),
+      conta: { email: sessao.user.email, criada_em: sessao.user.created_at, forma_de_entrar: formaDeEntrar(sessao) },
+      perfil: perfil.data, matriculas: matriculas.data ?? [], progresso_das_aulas: progresso.data ?? [],
+      certificados: certificados.data ?? [], comentarios: comentarios.data ?? [], avaliacoes: avaliacoes.data ?? [], compras: pedidos.data ?? [],
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(arquivo, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'meus-dados-nexla-academy.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  return (
+    <div>
+      <button onClick={baixar} disabled={baixando} className={botaoClaro} style={{ color: T.ink2, border: `1px solid ${T.rule}` }}>
+        <Download size={16} strokeWidth={1.75} /> {baixando ? 'Gerando arquivo…' : 'Baixar meus dados'}
+      </button>
+      {erro && <div className="mt-3"><Mensagem erro={erro} aviso="" /></div>}
+    </div>
+  );
+}
+
 /* Excluir a própria conta (LGPD): confirma com a senha e digitando EXCLUIR */
 function ExcluirConta({ sessao }: { sessao: Session }) {
   const [aberto, setAberto] = useState(false);
@@ -75,7 +217,7 @@ function ExcluirConta({ sessao }: { sessao: Session }) {
   const [excluindo, setExcluindo] = useState(false);
   const [erro, setErro] = useState('');
   // Conta criada pelo Google não tem senha: o servidor pede só que a pessoa tenha entrado há pouco
-  const comSenha = ((sessao.user.app_metadata?.providers as string[] | undefined) ?? [sessao.user.app_metadata?.provider]).includes('email');
+  const comSenha = provedoresDa(sessao).includes('email');
   const pode = (!comSenha || senha.length > 0) && palavra.trim().toUpperCase() === 'EXCLUIR' && !excluindo;
 
   const excluir = async (e: React.FormEvent) => {
@@ -159,6 +301,7 @@ export default function Perfil({ sessao }: { sessao: Session }) {
   const [verSenha, setVerSenha] = useState(false);
   const [trocando, setTrocando] = useState(false);
   const [msgSenha, setMsgSenha] = useState({ erro: '', aviso: '' });
+  const soGoogle = !provedoresDa(sessao).includes('email'); // conta do Google pode definir uma senha também
 
   useEffect(() => {
     supabase.from('academy_profiles').select('nome, whatsapp, consentimento_marketing').eq('id', sessao.user.id).maybeSingle()
@@ -196,10 +339,12 @@ export default function Perfil({ sessao }: { sessao: Session }) {
     setTrocando(false);
     if (error) return setMsgSenha({ erro: error.message.toLowerCase().includes('different') ? 'A nova senha precisa ser diferente da atual.' : erroAuth(error.message), aviso: '' });
     setSenha(''); setSenha2('');
-    setMsgSenha({ erro: '', aviso: 'Senha alterada com sucesso.' });
+    setMsgSenha({ erro: '', aviso: soGoogle ? 'Senha definida. Agora você também pode entrar com seu e-mail e esta senha.' : 'Senha alterada com sucesso.' });
   };
 
   if (!carregado) return <AppLayout nome=""><Carregando /></AppLayout>;
+
+  const desde = new Date(sessao.user.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   const botao = 'acad-btn inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white';
 
@@ -209,6 +354,15 @@ export default function Perfil({ sessao }: { sessao: Session }) {
         <TituloPagina titulo="Meu perfil" sub="Seus dados de acesso e de contato." />
 
         <div className="space-y-5">
+          <section className="rounded-2xl p-6 md:p-8 flex items-center gap-4 md:gap-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+            <Avatar grande foto={fotoDaConta(sessao)} nome={nomeSalvo} email={sessao.user.email ?? ''} fundo={`linear-gradient(135deg, ${T.accent}, ${T.violet})`} />
+            <div className="min-w-0">
+              <p className="font-bold text-[20px] truncate" style={display}>{nomeSalvo || sessao.user.email}</p>
+              <p className="text-[13.5px] mt-0.5 truncate" style={{ color: T.mute }}>{sessao.user.email}</p>
+              <p className="text-[13px] mt-1" style={{ color: T.mute }}>Aluno desde {desde}</p>
+            </div>
+          </section>
+
           <Secao titulo="Dados pessoais" sub="O nome completo é o que aparece nos seus certificados.">
             <form onSubmit={salvarDados} noValidate className="space-y-5">
               <Campo label="Nome completo" icon={User}>
@@ -239,7 +393,9 @@ export default function Perfil({ sessao }: { sessao: Session }) {
             <Aparencia />
           </Secao>
 
-          <Secao titulo="Senha" sub="Use pelo menos 8 caracteres, misturando letras e números.">
+          <Secao titulo="Senha" sub={soGoogle
+            ? 'Você entra pelo Google. Se quiser, defina uma senha para também entrar com e-mail e senha.'
+            : 'Use pelo menos 8 caracteres, misturando letras e números.'}>
             <form onSubmit={trocarSenha} noValidate className="space-y-5">
               <Campo label="Nova senha" icon={Lock}>
                 <input type={verSenha ? 'text' : 'password'} className={`${campoCls} pr-12`} value={senha}
@@ -255,17 +411,31 @@ export default function Perfil({ sessao }: { sessao: Session }) {
               </Campo>
               <Mensagem erro={msgSenha.erro} aviso={msgSenha.aviso} />
               <button type="submit" disabled={trocando || !senha} className={botao}>
-                {trocando ? 'Alterando…' : 'Alterar senha'}
+                {trocando ? 'Salvando…' : soGoogle ? 'Definir senha' : 'Alterar senha'}
               </button>
             </form>
           </Secao>
 
-          <Secao titulo="Seus dados (LGPD)" sub="Você pode excluir a sua conta e os seus dados a qualquer momento.">
+          <Secao titulo="Acesso" sub="Sua conta fica conectada em um aparelho por vez: ao entrar em outro, este é desconectado.">
+            <Acesso sessao={sessao} />
+          </Secao>
+
+          <Secao titulo="Minhas compras" sub="Seus pedidos e pagamentos. Clique em um pedido para ver os detalhes.">
+            <MinhasCompras sessao={sessao} />
+          </Secao>
+
+          <Secao titulo="Seus dados (LGPD)" sub="Você pode baixar uma cópia dos seus dados ou excluir a sua conta a qualquer momento.">
             <p className="text-[14px] leading-relaxed mb-4" style={{ color: T.ink2 }}>
-              Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados.
+              O arquivo traz seu perfil, cursos, progresso, certificados, comentários, avaliações e compras.
               {' '}Veja como cuidamos dos seus dados na <Link para="/privacidade" className="font-medium underline underline-offset-2" style={{ color: T.accent }}>Política de privacidade</Link>.
             </p>
-            <ExcluirConta sessao={sessao} />
+            <BaixarDados sessao={sessao} />
+            <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${T.rule}` }}>
+              <p className="text-[14px] leading-relaxed mb-4" style={{ color: T.ink2 }}>
+                Ao excluir a conta, você perde o acesso aos cursos, ao progresso e aos certificados.
+              </p>
+              <ExcluirConta sessao={sessao} />
+            </div>
             <a href={`https://wa.me/${WHATSAPP_NEXLA}?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre os meus dados na Nexla Academy (${sessao.user.email}).`)}`}
               target="_blank" rel="noopener noreferrer"
               className="flex w-fit items-center gap-1.5 mt-4 text-[13.5px] font-medium hover:underline underline-offset-4" style={{ color: T.mute }}>
