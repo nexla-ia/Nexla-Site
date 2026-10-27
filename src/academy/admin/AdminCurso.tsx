@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, ImageIcon, Layers, ListVideo, Paperclip, Pencil, Plus,
@@ -97,55 +97,25 @@ function NovoCurso() {
   );
 }
 
-/* Duração real do vídeo no Bunny: abre o player escondido e pergunta a duração (protocolo player.js).
+/* Duração real do vídeo no Bunny (a função academy-video lê da página do player).
    É essa duração que o banco usa para exigir que o aluno assista 70% antes de concluir a aula. */
 function useDuracaoVideo(aulaId: string, videoId: string) {
-  const [estado, setEstado] = useState<{ seg: number | null; lendo: boolean }>({ seg: null, lendo: false });
-  const [url, setUrl] = useState('');
-  const iframe = useRef<HTMLIFrameElement>(null);
-
+  const [estado, setEstado] = useState<{ seg: number | null; lendo: boolean; falhou: boolean }>({ seg: null, lendo: false, falhou: false });
   useEffect(() => {
     const id = videoId.trim();
-    setUrl(''); setEstado({ seg: null, lendo: false });
+    setEstado({ seg: null, lendo: false, falhou: false });
     if (!/^[0-9a-f-]{36}$/i.test(id)) return;
     let vivo = true;
     const t = window.setTimeout(async () => {
-      setEstado({ seg: null, lendo: true });
+      setEstado({ seg: null, lendo: true, falhou: false });
       const { data } = await supabase.functions.invoke('academy-video', { body: { aula: aulaId, video: id } });
       if (!vivo) return;
-      if (data?.url) setUrl(data.url as string); else setEstado({ seg: null, lendo: false });
+      const seg = Number(data?.duracao_seg);
+      setEstado(seg > 0 ? { seg, lendo: false, falhou: false } : { seg: null, lendo: false, falhou: true });
     }, 500);
     return () => { vivo = false; window.clearTimeout(t); };
   }, [aulaId, videoId]);
-
-  useEffect(() => {
-    if (!url) return;
-    const mandar = (d: object) => iframe.current?.contentWindow?.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', ...d }), '*');
-    let tentativas = 0;
-    let repetir: number | undefined;
-    const perguntar = () => mandar({ method: 'getDuration', listener: 'nx-duracao' });
-    const aoReceber = (e: MessageEvent) => {
-      if (e.source !== iframe.current?.contentWindow) return;
-      let m: { context?: string; event?: string; listener?: string; value?: unknown } = {};
-      try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
-      if (m?.context !== 'player.js') return;
-      if (m.event === 'ready') perguntar();
-      if (m.event === 'nx-duracao' || m.listener === 'nx-duracao' || m.event === 'getDuration') { // o Bunny responde com event: 'getDuration'
-        const seg = Number(m.value);
-        if (seg > 0) setEstado({ seg: Math.round(seg), lendo: false });
-        else if (tentativas++ < 10) repetir = window.setTimeout(perguntar, 1000); // o vídeo ainda está carregando
-        else setEstado({ seg: null, lendo: false });
-      }
-    };
-    window.addEventListener('message', aoReceber);
-    const desiste = window.setTimeout(() => setEstado(e => (e.lendo ? { seg: null, lendo: false } : e)), 20000);
-    return () => { window.removeEventListener('message', aoReceber); window.clearTimeout(desiste); window.clearTimeout(repetir); };
-  }, [url]);
-
-  const player = url
-    ? <iframe ref={iframe} src={url} title="Leitura da duração" aria-hidden tabIndex={-1} className="fixed w-px h-px opacity-0 pointer-events-none" style={{ left: -9999, top: 0 }} />
-    : null;
-  return { ...estado, player };
+  return estado;
 }
 
 const tempoVideo = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -237,12 +207,16 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
               <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
             </Rotulo>
             {duracao.lendo && <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>Lendo a duração do vídeo…</p>}
+            {duracao.falhou && (
+              <p className="text-[12.5px] mt-1.5" style={{ color: 'var(--a-amber)' }}>
+                Não deu para ler a duração deste vídeo. Confira o ID ou preencha os minutos à mão.
+              </p>
+            )}
             {duracao.seg !== null && (
               <p className="text-[12.5px] mt-1.5 font-medium" style={{ color: 'var(--a-green)' }}>
                 Duração do vídeo: {tempoVideo(duracao.seg)} (preenchida automaticamente). O aluno precisa assistir 70% para concluir.
               </p>
             )}
-            {duracao.player}
           </div>
           <Rotulo texto="Descrição (aparece abaixo do vídeo)">
             <textarea className="acad-field w-full rounded-[10px] px-3.5 py-3 text-[14.5px] leading-relaxed" rows={4} value={descricao} onChange={e => setDescricao(e.target.value)} />

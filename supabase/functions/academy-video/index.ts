@@ -2,7 +2,8 @@
 // Nexla Academy — link do player de vídeo (Bunny Stream)
 //
 // POST { aula } → { url } do player do Bunny para quem PODE assistir a aula.
-// POST { aula, video } → só admin: player de um vídeo ainda não salvo (o editor de aula lê a duração dele).
+// POST { aula, video } → só admin: player de um vídeo ainda não salvo + duracao_seg (o editor de aula preenche sozinho).
+// Ao abrir uma aula, se a duração cadastrada não bate com a do vídeo no Bunny, ela é corrigida no banco.
 //
 // A aula é lida COMO O ALUNO (com o token dele): as regras do banco (academy_pode_assistir)
 // decidem se ele comprou o curso, se é a aula de amostra, se é admin e se este é o dispositivo ativo.
@@ -27,6 +28,20 @@ const cors = (origem: string | null) => ({
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
 });
+
+/* Duração do vídeo, lida da página do player do Bunny (vem como "duration":"PT1M30S").
+   O Bunny só entrega a página para os sites autorizados, por isso vai com o endereço do site. */
+async function duracaoNoBunny(url: string): Promise<number | null> {
+  try {
+    const r = await fetch(url, { headers: { Referer: `${SITE_PADRAO}/` } });
+    if (!r.ok) return null;
+    const iso = (await r.text()).match(/"duration"\s*:\s*"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?"/);
+    if (!iso) return null;
+    const seg = Number(iso[1] ?? 0) * 86400 + Number(iso[2] ?? 0) * 3600 + Number(iso[3] ?? 0) * 60 + Number(iso[4] ?? 0);
+    return seg > 0 ? Math.round(seg) : null;
+  } catch { return null; }
+}
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 async function sha256hex(texto: string) {
   const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto)));
@@ -57,14 +72,16 @@ Deno.serve(async (req) => {
 
   // Admin no editor de aula: pré-visualiza um vídeo ainda não salvo (para detectar a duração)
   let video = '';
+  let aula: { id: string; video_id: string | null; duracao_seg: number } | null = null;
   if (entrada.video) {
     const previa = String(entrada.video).trim();
     const { data: ehAdmin } = await comoAluno.rpc('academy_eh_admin');
     if (ehAdmin !== true || !/^[0-9a-f-]{36}$/i.test(previa)) return json({ erro: 'sem_acesso' }, 403);
     video = previa;
   } else {
-    const { data: aula } = await comoAluno.from('academy_lessons').select('id, video_id').eq('id', aulaId).maybeSingle();
-    if (!aula) return json({ erro: 'sem_acesso' }, 403);
+    const { data } = await comoAluno.from('academy_lessons').select('id, video_id, duracao_seg').eq('id', aulaId).maybeSingle();
+    if (!data) return json({ erro: 'sem_acesso' }, 403);
+    aula = data;
     video = String(aula.video_id ?? '').trim();
   }
   if (!video) return json({ erro: 'sem_video' }, 404);
@@ -79,5 +96,19 @@ Deno.serve(async (req) => {
     params.set('token', await sha256hex(chave + video + expira));
     params.set('expires', String(expira));
   }
-  return json({ url: `https://player.mediadelivery.net/embed/${encodeURIComponent(biblioteca)}/${encodeURIComponent(video)}?${params}` });
+  const url = `https://player.mediadelivery.net/embed/${encodeURIComponent(biblioteca)}/${encodeURIComponent(video)}?${params}`;
+
+  // Editor de aula (admin): devolve também a duração do vídeo, para preencher sozinho
+  if (!aula) return json({ url, duracao_seg: await duracaoNoBunny(url) });
+
+  // Aula aberta: se a duração cadastrada não bate com a do vídeo, corrige no banco (depois de responder).
+  // É ela que decide quanto o aluno precisa assistir para concluir (70%).
+  const cadastrada = Number(aula.duracao_seg ?? 0);
+  const corrigir = duracaoNoBunny(url).then(async seg => {
+    if (!seg || Math.abs(seg - cadastrada) <= 1) return;
+    const servico = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+    await servico.from('academy_lessons').update({ duracao_seg: seg }).eq('id', aulaId).eq('video_id', video);
+  }).catch(() => undefined);
+  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(corrigir); else await corrigir;
+  return json({ url });
 });
