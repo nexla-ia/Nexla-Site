@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Check, ChevronDown, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
@@ -11,28 +11,43 @@ import { reais } from './Compra';
 /* Fundo de quem ainda não tem foto: a cor de cartão do tema com o símbolo da Nexla */
 const SEM_FOTO = { background: T.card };
 /* Capa do card (16:9). No curso que o aluno já tem, uma linha fina embaixo mostra o progresso. */
+/* No hover a foto (ou o símbolo) cresce de leve; a linha de progresso enche quando o card aparece. */
 function Capa({ url, progresso }: { url: string | null; progresso?: number }) {
+  const parado = useReducedMotion();
   return (
-    <div className="relative aspect-video rounded-lg overflow-hidden transition-opacity group-hover:opacity-90">
-      <div className="absolute inset-0 bg-cover bg-center" style={url ? { backgroundImage: `url("${url}")` } : SEM_FOTO} />
-      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 object-contain opacity-80" />}
+    <div className="relative aspect-video rounded-lg overflow-hidden">
+      <div className="absolute inset-0 bg-cover bg-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:scale-[1.04]"
+        style={url ? { backgroundImage: `url("${url}")` } : SEM_FOTO} />
+      {!url && (
+        <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-28 sm:h-28 object-contain opacity-90
+          motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:scale-110" />
+      )}
       {!!progresso && (
         <div className="absolute inset-x-0 bottom-0 h-[3px]" style={{ background: 'rgba(15,23,42,0.3)' }}>
-          <div className="h-full" style={{ width: `${progresso}%`, background: '#FFFFFF' }} />
+          <motion.div className="h-full" style={{ background: '#FFFFFF' }}
+            initial={{ width: parado ? `${progresso}%` : 0 }} whileInView={{ width: `${progresso}%` }} viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.2, ease }} />
         </div>
       )}
     </div>
   );
 }
 
-/* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link) */
+/* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link).
+   Surge de baixo para cima quando entra na tela. */
 function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string }) {
+  const parado = useReducedMotion();
   return (
-    <Link para={para} className="group block rounded-lg focus-visible:outline-offset-4">
-      <Capa url={capa} progresso={progresso} />
-      <h3 className="mt-2.5 text-[14.5px] font-semibold leading-snug line-clamp-2" style={{ color: T.ink }}>{titulo}</h3>
-      <p className="mt-0.5 text-[13px]" style={{ color: T.mute }}>{linha}</p>
-    </Link>
+    <motion.div initial={parado ? false : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.5, ease }}>
+      <Link para={para} className="group block rounded-lg focus-visible:outline-offset-4">
+        <Capa url={capa} progresso={progresso} />
+        <h3 className="mt-2.5 text-[14.5px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]">
+          {titulo}
+        </h3>
+        <p className="mt-0.5 text-[13px]" style={{ color: T.mute }}>{linha}</p>
+      </Link>
+    </motion.div>
   );
 }
 
