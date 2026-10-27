@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Reorder, useDragControls } from 'framer-motion';
-import { ArrowUpDown, Download, GripVertical, Plus, Trash2, Upload } from 'lucide-react';
+import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
+import { ArrowUpDown, ChevronDown, Download, GripVertical, Plus, Trash2, Upload } from 'lucide-react';
 import { T, display } from '../ui';
 import { supabase } from '../supabase';
-import { inputCls, botaoPrimario, botaoSecundario } from './comum';
+import { inputCls, botaoPrimario } from './comum';
 
 /* Ferramentas usadas no curso e apresentação do instrutor (aparecem na página de vendas) */
 export function CartaoInstrutor({ cursoId }: { cursoId: string }) {
@@ -130,14 +130,19 @@ function baixarModelo() {
   URL.revokeObjectURL(url);
 }
 
-/* Uma pergunta. A alça à esquerda muda a ordem; o nome de cada campo (Pergunta/Resposta) pode ser
-   arrastado até outro campo, desta ou de outra pergunta, e os dois textos trocam de lugar. */
-function ItemPergunta({ f, n, pegando, setPegando, soltar, muda, remover, inverter }: {
-  f: PerguntaId; n: number; pegando: Pegando; setPegando: (p: Pegando) => void; soltar: (alvo: { id: number; campo: Campo }) => void;
+const botaoIcone = 'w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[color:var(--a-soft)]';
+
+/* Uma pergunta da lista. Fechada mostra só a pergunta e o começo da resposta; clicando, abre para editar.
+   A alça à esquerda muda a ordem. Com ela aberta, o nome de cada campo (Pergunta/Resposta) pode ser
+   arrastado até outro campo, desta ou de outra pergunta aberta, e os dois textos trocam de lugar. */
+function ItemPergunta({ f, n, aberta, abrir, pegando, setPegando, soltar, muda, remover, inverter }: {
+  f: PerguntaId; n: number; aberta: boolean; abrir: () => void;
+  pegando: Pegando; setPegando: (p: Pegando) => void; soltar: (alvo: { id: number; campo: Campo }) => void;
   muda: (campo: Campo, v: string) => void; remover: () => void; inverter: () => void;
 }) {
   const alca = useDragControls();
   const [sobre, setSobre] = useState<Campo | null>(null);
+  const incompleta = !f.pergunta.trim() || !f.resposta.trim();
 
   const campo = (c: Campo) => {
     const eu = pegando?.id === f.id && pegando.campo === c;
@@ -146,74 +151,108 @@ function ItemPergunta({ f, n, pegando, setPegando, soltar, muda, remover, invert
       <div onDragOver={e => { if (pegando && !eu) { e.preventDefault(); setSobre(c); } }}
         onDragLeave={() => setSobre(null)}
         onDrop={e => { e.preventDefault(); setSobre(null); soltar({ id: f.id, campo: c }); }}
-        className="rounded-[10px] transition-shadow" style={alvo ? { boxShadow: `0 0 0 2px ${T.accent}` } : undefined}>
+        className="group/campo rounded-[10px] transition-shadow" style={alvo ? { boxShadow: `0 0 0 2px ${T.accent}` } : undefined}>
         <span draggable title="Arraste até outro campo para trocar os textos"
           onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', c); setPegando({ id: f.id, campo: c }); }}
           onDragEnd={() => setPegando(null)}
-          className="inline-flex items-center gap-1 mb-1 text-[12px] font-semibold cursor-grab active:cursor-grabbing select-none" style={{ color: eu ? T.accent : T.mute }}>
-          <GripVertical size={12} /> {c === 'pergunta' ? 'Pergunta' : 'Resposta'}
+          className="inline-flex items-center gap-1 mb-1 text-[12px] font-medium cursor-grab active:cursor-grabbing select-none" style={{ color: eu ? T.accent : T.mute }}>
+          <GripVertical size={12} className="opacity-40 group-hover/campo:opacity-100 transition-opacity" /> {c === 'pergunta' ? 'Pergunta' : 'Resposta'}
         </span>
         {c === 'pergunta'
-          ? <input className={inputCls} placeholder="Ex.: Preciso saber programar?" value={f.pergunta} onChange={e => muda('pergunta', e.target.value)} />
-          : <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={2} placeholder="Resposta"
+          ? <input className={inputCls} placeholder="Ex.: Preciso saber programar?" value={f.pergunta} onChange={e => muda('pergunta', e.target.value)} autoFocus={!f.pergunta} />
+          : <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={3} placeholder="Resposta"
               value={f.resposta} onChange={e => muda('resposta', e.target.value)} />}
       </div>
     );
   };
 
   return (
-    <Reorder.Item value={f} dragListener={false} dragControls={alca} className="rounded-xl p-3 flex gap-2"
-      style={{ border: `1px solid ${T.rule}`, background: T.card }}>
-      <button onPointerDown={e => alca.start(e)} aria-label="Arrastar para mudar a ordem" title="Arraste para mudar a ordem"
-        className="w-6 shrink-0 flex items-start justify-center pt-1 cursor-grab active:cursor-grabbing touch-none" style={{ color: T.mute }}>
-        <GripVertical size={16} />
-      </button>
-      <div className="flex-1 min-w-0 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px]" style={{ color: T.mute }}>{n}</span>
-          <div className="flex gap-1">
-            <button onClick={inverter} aria-label="Trocar pergunta e resposta" title="Trocar pergunta e resposta"
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[color:var(--a-soft)]" style={{ color: T.mute }}><ArrowUpDown size={15} /></button>
-            <button onClick={remover} aria-label="Remover pergunta" title="Remover pergunta"
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
-          </div>
-        </div>
-        {campo('pergunta')}
-        {campo('resposta')}
+    <Reorder.Item value={f} dragListener={false} dragControls={alca} className="group relative" style={{ background: T.card }}>
+      <div className="flex items-center gap-1 pl-1.5 pr-2 py-1.5">
+        <button onPointerDown={e => alca.start(e)} aria-label="Arrastar para mudar a ordem" title="Arraste para mudar a ordem"
+          className="w-7 h-9 shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none opacity-50 group-hover:opacity-100 transition-opacity" style={{ color: T.mute }}>
+          <GripVertical size={16} />
+        </button>
+        <button onClick={abrir} aria-expanded={aberta} className="flex-1 min-w-0 flex items-center gap-3 text-left py-1.5">
+          <span className="text-[12.5px] w-5 shrink-0 tabular-nums" style={{ color: T.mute }}>{n}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-medium truncate" style={{ color: f.pergunta.trim() ? T.ink : T.mute }}>
+              {f.pergunta.trim() || 'Nova pergunta'}
+            </span>
+            {!aberta && (
+              <span className="block text-[12.5px] truncate mt-0.5" style={{ color: incompleta ? 'var(--a-amber)' : T.mute }}>
+                {incompleta ? 'Falta preencher a pergunta ou a resposta' : f.resposta}
+              </span>
+            )}
+          </span>
+          <ChevronDown size={16} className={`shrink-0 transition-transform ${aberta ? 'rotate-180' : ''}`} style={{ color: T.mute }} />
+        </button>
+        <button onClick={inverter} aria-label="Trocar pergunta e resposta" title="Trocar pergunta e resposta" className={botaoIcone} style={{ color: T.mute }}>
+          <ArrowUpDown size={15} />
+        </button>
+        <button onClick={remover} aria-label="Remover pergunta" title="Remover pergunta" className={`${botaoIcone} hover:!bg-red-50`} style={{ color: 'var(--a-red)' }}>
+          <Trash2 size={15} />
+        </button>
       </div>
+      <AnimatePresence initial={false}>
+        {aberta && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }} className="overflow-hidden">
+            <div className="pl-[3.75rem] pr-4 pb-4 pt-1 space-y-3">
+              {campo('pergunta')}
+              {campo('resposta')}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Reorder.Item>
   );
 }
+
+// O que vai para o banco: sem linhas vazias (pergunta só entra com pergunta e resposta)
+const limpo = (bonus: Bonus[], faq: Pergunta[]) => ({
+  bonus: bonus.filter(b => b.titulo.trim()).map(b => ({ titulo: b.titulo.trim(), descricao: b.descricao.trim() })),
+  faq: faq.filter(f => f.pergunta.trim() && f.resposta.trim()).map(f => ({ pergunta: f.pergunta.trim(), resposta: f.resposta.trim() })),
+});
+
+const botaoTexto = 'inline-flex items-center gap-1 text-[13px] font-medium hover:underline underline-offset-4';
 
 /* Bônus e perguntas frequentes do curso (aparecem na página de vendas pública) */
 export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
   const [bonus, setBonus] = useState<Bonus[]>([]);
   const [faq, setFaq] = useState<PerguntaId[]>([]);
   const [pegando, setPegando] = useState<Pegando>(null);
+  const [aberta, setAberta] = useState<number | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
+  const salvo = useRef(''); // o que está gravado no banco, para avisar quando há mudança sem salvar
   const [carregado, setCarregado] = useState(false);
   const [semColuna, setSemColuna] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState({ erro: '', ok: '' });
+  const [aviso, setAviso] = useState(''); // recado da importação (some ao salvar)
 
   useEffect(() => {
     supabase.from('academy_courses').select('bonus, faq').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
       if (error) { setSemColuna(true); setCarregado(true); return; }
-      setBonus(((data?.bonus ?? []) as Bonus[]).map(b => ({ titulo: b.titulo ?? '', descricao: b.descricao ?? '' })));
-      setFaq(((data?.faq ?? []) as Pergunta[]).map(f => comId({ pergunta: f.pergunta ?? '', resposta: f.resposta ?? '' })));
+      const b = ((data?.bonus ?? []) as Bonus[]).map(x => ({ titulo: x.titulo ?? '', descricao: x.descricao ?? '' }));
+      const f = ((data?.faq ?? []) as Pergunta[]).map(x => comId({ pergunta: x.pergunta ?? '', resposta: x.resposta ?? '' }));
+      salvo.current = JSON.stringify(limpo(b, f));
+      setBonus(b); setFaq(f);
       setCarregado(true);
     });
   }, [cursoId]);
 
   const salvar = async () => {
-    setSalvando(true); setMsg({ erro: '', ok: '' });
-    const { error } = await supabase.from('academy_courses').update({
-      bonus: bonus.filter(b => b.titulo.trim()).map(b => ({ titulo: b.titulo.trim(), descricao: b.descricao.trim() })),
-      faq: faq.filter(f => f.pergunta.trim() && f.resposta.trim()).map(f => ({ pergunta: f.pergunta.trim(), resposta: f.resposta.trim() })),
-    }).eq('id', cursoId);
+    setSalvando(true); setMsg({ erro: '', ok: '' }); setAviso('');
+    const dados = limpo(bonus, faq);
+    const { error } = await supabase.from('academy_courses').update(dados).eq('id', cursoId);
     setSalvando(false);
-    setMsg(error ? { erro: 'Não foi possível salvar.', ok: '' } : { erro: '', ok: 'Bônus e perguntas salvos.' });
+    if (error) { setMsg({ erro: 'Não foi possível salvar.', ok: '' }); return; }
+    salvo.current = JSON.stringify(dados);
+    const ignoradas = faq.length - dados.faq.length;
+    setMsg({ erro: '', ok: ignoradas ? `Salvo. ${ignoradas} pergunta${ignoradas > 1 ? 's' : ''} sem resposta não ${ignoradas > 1 ? 'foram' : 'foi'} publicada${ignoradas > 1 ? 's' : ''}.` : 'Salvo.' });
   };
+  const mudou = carregado && JSON.stringify(limpo(bonus, faq)) !== salvo.current;
 
   const muda = <X,>(lista: X[], set: (l: X[]) => void, i: number, campo: keyof X, v: string) =>
     set(lista.map((x, k) => (k === i ? { ...x, [campo]: v } : x)));
@@ -241,7 +280,7 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
       const novas = paraPerguntas(await lerPlanilha(arq));
       if (!novas.length) { setMsg({ erro: 'Não achamos perguntas nessa planilha. Use as colunas Pergunta e Resposta (baixe o modelo).', ok: '' }); return; }
       setFaq([...faq.filter(f => f.pergunta.trim() || f.resposta.trim()), ...novas.map(comId)]);
-      setMsg({ erro: '', ok: `${novas.length} pergunta${novas.length > 1 ? 's' : ''} da planilha. Confira e clique em Salvar.` });
+      setAviso(`${novas.length} pergunta${novas.length > 1 ? 's' : ''} da planilha. Confira e clique em Salvar.`);
     } catch {
       setMsg({ erro: 'Não foi possível ler a planilha. Envie um arquivo .xlsx ou .csv.', ok: '' });
     } finally {
@@ -258,56 +297,82 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
       {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semColuna ? (
         <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>019_bonus_faq.sql</strong> no Supabase para usar esta parte.</p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
+          {/* Bônus: título e descrição numa linha */}
           <div>
-            <p className="text-[13px] font-semibold mb-2" style={{ color: T.ink2 }}>Bônus</p>
-            <div className="space-y-2">
-              {bonus.map((b, i) => (
-                <div key={i} className="grid sm:grid-cols-[1fr_1.4fr_auto] gap-2">
-                  <input className={inputCls} placeholder="Ex.: Pacote de modelos prontos" value={b.titulo} onChange={e => muda(bonus, setBonus, i, 'titulo', e.target.value)} />
-                  <input className={inputCls} placeholder="Descrição curta (opcional)" value={b.descricao} onChange={e => muda(bonus, setBonus, i, 'descricao', e.target.value)} />
-                  <button onClick={() => setBonus(bonus.filter((_, k) => k !== i))} aria-label="Remover bônus" className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={16} /></button>
-                </div>
-              ))}
+            <div className="flex items-baseline justify-between gap-3 mb-2">
+              <p className="text-[13px] font-semibold" style={{ color: T.ink2 }}>
+                Bônus {bonus.length > 0 && <span className="font-normal" style={{ color: T.mute }}>· {bonus.length}</span>}
+              </p>
+              <button onClick={() => setBonus([...bonus, { titulo: '', descricao: '' }])} className={botaoTexto} style={{ color: T.accent }}>
+                <Plus size={14} /> Adicionar bônus
+              </button>
             </div>
-            <button onClick={() => setBonus([...bonus, { titulo: '', descricao: '' }])} className={`${botaoSecundario} mt-2`} style={{ color: T.accent, border: '1px dashed rgba(79,70,229,0.4)' }}>
-              <Plus size={15} /> Adicionar bônus
-            </button>
+            {bonus.length === 0 ? (
+              <p className="text-[13px]" style={{ color: T.mute }}>Nenhum bônus. Ex.: pacote de modelos prontos, grupo de alunos, planilha.</p>
+            ) : (
+              <div className="space-y-2">
+                {bonus.map((b, i) => (
+                  <div key={i} className="grid sm:grid-cols-[1fr_1.4fr_auto] gap-2">
+                    <input className={inputCls} placeholder="Ex.: Pacote de modelos prontos" value={b.titulo} autoFocus={!b.titulo && i === bonus.length - 1}
+                      onChange={e => muda(bonus, setBonus, i, 'titulo', e.target.value)} />
+                    <input className={inputCls} placeholder="Descrição curta (opcional)" value={b.descricao} onChange={e => muda(bonus, setBonus, i, 'descricao', e.target.value)} />
+                    <button onClick={() => setBonus(bonus.filter((_, k) => k !== i))} aria-label="Remover bônus" title="Remover bônus"
+                      className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="pt-5" style={{ borderTop: `1px solid ${T.rule}` }}>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <p className="text-[13px] font-semibold" style={{ color: T.ink2 }}>Perguntas frequentes deste curso</p>
-              <div className="flex items-center gap-4 text-[13px] font-medium">
-                <button onClick={baixarModelo} className="inline-flex items-center gap-1 hover:underline underline-offset-4" style={{ color: T.mute }}>
-                  <Download size={14} /> Baixar modelo
-                </button>
-                <button onClick={() => arquivo.current?.click()} className="inline-flex items-center gap-1 hover:underline underline-offset-4" style={{ color: T.accent }}>
-                  <Upload size={14} /> Importar planilha
-                </button>
+          {/* Perguntas: lista que abre ao clicar */}
+          <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-2">
+              <p className="text-[13px] font-semibold" style={{ color: T.ink2 }}>
+                Perguntas frequentes {faq.length > 0 && <span className="font-normal" style={{ color: T.mute }}>· {faq.length}</span>}
+              </p>
+              <div className="flex items-center gap-4">
+                <button onClick={baixarModelo} className={botaoTexto} style={{ color: T.mute }}><Download size={14} /> Modelo</button>
+                <button onClick={() => arquivo.current?.click()} className={botaoTexto} style={{ color: T.mute }}><Upload size={14} /> Importar planilha</button>
+                <button onClick={() => { const nova = comId({ pergunta: '', resposta: '' }); setFaq([...faq, nova]); setAberta(nova.id); }}
+                  className={botaoTexto} style={{ color: T.accent }}><Plus size={14} /> Adicionar</button>
                 <input ref={arquivo} type="file" accept=".xlsx,.csv" className="hidden" onChange={e => importar(e.target.files?.[0])} />
               </div>
             </div>
-            {faq.length > 1 && (
-              <p className="text-[12.5px] mb-2" style={{ color: T.mute }}>
-                Arraste pela alça da esquerda para mudar a ordem. Para trocar textos de lugar, arraste o nome do campo (Pergunta ou Resposta) até outro campo.
+
+            {faq.length === 0 ? (
+              <p className="text-[13px]" style={{ color: T.mute }}>
+                Nenhuma pergunta. Adicione uma por uma ou importe uma planilha com as colunas Pergunta e Resposta.
               </p>
+            ) : (
+              <>
+                <Reorder.Group axis="y" values={faq} onReorder={setFaq}
+                  className="rounded-xl overflow-hidden divide-y divide-[color:var(--a-rule)] border border-[color:var(--a-rule)]">
+                  {faq.map((f, i) => (
+                    <ItemPergunta key={f.id} f={f} n={i + 1} aberta={aberta === f.id} abrir={() => setAberta(aberta === f.id ? null : f.id)}
+                      pegando={pegando} setPegando={setPegando} soltar={soltar}
+                      muda={(c, v) => muda(faq, setFaq, i, c, v)} remover={() => setFaq(faq.filter(x => x.id !== f.id))}
+                      inverter={() => setFaq(faq.map(x => (x.id === f.id ? { ...x, pergunta: x.resposta, resposta: x.pergunta } : x)))} />
+                  ))}
+                </Reorder.Group>
+                {faq.length > 1 && (
+                  <p className="text-[12px] mt-2" style={{ color: T.mute }}>
+                    Arraste pela alça ⋮⋮ para mudar a ordem. Com a pergunta aberta, arraste o nome do campo até outro campo para trocar os textos.
+                  </p>
+                )}
+              </>
             )}
-            <Reorder.Group axis="y" values={faq} onReorder={setFaq} className="space-y-3">
-              {faq.map((f, i) => (
-                <ItemPergunta key={f.id} f={f} n={i + 1} pegando={pegando} setPegando={setPegando} soltar={soltar}
-                  muda={(c, v) => muda(faq, setFaq, i, c, v)} remover={() => setFaq(faq.filter(x => x.id !== f.id))}
-                  inverter={() => setFaq(faq.map(x => (x.id === f.id ? { ...x, pergunta: x.resposta, resposta: x.pergunta } : x)))} />
-              ))}
-            </Reorder.Group>
-            <button onClick={() => setFaq([...faq, comId({ pergunta: '', resposta: '' })])} className={`${botaoSecundario} mt-2`} style={{ color: T.accent, border: '1px dashed rgba(79,70,229,0.4)' }}>
-              <Plus size={15} /> Adicionar pergunta
-            </button>
           </div>
 
-          {msg.erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{msg.erro}</p>}
-          {msg.ok && <p className="text-[13.5px]" style={{ color: 'var(--a-green)' }}>{msg.ok}</p>}
-          <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : 'Salvar bônus e perguntas'}</button>
+          {/* Salvar: avisa quando há mudança que ainda não foi gravada */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-5" style={{ borderTop: `1px solid ${T.rule}` }}>
+            <button onClick={salvar} disabled={salvando || !mudou} className={`${botaoPrimario} disabled:opacity-50 disabled:cursor-not-allowed`}>
+              {salvando ? 'Salvando…' : 'Salvar'}
+            </button>
+            <span className="text-[13px]" style={{ color: msg.erro ? 'var(--a-red)' : mudou ? 'var(--a-amber)' : msg.ok ? 'var(--a-green)' : T.mute }}>
+              {msg.erro || (mudou ? aviso || 'Alterações não salvas' : msg.ok || 'Tudo salvo')}
+            </span>
+          </div>
         </div>
       )}
     </section>

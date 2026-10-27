@@ -22,6 +22,9 @@ type Pergunta = { pergunta: string; resposta: string };
 
 const NIVEL: Record<string, string> = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado' };
 const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+/* Parcelas no cartão: até 12x (o máximo do checkout), mas o Mercado Pago exige um valor mínimo por
+   parcela, então curso barato parcela menos (conta com R$ 5 por parcela). 1 = não mostra parcelamento. */
+const parcelas = (valor: number) => Math.min(12, Math.max(1, Math.floor(valor / 5)));
 
 /* Perguntas que valem para todo curso (as do próprio curso aparecem antes) */
 const FAQ_PADRAO: Pergunta[] = [
@@ -266,7 +269,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               style={{ background: T.card, border: '1px solid rgba(79,70,229,0.25)' }}>
               <div>
                 <p className="font-bold text-[20px]" style={display}>Pronto para começar?</p>
-                <p className="text-[14.5px] mt-1" style={{ color: T.mute }}>{gratis ? 'Grátis · acesso na hora' : `${reais(preco.valor)} · acesso imediato no Pix · 7 dias de garantia`}</p>
+                <p className="text-[14.5px] mt-1" style={{ color: T.mute }}>{gratis ? 'Grátis · acesso na hora' : `${reais(preco.valor)}${parcelas(preco.valor) > 1 ? ` ou até ${parcelas(preco.valor)}x no cartão` : ''} · 7 dias de garantia`}</p>
               </div>
               <BotaoComprar />
             </section>
@@ -285,7 +288,10 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             <>
               {preco.de != null && <p className="text-[14px]" style={{ color: T.mute }}>De <s>{reais(preco.de)}</s> por</p>}
               <p className="font-bold text-[34px] leading-none mt-1" style={display}>{reais(preco.valor)}</p>
-              <p className="text-[13px] mt-2" style={{ color: T.mute }}>Pix, boleto ou cartão em até 12x</p>
+              {parcelas(preco.valor) > 1 && (
+                <p className="text-[15px] font-semibold mt-2" style={{ color: T.ink }}>ou em até {parcelas(preco.valor)}x no cartão</p>
+              )}
+              <p className="text-[13px] mt-1" style={{ color: T.mute }}>Pix, boleto ou cartão de crédito</p>
             </>
           ) : preco === null ? (
             <>
@@ -345,7 +351,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       {/* Celular: botão de compra fixo embaixo */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 p-3 flex items-center gap-3"
         style={{ background: 'var(--a-vidro)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
-        {preco && <span className="font-bold text-[18px] shrink-0" style={gratis ? { ...display, color: 'var(--a-green)' } : display}>{gratis ? 'Grátis' : reais(preco.valor)}</span>}
+        {preco && (
+          <span className="shrink-0 leading-tight">
+            <span className="block font-bold text-[18px]" style={gratis ? { ...display, color: 'var(--a-green)' } : display}>{gratis ? 'Grátis' : reais(preco.valor)}</span>
+            {!gratis && parcelas(preco.valor) > 1 && <span className="block text-[12px]" style={{ color: T.mute }}>ou até {parcelas(preco.valor)}x</span>}
+          </span>
+        )}
         <div className="flex-1"><BotaoComprar cheio /></div>
       </div>
       <div className="lg:hidden h-20" />
