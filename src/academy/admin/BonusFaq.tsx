@@ -83,8 +83,9 @@ function Moldura({ titulo, sub, acoes, children }: { titulo: string; sub: string
 
 const botaoTexto = 'inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline underline-offset-4';
 const botaoIcone = 'w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[color:var(--a-soft)]';
-// Célula da tabela: parece texto, vira campo ao passar o mouse ou clicar
-const celula = 'w-full bg-transparent rounded-lg px-2.5 py-2 text-[14px] leading-snug outline-none transition-colors hover:bg-[color:var(--a-soft)] focus:bg-[color:var(--a-card)] focus:ring-2 focus:ring-indigo-500/30 placeholder:text-[color:var(--a-mute)] placeholder:opacity-60';
+// Linha da tabela (cinza claro do tema, bem marcada nos dois temas) e as células como campos brancos
+const LINHA_TABELA = 'rgba(100,116,139,0.35)';
+const celula = 'w-full rounded-lg px-3 py-2 text-[14px] leading-snug outline-none border transition-colors bg-[color:var(--a-card)] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-[color:var(--a-mute)] placeholder:opacity-70';
 
 /* ─── Bônus ──────────────────────────────────────────────────────── */
 type Bonus = { titulo: string; descricao: string };
@@ -226,19 +227,21 @@ function Linha({ f, nova, muda, remover, inverter }: {
 }) {
   const alca = useDragControls();
   return (
-    <Reorder.Item value={f} dragListener={false} dragControls={alca} className={`${GRADE} py-1.5 px-1.5`} style={{ background: T.card }}>
+    <Reorder.Item value={f} dragListener={false} dragControls={alca} className={`${GRADE} gap-y-2 py-2.5 px-2`}
+      style={{ background: 'var(--a-soft2)', borderTop: `1px solid ${LINHA_TABELA}` }}>
       <div className="row-span-2 sm:row-span-1 h-10 flex items-center justify-center">
-        {!nova && (
+        {nova ? <Plus size={16} style={{ color: T.accent }} /> : (
           <button onPointerDown={e => alca.start(e)} aria-label="Arrastar para mudar a ordem" title="Arraste para mudar a ordem"
             className="w-7 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none opacity-40 hover:opacity-100 transition-opacity" style={{ color: T.mute }}>
             <GripVertical size={16} />
           </button>
         )}
       </div>
-      <input className={`${celula} font-medium`} style={{ color: T.ink }} value={f.pergunta} aria-label="Pergunta"
-        placeholder={nova ? 'Escreva uma nova pergunta…' : 'Pergunta'} onChange={e => muda('pergunta', e.target.value)} />
-      <textarea rows={2} className={`${celula} resize-none col-start-2 row-start-2 sm:col-start-3 sm:row-start-1`} style={{ ...cresce, color: T.ink }}
-        value={f.resposta} aria-label="Resposta" placeholder={nova ? 'e a resposta' : 'Resposta'} onChange={e => muda('resposta', e.target.value)} />
+      <input className={`${celula} font-medium`} style={{ color: T.ink, borderColor: LINHA_TABELA, borderStyle: nova ? 'dashed' : 'solid' }} value={f.pergunta} aria-label="Pergunta"
+        placeholder={nova ? 'Nova pergunta…' : 'Pergunta'} onChange={e => muda('pergunta', e.target.value)} />
+      <textarea rows={2} className={`${celula} resize-none col-start-2 row-start-2 sm:col-start-3 sm:row-start-1`}
+        style={{ ...cresce, color: T.ink, borderColor: LINHA_TABELA, borderStyle: nova ? 'dashed' : 'solid' }}
+        value={f.resposta} aria-label="Resposta" placeholder={nova ? 'Resposta…' : 'Resposta'} onChange={e => muda('resposta', e.target.value)} />
       <div className="col-start-3 row-start-1 sm:col-start-4 flex h-10 items-center">
         {!nova && <>
           <button onClick={inverter} aria-label="Trocar pergunta e resposta" title="Trocar pergunta e resposta" className={botaoIcone} style={{ color: T.mute }}><ArrowUpDown size={15} /></button>
@@ -315,16 +318,16 @@ export function CartaoPerguntas({ cursoId }: { cursoId: string }) {
         <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>019_bonus_faq.sql</strong> no Supabase para usar esta parte.</p>
       ) : (
         <div>
-          <div className="rounded-xl border border-[color:var(--a-rule)] overflow-hidden">
-            <div className={`${GRADE} hidden sm:grid px-1.5 py-2 text-[12px] font-semibold uppercase tracking-wide border-b border-[color:var(--a-rule)]`}
-              style={{ color: T.mute, background: 'var(--a-soft2)' }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${LINHA_TABELA}` }}>
+            <div className={`${GRADE} hidden sm:grid px-2 py-2.5 text-[12.5px] font-semibold uppercase tracking-wide`}
+              style={{ color: T.ink2, background: 'var(--a-track)' }}>
               <span />
-              <span className="px-2.5">Pergunta</span>
-              <span className="px-2.5">Resposta</span>
+              <span className="px-3">Pergunta</span>
+              <span className="px-3">Resposta</span>
               <span className="w-16" />
             </div>
             <Reorder.Group axis="y" values={[...faq, nova]} onReorder={l => setFaq(l.filter(x => x.id !== nova.id))}
-              className="divide-y divide-[color:var(--a-rule)]">
+              className="[&>li:first-child]:!border-t-0 sm:[&>li:first-child]:!border-t">
               {[...faq, nova].map(f => (
                 <Linha key={f.id} f={f} nova={f.id === nova.id} muda={(c, v) => muda(f.id, c, v)}
                   remover={() => setFaq(faq.filter(x => x.id !== f.id))}
