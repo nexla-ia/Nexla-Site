@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Award } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
+import { reais } from './Compra';
 import { Link } from './router';
-import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno } from './dados';
-import { CardVitrine, GradeCategorias, GRADE_CURSOS } from './Explorar';
-import { MediaEstrelas, MinhaNota } from './Avaliacao';
+import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno, type CursoVitrine } from './dados';
+import { GradeCategorias } from './Explorar';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
@@ -33,59 +33,64 @@ const duracao = (seg: number) => {
   return min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${min % 60 ? ` ${min % 60}min` : ''}`;
 };
 
-/* Curso do aluno: capa à esquerda e, ao lado, o que importa — nome, avaliação, progresso, certificado e o próximo passo */
+/* Capa pequena (16:9) que cresce de leve no hover; sem foto, o símbolo da Nexla */
+function Miniatura({ url, className }: { url: string | null; className: string }) {
+  return (
+    <div className={`relative aspect-video rounded-lg overflow-hidden shrink-0 ${className}`}>
+      <div className="absolute inset-0 bg-cover bg-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]"
+        style={url ? { backgroundImage: `url("${url}")` } : { background: T.card }} />
+      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-2/3 object-contain opacity-90" />}
+    </div>
+  );
+}
+
+const surgir = { initial: { opacity: 0, y: 12 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-40px' }, transition: { duration: 0.5, ease } };
+
+/* Curso do aluno, sem caixa: capa, nome, uma linha de detalhes, progresso fino e as ações */
 function CursoLinha({ c }: { c: CursoAluno }) {
   const concluido = c.percentual >= 100;
-  const liberado = certificadoLiberado(c);
-  const faltam = c.faltamCertificado;
   const total = c.aulas.reduce((s, a) => s + (a.duracao_seg || 0), 0);
-  const detalhes = [c.categoria?.trim(), plural(c.academy_modules.length, 'módulo', 'módulos'), plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : '']
+  const detalhes = [plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : '', c.media !== null ? `★ ${c.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : '']
     .filter(Boolean).join(' · ');
   const curso = `/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`;
   return (
-    <motion.article initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.5, ease }}
-      className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row gap-4 sm:gap-6 border border-[color:var(--a-rule)]" style={{ background: T.card }}>
-      <Link para={curso} className="group relative block sm:w-72 shrink-0 aspect-video rounded-lg overflow-hidden" aria-label={c.titulo}>
-        <div className="absolute inset-0 bg-cover bg-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]"
-          style={c.capa ? { backgroundImage: `url("${c.capa}")` } : { background: 'var(--a-soft)' }} />
-        {!c.capa && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 object-contain opacity-90" />}
-      </Link>
-
-      <div className="flex-1 min-w-0 flex flex-col sm:py-1">
-        <p className="text-[12.5px]" style={{ color: T.mute }}>{detalhes}</p>
-        <Link para={curso} className="mt-1 font-bold text-[18px] leading-snug hover:underline underline-offset-4" style={display}>{c.titulo}</Link>
-        {c.subtitulo && <p className="text-[13.5px] mt-1 line-clamp-1" style={{ color: T.mute }}>{c.subtitulo}</p>}
-        {(c.media !== null || c.minhaNota) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
-            {c.media !== null && <MediaEstrelas media={c.media} total={c.avaliacoes} />}
-            {c.minhaNota && <MinhaNota nota={c.minhaNota} />}
+    <motion.li {...surgir} className="flex items-center gap-4 sm:gap-6 py-4 first:pt-0">
+      <Link para={curso} className="group block w-32 sm:w-48" aria-label={c.titulo}><Miniatura url={c.capa} className="w-full" /></Link>
+      <div className="flex-1 min-w-0">
+        <Link para={curso} className="block font-semibold text-[16px] leading-snug truncate hover:underline underline-offset-4" style={{ color: T.ink }}>{c.titulo}</Link>
+        <p className="text-[13px] mt-0.5" style={{ color: T.mute }}>{detalhes}</p>
+        <div className="flex items-center gap-3 mt-3 max-w-sm">
+          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
+            <div className="h-full rounded-full" style={{ width: `${c.percentual}%`, background: concluido ? 'var(--a-green)' : T.accent }} />
           </div>
-        )}
-
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex-1"><BarraProgresso valor={c.percentual} /></div>
-          <span className="text-[12.5px] whitespace-nowrap" style={{ color: T.mute }}>
-            {c.feitas.size} de {plural(c.aulas.length, 'aula', 'aulas')} · <strong style={{ color: concluido ? 'var(--a-green)' : T.ink }}>{c.percentual}%</strong>
-          </span>
+          <span className="text-[12.5px] w-9 text-right" style={{ color: T.mute }}>{c.percentual}%</span>
         </div>
-
-        <div className="mt-4 sm:mt-auto pt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          {liberado ? (
-            <Link para={`/certificado/${c.slug}`} className="group inline-flex items-center gap-1.5 text-[13.5px] font-medium" style={{ color: 'var(--a-green)' }}>
-              <Award size={15} strokeWidth={2} /> Ver certificado
-            </Link>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: T.mute }}>
-              <Award size={15} strokeWidth={1.75} /> Certificado: falta{faltam > 1 ? 'm' : ''} {plural(faltam, 'aula', 'aulas')}
-            </span>
-          )}
-          <Link para={curso} className="group inline-flex items-center gap-1 text-[14px] font-semibold" style={{ color: T.accent }}>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-3 text-[13.5px] font-medium">
+          <Link para={curso} className="hover:underline underline-offset-4" style={{ color: T.accent }}>
             {concluido ? 'Rever curso' : c.feitas.size ? 'Continuar' : 'Começar'}
-            <ArrowRight size={15} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
+          {certificadoLiberado(c)
+            ? <Link para={`/certificado/${c.slug}`} className="hover:underline underline-offset-4" style={{ color: 'var(--a-green)' }}>Ver certificado</Link>
+            : <span className="font-normal" style={{ color: T.mute }}>Certificado: falta{c.faltamCertificado > 1 ? 'm' : ''} {plural(c.faltamCertificado, 'aula', 'aulas')}</span>}
         </div>
       </div>
-    </motion.article>
+    </motion.li>
+  );
+}
+
+/* Sugestão: miniatura pequena, nome e "aulas · preço" ao lado */
+function Sugestao({ c }: { c: CursoVitrine }) {
+  const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
+  return (
+    <motion.div {...surgir}>
+      <Link para={`/curso/${c.slug}`} className="group flex items-center gap-3">
+        <Miniatura url={c.capa} className="w-28" />
+        <div className="min-w-0">
+          <p className="text-[14.5px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]">{c.titulo}</p>
+          <p className="text-[13px] mt-0.5" style={{ color: T.mute }}>{plural(c.totalAulas, 'aula', 'aulas')} · {preco}</p>
+        </div>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -162,17 +167,17 @@ export default function Painel({ sessao }: { sessao: Session }) {
           </p>
         ) : (
           <Secao titulo="Meus cursos">
-            <div className="space-y-4">
+            <ul className="divide-y divide-[color:var(--a-rule)]">
               {cursos.map(c => <CursoLinha key={c.id} c={c} />)}
-            </div>
+            </ul>
           </Secao>
         )}
 
         {/* Outros cursos publicados que o aluno ainda não tem */}
         {cursos.length > 0 && outros.length > 0 && (
           <Secao titulo="Você também pode gostar" link={{ para: '/cursos', texto: 'Explorar cursos' }}>
-            <div className={GRADE_CURSOS}>
-              {outros.slice(0, 3).map(c => <CardVitrine key={c.id} c={c} />)}
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-4">
+              {outros.slice(0, 3).map(c => <Sugestao key={c.id} c={c} />)}
             </div>
           </Secao>
         )}
