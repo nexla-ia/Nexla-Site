@@ -15,6 +15,13 @@
 }
 body { background: var(--a-paper); }
 
+/* Troca de tema animada (tema.tsx): o círculo é feito no JavaScript, aqui só desliga o esmaecer padrão */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+/* Sem View Transitions no navegador: as cores mudam suavemente */
+.tema-trocando, .tema-trocando * {
+  transition: background-color 350ms ease, border-color 350ms ease, color 350ms ease, fill 350ms ease !important;
+}
+
 .acad-field {
   background: var(--a-card);
   border: 1px solid var(--a-rule);

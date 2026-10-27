@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Moon, Sun } from 'lucide-react';
 
 /* Tema da Academy: claro (padrão), escuro ou automático (segue o celular/computador).
@@ -33,6 +34,30 @@ export function salvarTema(t: Tema, daConta = false) {
   if (!daConta) window.dispatchEvent(new Event(EVENTO_PREFERENCIAS));
 }
 
+/* Troca com animação: a cor nova se espalha em círculo a partir de onde a pessoa clicou.
+   Navegador sem suporte (View Transitions) faz um esmaecer rápido; quem pediu menos movimento troca direto. */
+export function trocarTemaAnimado(t: Tema, origem?: { x: number; y: number }) {
+  const html = document.documentElement;
+  const doc = document as Document & { startViewTransition?: (mudar: () => void) => { ready: Promise<void> } };
+  if (temaEscuro(t) === temaEscuro() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return salvarTema(t);
+  if (!doc.startViewTransition) {
+    html.classList.add('tema-trocando');
+    salvarTema(t);
+    window.setTimeout(() => html.classList.remove('tema-trocando'), 450);
+    return;
+  }
+  const x = origem?.x ?? window.innerWidth / 2;
+  const y = origem?.y ?? window.innerHeight / 2;
+  const raio = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+  const transicao = doc.startViewTransition(() => flushSync(() => salvarTema(t)));
+  transicao.ready.then(() => {
+    html.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${raio}px at ${x}px ${y}px)`] },
+      { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', pseudoElement: '::view-transition-new(root)' },
+    );
+  }, () => undefined);
+}
+
 /* Liga uma vez na abertura: no automático, acompanha quando o sistema troca de tema */
 export function iniciarTema() {
   aplicarTema();
@@ -47,7 +72,7 @@ export function useTema() {
     ouvintes.add(f);
     return () => { ouvintes.delete(f); };
   }, []);
-  return { tema, escuro, salvar: (t: Tema) => salvarTema(t), alternar: () => salvarTema(escuro ? 'claro' : 'escuro') };
+  return { tema, escuro, salvar: (t: Tema, origem?: { x: number; y: number }) => trocarTemaAnimado(t, origem), alternar: () => salvarTema(escuro ? 'claro' : 'escuro') };
 }
 
 /* Botão de sol/lua para trocar o tema na hora (topo do curso e do admin) */

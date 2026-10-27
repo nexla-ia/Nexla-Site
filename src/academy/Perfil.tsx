@@ -48,20 +48,34 @@ const TEMAS: { id: Tema; texto: string; sub: string; icone: typeof Sun }[] = [
   { id: 'sistema', texto: 'Automático', sub: 'Igual ao seu celular ou computador', icone: Monitor },
 ];
 
-/* Escolha do tema da Academy (fica salva neste navegador) */
+/* Escolha do tema da Academy (salva na conta). A cor nova se espalha a partir do card clicado
+   e o destaque desliza até a opção escolhida. */
 function Aparencia() {
   const { tema, salvar } = useTema();
+  const escolher = (id: Tema, e: React.MouseEvent<HTMLButtonElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    // Clique do mouse: sai do ponto clicado; pelo teclado (sem coordenadas): do centro do card
+    salvar(id, e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  };
   return (
     <div role="radiogroup" aria-label="Tema" className="grid sm:grid-cols-3 gap-3">
       {TEMAS.map(t => {
         const ativo = tema === t.id;
         return (
-          <button key={t.id} type="button" role="radio" aria-checked={ativo} onClick={() => salvar(t.id)}
-            className="rounded-xl p-4 text-left transition-colors hover:bg-slate-50"
-            style={{ border: `1.5px solid ${ativo ? '#4F46E5' : T.rule}`, background: ativo ? 'rgba(79,70,229,0.07)' : undefined }}>
-            <t.icone size={20} strokeWidth={1.75} style={{ color: ativo ? T.accent : T.mute }} />
-            <p className="font-semibold text-[14.5px] mt-2.5" style={{ color: T.ink }}>{t.texto}</p>
-            <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>{t.sub}</p>
+          <button key={t.id} type="button" role="radio" aria-checked={ativo} onClick={e => escolher(t.id, e)}
+            className="relative rounded-xl p-4 text-left transition-colors hover:bg-slate-50"
+            style={{ border: `1.5px solid ${T.rule}` }}>
+            {ativo && (
+              <motion.span layoutId="tema-ativo" aria-hidden className="absolute -inset-[1.5px] rounded-xl pointer-events-none"
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                style={{ border: '1.5px solid #4F46E5', background: 'rgba(79,70,229,0.07)' }} />
+            )}
+            <motion.span className="relative inline-block" initial={false} animate={ativo ? { rotate: [0, -12, 0], scale: [1, 1.15, 1] } : { rotate: 0, scale: 1 }}
+              transition={{ duration: 0.45, ease }}>
+              <t.icone size={20} strokeWidth={1.75} style={{ color: ativo ? T.accent : T.mute }} />
+            </motion.span>
+            <p className="relative font-semibold text-[14.5px] mt-2.5" style={{ color: T.ink }}>{t.texto}</p>
+            <p className="relative text-[12.5px] mt-0.5" style={{ color: T.mute }}>{t.sub}</p>
           </button>
         );
       })}
