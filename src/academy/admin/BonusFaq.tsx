@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
-import { ArrowUpDown, ChevronDown, Download, GripVertical, Plus, Trash2, Upload } from 'lucide-react';
+import { Reorder, useDragControls } from 'framer-motion';
+import { ArrowUpDown, Download, GripVertical, Plus, Trash2, Upload } from 'lucide-react';
 import { T, display } from '../ui';
 import { supabase } from '../supabase';
 import { inputCls, useParteSalvavel } from './comum';
@@ -66,14 +66,93 @@ export function CartaoInstrutor({ cursoId }: { cursoId: string }) {
   );
 }
 
+
+/* Moldura dos cartões desta tela: título e explicação à esquerda, conteúdo à direita */
+function Moldura({ titulo, sub, acoes, children }: { titulo: string; sub: string; acoes?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+      <div>
+        <h3 className="font-bold text-[16.5px]" style={display}>{titulo}</h3>
+        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>{sub}</p>
+        {acoes && <div className="mt-4 flex flex-col items-start gap-2">{acoes}</div>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </section>
+  );
+}
+
+const botaoTexto = 'inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline underline-offset-4';
+const botaoIcone = 'w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[color:var(--a-soft)]';
+// Célula da tabela: parece texto, vira campo ao passar o mouse ou clicar
+const celula = 'w-full bg-transparent rounded-lg px-2.5 py-2 text-[14px] leading-snug outline-none transition-colors hover:bg-[color:var(--a-soft)] focus:bg-[color:var(--a-card)] focus:ring-2 focus:ring-indigo-500/30 placeholder:text-[color:var(--a-mute)] placeholder:opacity-60';
+
+/* ─── Bônus ──────────────────────────────────────────────────────── */
 type Bonus = { titulo: string; descricao: string };
+const bonusLimpo = (bonus: Bonus[]) => bonus.filter(b => b.titulo.trim()).map(b => ({ titulo: b.titulo.trim(), descricao: b.descricao.trim() }));
+
+/* Bônus: aparecem na página de vendas em "Bônus inclusos". A entrega é pelas aulas (ex.: módulo Bônus com o material anexado). */
+export function CartaoBonus({ cursoId }: { cursoId: string }) {
+  const [bonus, setBonus] = useState<Bonus[]>([]);
+  const [carregado, setCarregado] = useState(false);
+  const [semColuna, setSemColuna] = useState(false);
+  const [erro, setErro] = useState('');
+  const [salvo, setSalvo] = useState('');
+
+  useEffect(() => {
+    supabase.from('academy_courses').select('bonus').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
+      if (error) { setSemColuna(true); setCarregado(true); return; }
+      const b = ((data?.bonus ?? []) as Bonus[]).map(x => ({ titulo: x.titulo ?? '', descricao: x.descricao ?? '' }));
+      setBonus(b); setSalvo(JSON.stringify(bonusLimpo(b)));
+      setCarregado(true);
+    });
+  }, [cursoId]);
+
+  // Gravado pelo botão Salvar da página (devolve o erro ou null)
+  const dados = bonusLimpo(bonus);
+  const salvar = async (): Promise<string | null> => {
+    const { error } = await supabase.from('academy_courses').update({ bonus: dados }).eq('id', cursoId);
+    setErro(error ? 'Não foi possível salvar os bônus.' : '');
+    if (error) return 'Não foi possível salvar os bônus.';
+    setSalvo(JSON.stringify(dados));
+    return null;
+  };
+  useParteSalvavel('bonus', 'bônus', carregado && !semColuna && JSON.stringify(dados) !== salvo, salvar);
+  const muda = (i: number, campo: keyof Bonus, v: string) => setBonus(bonus.map((b, k) => (k === i ? { ...b, [campo]: v } : b)));
+
+  return (
+    <Moldura titulo="Bônus" sub='Aparecem na página de vendas em "Bônus inclusos". Para o aluno receber, anexe o material numa aula (por exemplo, num módulo chamado Bônus).'>
+      {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semColuna ? (
+        <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>019_bonus_faq.sql</strong> no Supabase para usar esta parte.</p>
+      ) : (
+        <div className="space-y-2">
+          {bonus.length === 0 && <p className="text-[13.5px]" style={{ color: T.mute }}>Nenhum bônus. Ex.: pacote de modelos prontos, planilha, grupo de alunos.</p>}
+          {bonus.map((b, i) => (
+            <div key={i} className="grid sm:grid-cols-[1fr_1.4fr_auto] gap-2">
+              <input className={inputCls} placeholder="Nome. Ex.: Pacote de modelos prontos" value={b.titulo} autoFocus={!b.titulo && i === bonus.length - 1}
+                onChange={e => muda(i, 'titulo', e.target.value)} />
+              <input className={inputCls} placeholder="Descrição curta (opcional)" value={b.descricao} onChange={e => muda(i, 'descricao', e.target.value)} />
+              <button onClick={() => setBonus(bonus.filter((_, k) => k !== i))} aria-label="Remover bônus" title="Remover bônus"
+                className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
+            </div>
+          ))}
+          <button onClick={() => setBonus([...bonus, { titulo: '', descricao: '' }])} className={`${botaoTexto} pt-1`} style={{ color: T.accent }}>
+            <Plus size={14} /> Adicionar bônus
+          </button>
+          {erro && <p className="text-[13px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
+        </div>
+      )}
+    </Moldura>
+  );
+}
+
+/* ─── Perguntas frequentes ───────────────────────────────────────── */
 type Pergunta = { pergunta: string; resposta: string };
 type PerguntaId = Pergunta & { id: number };
-type Campo = keyof Pergunta;
-type Pegando = { id: number; campo: Campo } | null;
 
 let proximoId = 1;
 const comId = (p: Pergunta): PerguntaId => ({ ...p, id: proximoId++ });
+const faqLimpo = (faq: Pergunta[]) =>
+  faq.filter(f => f.pergunta.trim() && f.resposta.trim()).map(f => ({ pergunta: f.pergunta.trim(), resposta: f.resposta.trim() }));
 
 /* ─── Planilha de perguntas ──────────────────────────────────────── */
 // Lê .xlsx (Excel) ou .csv e devolve as linhas como texto
@@ -134,146 +213,80 @@ function baixarModelo() {
   URL.revokeObjectURL(url);
 }
 
-const botaoIcone = 'w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[color:var(--a-soft)]';
 
-/* Uma pergunta da lista. Fechada mostra só a pergunta e o começo da resposta; clicando, abre para editar.
-   A alça à esquerda muda a ordem. Com ela aberta, o nome de cada campo (Pergunta/Resposta) pode ser
-   arrastado até outro campo, desta ou de outra pergunta aberta, e os dois textos trocam de lugar. */
-function ItemPergunta({ f, n, aberta, abrir, pegando, setPegando, soltar, muda, remover, inverter }: {
-  f: PerguntaId; n: number; aberta: boolean; abrir: () => void;
-  pegando: Pegando; setPegando: (p: Pegando) => void; soltar: (alvo: { id: number; campo: Campo }) => void;
-  muda: (campo: Campo, v: string) => void; remover: () => void; inverter: () => void;
+// Grade das linhas: alça | pergunta | resposta | ações (no celular a resposta desce para baixo da pergunta)
+const GRADE = 'grid grid-cols-[1.75rem_1fr_auto] sm:grid-cols-[1.75rem_1fr_1.3fr_auto] gap-x-2 items-start';
+// A resposta cresce com o texto (navegadores que não sabem fazer isso ficam com 2 linhas)
+const cresce = { fieldSizing: 'content', minHeight: '2.5rem' } as React.CSSProperties;
+
+/* Uma linha da tabela. A alça muda a ordem; a linha vazia do fim (nova) não tem alça nem ações:
+   é só começar a digitar nela que ela vira uma pergunta e aparece outra vazia embaixo. */
+function Linha({ f, nova, muda, remover, inverter }: {
+  f: PerguntaId; nova: boolean; muda: (campo: keyof Pergunta, v: string) => void; remover: () => void; inverter: () => void;
 }) {
   const alca = useDragControls();
-  const [sobre, setSobre] = useState<Campo | null>(null);
-  const incompleta = !f.pergunta.trim() || !f.resposta.trim();
-
-  const campo = (c: Campo) => {
-    const eu = pegando?.id === f.id && pegando.campo === c;
-    const alvo = !!pegando && !eu && sobre === c;
-    return (
-      <div onDragOver={e => { if (pegando && !eu) { e.preventDefault(); setSobre(c); } }}
-        onDragLeave={() => setSobre(null)}
-        onDrop={e => { e.preventDefault(); setSobre(null); soltar({ id: f.id, campo: c }); }}
-        className="group/campo rounded-[10px] transition-shadow" style={alvo ? { boxShadow: `0 0 0 2px ${T.accent}` } : undefined}>
-        <span draggable title="Arraste até outro campo para trocar os textos"
-          onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', c); setPegando({ id: f.id, campo: c }); }}
-          onDragEnd={() => setPegando(null)}
-          className="inline-flex items-center gap-1 mb-1 text-[12px] font-medium cursor-grab active:cursor-grabbing select-none" style={{ color: eu ? T.accent : T.mute }}>
-          <GripVertical size={12} className="opacity-40 group-hover/campo:opacity-100 transition-opacity" /> {c === 'pergunta' ? 'Pergunta' : 'Resposta'}
-        </span>
-        {c === 'pergunta'
-          ? <input className={inputCls} placeholder="Ex.: Preciso saber programar?" value={f.pergunta} onChange={e => muda('pergunta', e.target.value)} autoFocus={!f.pergunta} />
-          : <textarea className="acad-field w-full rounded-[10px] px-3.5 py-2.5 text-[14.5px] leading-relaxed" rows={3} placeholder="Resposta"
-              value={f.resposta} onChange={e => muda('resposta', e.target.value)} />}
-      </div>
-    );
-  };
-
   return (
-    <Reorder.Item value={f} dragListener={false} dragControls={alca} className="group relative" style={{ background: T.card }}>
-      <div className="flex items-center gap-1 pl-1.5 pr-2 py-1.5">
-        <button onPointerDown={e => alca.start(e)} aria-label="Arrastar para mudar a ordem" title="Arraste para mudar a ordem"
-          className="w-7 h-9 shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none opacity-50 group-hover:opacity-100 transition-opacity" style={{ color: T.mute }}>
-          <GripVertical size={16} />
-        </button>
-        <button onClick={abrir} aria-expanded={aberta} className="flex-1 min-w-0 flex items-center gap-3 text-left py-1.5">
-          <span className="text-[12.5px] w-5 shrink-0 tabular-nums" style={{ color: T.mute }}>{n}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-medium truncate" style={{ color: f.pergunta.trim() ? T.ink : T.mute }}>
-              {f.pergunta.trim() || 'Nova pergunta'}
-            </span>
-            {!aberta && (
-              <span className="block text-[12.5px] truncate mt-0.5" style={{ color: incompleta ? 'var(--a-amber)' : T.mute }}>
-                {incompleta ? 'Falta preencher a pergunta ou a resposta' : f.resposta}
-              </span>
-            )}
-          </span>
-          <ChevronDown size={16} className={`shrink-0 transition-transform ${aberta ? 'rotate-180' : ''}`} style={{ color: T.mute }} />
-        </button>
-        <button onClick={inverter} aria-label="Trocar pergunta e resposta" title="Trocar pergunta e resposta" className={botaoIcone} style={{ color: T.mute }}>
-          <ArrowUpDown size={15} />
-        </button>
-        <button onClick={remover} aria-label="Remover pergunta" title="Remover pergunta" className={`${botaoIcone} hover:!bg-red-50`} style={{ color: 'var(--a-red)' }}>
-          <Trash2 size={15} />
-        </button>
-      </div>
-      <AnimatePresence initial={false}>
-        {aberta && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }} className="overflow-hidden">
-            <div className="pl-[3.75rem] pr-4 pb-4 pt-1 space-y-3">
-              {campo('pergunta')}
-              {campo('resposta')}
-            </div>
-          </motion.div>
+    <Reorder.Item value={f} dragListener={false} dragControls={alca} className={`${GRADE} py-1.5 px-1.5`} style={{ background: T.card }}>
+      <div className="row-span-2 sm:row-span-1 h-10 flex items-center justify-center">
+        {!nova && (
+          <button onPointerDown={e => alca.start(e)} aria-label="Arrastar para mudar a ordem" title="Arraste para mudar a ordem"
+            className="w-7 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none opacity-40 hover:opacity-100 transition-opacity" style={{ color: T.mute }}>
+            <GripVertical size={16} />
+          </button>
         )}
-      </AnimatePresence>
+      </div>
+      <input className={`${celula} font-medium`} style={{ color: T.ink }} value={f.pergunta} aria-label="Pergunta"
+        placeholder={nova ? 'Escreva uma nova pergunta…' : 'Pergunta'} onChange={e => muda('pergunta', e.target.value)} />
+      <textarea rows={2} className={`${celula} resize-none col-start-2 row-start-2 sm:col-start-3 sm:row-start-1`} style={{ ...cresce, color: T.ink }}
+        value={f.resposta} aria-label="Resposta" placeholder={nova ? 'e a resposta' : 'Resposta'} onChange={e => muda('resposta', e.target.value)} />
+      <div className="col-start-3 row-start-1 sm:col-start-4 flex h-10 items-center">
+        {!nova && <>
+          <button onClick={inverter} aria-label="Trocar pergunta e resposta" title="Trocar pergunta e resposta" className={botaoIcone} style={{ color: T.mute }}><ArrowUpDown size={15} /></button>
+          <button onClick={remover} aria-label="Remover pergunta" title="Remover pergunta" className={`${botaoIcone} hover:!bg-red-50`} style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
+        </>}
+        {nova && <span className="w-16" />}
+      </div>
     </Reorder.Item>
   );
 }
 
-// O que vai para o banco: sem linhas vazias (pergunta só entra com pergunta e resposta)
-const limpo = (bonus: Bonus[], faq: Pergunta[]) => ({
-  bonus: bonus.filter(b => b.titulo.trim()).map(b => ({ titulo: b.titulo.trim(), descricao: b.descricao.trim() })),
-  faq: faq.filter(f => f.pergunta.trim() && f.resposta.trim()).map(f => ({ pergunta: f.pergunta.trim(), resposta: f.resposta.trim() })),
-});
-
-const botaoTexto = 'inline-flex items-center gap-1 text-[13px] font-medium hover:underline underline-offset-4';
-
-/* Bônus e perguntas frequentes do curso (aparecem na página de vendas pública) */
-export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
-  const [bonus, setBonus] = useState<Bonus[]>([]);
+/* Perguntas frequentes do curso (aparecem na página de vendas, antes das perguntas gerais) */
+export function CartaoPerguntas({ cursoId }: { cursoId: string }) {
   const [faq, setFaq] = useState<PerguntaId[]>([]);
-  const [pegando, setPegando] = useState<Pegando>(null);
-  const [aberta, setAberta] = useState<number | null>(null);
-  const arquivo = useRef<HTMLInputElement>(null);
-  const [salvo, setSalvo] = useState(''); // o que está gravado no banco (para saber se mudou)
+  const [nova, setNova] = useState<PerguntaId>(() => comId({ pergunta: '', resposta: '' }));
   const [carregado, setCarregado] = useState(false);
   const [semColuna, setSemColuna] = useState(false);
-  const [msg, setMsg] = useState({ erro: '', ok: '' }); // erro ao salvar/importar e o recado da importação
+  const [msg, setMsg] = useState({ erro: '', ok: '' });
+  const [salvo, setSalvo] = useState('');
+  const arquivo = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.from('academy_courses').select('bonus, faq').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
+    supabase.from('academy_courses').select('faq').eq('id', cursoId).maybeSingle().then(({ data, error }) => {
       if (error) { setSemColuna(true); setCarregado(true); return; }
-      const b = ((data?.bonus ?? []) as Bonus[]).map(x => ({ titulo: x.titulo ?? '', descricao: x.descricao ?? '' }));
       const f = ((data?.faq ?? []) as Pergunta[]).map(x => comId({ pergunta: x.pergunta ?? '', resposta: x.resposta ?? '' }));
-      setSalvo(JSON.stringify(limpo(b, f)));
-      setBonus(b); setFaq(f);
+      setFaq(f); setSalvo(JSON.stringify(faqLimpo(f)));
       setCarregado(true);
     });
   }, [cursoId]);
 
-  // Gravado pelo botão Salvar da página (devolve o erro ou null). Pergunta sem resposta não é publicada.
-  const dados = limpo(bonus, faq);
+  // Gravado pelo botão Salvar da página (devolve o erro ou null). Só entra pergunta com resposta.
+  const dados = faqLimpo(faq);
   const salvar = async (): Promise<string | null> => {
-    const { error } = await supabase.from('academy_courses').update(dados).eq('id', cursoId);
-    if (error) { setMsg({ erro: 'Não foi possível salvar os bônus e as perguntas.', ok: '' }); return 'Não foi possível salvar os bônus e as perguntas.'; }
+    const { error } = await supabase.from('academy_courses').update({ faq: dados }).eq('id', cursoId);
+    if (error) { setMsg({ erro: 'Não foi possível salvar as perguntas.', ok: '' }); return 'Não foi possível salvar as perguntas.'; }
     setSalvo(JSON.stringify(dados));
     setMsg({ erro: '', ok: '' });
     return null;
   };
-  useParteSalvavel('bonus-faq', 'bônus e perguntas', carregado && !semColuna && JSON.stringify(dados) !== salvo, salvar);
+  useParteSalvavel('faq', 'perguntas', carregado && !semColuna && JSON.stringify(dados) !== salvo, salvar);
 
-  const muda = <X,>(lista: X[], set: (l: X[]) => void, i: number, campo: keyof X, v: string) =>
-    set(lista.map((x, k) => (k === i ? { ...x, [campo]: v } : x)));
-
-  // Soltou um campo em outro: os dois textos trocam de lugar
-  const soltar = (alvo: { id: number; campo: Campo }) => {
-    const de = pegando;
-    setPegando(null);
-    if (!de || (de.id === alvo.id && de.campo === alvo.campo)) return;
-    const origem = faq.find(f => f.id === de.id)?.[de.campo] ?? '';
-    const destino = faq.find(f => f.id === alvo.id)?.[alvo.campo] ?? '';
-    setFaq(faq.map(f => {
-      let n = f;
-      if (f.id === de.id) n = { ...n, [de.campo]: destino };
-      if (f.id === alvo.id) n = { ...n, [alvo.campo]: origem };
-      return n;
-    }));
+  const muda = (id: number, campo: keyof Pergunta, v: string) => {
+    // Digitou na linha vazia do fim: ela vira pergunta (mesmo id, o cursor continua no campo) e surge outra vazia
+    if (id === nova.id) { setFaq([...faq, { ...nova, [campo]: v }]); setNova(comId({ pergunta: '', resposta: '' })); return; }
+    setFaq(faq.map(f => (f.id === id ? { ...f, [campo]: v } : f)));
   };
 
-  // Planilha: as perguntas entram no fim da lista (as vazias saem); só grava ao clicar em Salvar
+  // Planilha: as perguntas entram no fim da lista; só grava ao clicar em Salvar
   const importar = async (arq: File | undefined) => {
     if (!arq) return;
     setMsg({ erro: '', ok: '' });
@@ -289,85 +302,43 @@ export function CartaoBonusFaq({ cursoId }: { cursoId: string }) {
     }
   };
 
+  const incompletas = faq.filter(f => (f.pergunta.trim() || f.resposta.trim()) && !(f.pergunta.trim() && f.resposta.trim())).length;
+
   return (
-    <section className="rounded-2xl p-6 md:p-7 grid md:grid-cols-[14rem_1fr] gap-5 md:gap-8" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <div>
-        <h3 className="font-bold text-[16.5px]" style={display}>Bônus e perguntas</h3>
-        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: T.mute }}>Aparecem na página de vendas do curso. As perguntas gerais (acesso, garantia, pagamento) já aparecem sozinhas.</p>
-      </div>
+    <Moldura titulo="Perguntas frequentes" sub="Aparecem na página de vendas, antes das perguntas gerais (acesso, garantia, pagamento), que já aparecem sozinhas."
+      acoes={carregado && !semColuna && <>
+        <button onClick={() => arquivo.current?.click()} className={botaoTexto} style={{ color: T.accent }}><Upload size={14} /> Importar planilha</button>
+        <button onClick={baixarModelo} className={botaoTexto} style={{ color: T.mute }}><Download size={14} /> Baixar modelo da planilha</button>
+        <input ref={arquivo} type="file" accept=".xlsx,.csv" className="hidden" onChange={e => importar(e.target.files?.[0])} />
+      </>}>
       {!carregado ? <p className="text-[14px]" style={{ color: T.mute }}>Carregando…</p> : semColuna ? (
         <p className="text-[14px]" style={{ color: 'var(--a-red)' }}>Rode o <strong>019_bonus_faq.sql</strong> no Supabase para usar esta parte.</p>
       ) : (
-        <div className="space-y-8">
-          {/* Bônus: título e descrição numa linha */}
-          <div>
-            <div className="flex items-baseline justify-between gap-3 mb-2">
-              <p className="text-[13px] font-semibold" style={{ color: T.ink2 }}>
-                Bônus {bonus.length > 0 && <span className="font-normal" style={{ color: T.mute }}>· {bonus.length}</span>}
-              </p>
-              <button onClick={() => setBonus([...bonus, { titulo: '', descricao: '' }])} className={botaoTexto} style={{ color: T.accent }}>
-                <Plus size={14} /> Adicionar bônus
-              </button>
+        <div>
+          <div className="rounded-xl border border-[color:var(--a-rule)] overflow-hidden">
+            <div className={`${GRADE} hidden sm:grid px-1.5 py-2 text-[12px] font-semibold uppercase tracking-wide border-b border-[color:var(--a-rule)]`}
+              style={{ color: T.mute, background: 'var(--a-soft2)' }}>
+              <span />
+              <span className="px-2.5">Pergunta</span>
+              <span className="px-2.5">Resposta</span>
+              <span className="w-16" />
             </div>
-            {bonus.length === 0 ? (
-              <p className="text-[13px]" style={{ color: T.mute }}>Nenhum bônus. Ex.: pacote de modelos prontos, grupo de alunos, planilha.</p>
-            ) : (
-              <div className="space-y-2">
-                {bonus.map((b, i) => (
-                  <div key={i} className="grid sm:grid-cols-[1fr_1.4fr_auto] gap-2">
-                    <input className={inputCls} placeholder="Ex.: Pacote de modelos prontos" value={b.titulo} autoFocus={!b.titulo && i === bonus.length - 1}
-                      onChange={e => muda(bonus, setBonus, i, 'titulo', e.target.value)} />
-                    <input className={inputCls} placeholder="Descrição curta (opcional)" value={b.descricao} onChange={e => muda(bonus, setBonus, i, 'descricao', e.target.value)} />
-                    <button onClick={() => setBonus(bonus.filter((_, k) => k !== i))} aria-label="Remover bônus" title="Remover bônus"
-                      className="w-11 h-11 rounded-[10px] flex items-center justify-center hover:bg-red-50" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Reorder.Group axis="y" values={[...faq, nova]} onReorder={l => setFaq(l.filter(x => x.id !== nova.id))}
+              className="divide-y divide-[color:var(--a-rule)]">
+              {[...faq, nova].map(f => (
+                <Linha key={f.id} f={f} nova={f.id === nova.id} muda={(c, v) => muda(f.id, c, v)}
+                  remover={() => setFaq(faq.filter(x => x.id !== f.id))}
+                  inverter={() => setFaq(faq.map(x => (x.id === f.id ? { ...x, pergunta: x.resposta, resposta: x.pergunta } : x)))} />
+              ))}
+            </Reorder.Group>
           </div>
-
-          {/* Perguntas: lista que abre ao clicar */}
-          <div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-2">
-              <p className="text-[13px] font-semibold" style={{ color: T.ink2 }}>
-                Perguntas frequentes {faq.length > 0 && <span className="font-normal" style={{ color: T.mute }}>· {faq.length}</span>}
-              </p>
-              <div className="flex items-center gap-4">
-                <button onClick={baixarModelo} className={botaoTexto} style={{ color: T.mute }}><Download size={14} /> Modelo</button>
-                <button onClick={() => arquivo.current?.click()} className={botaoTexto} style={{ color: T.mute }}><Upload size={14} /> Importar planilha</button>
-                <button onClick={() => { const nova = comId({ pergunta: '', resposta: '' }); setFaq([...faq, nova]); setAberta(nova.id); }}
-                  className={botaoTexto} style={{ color: T.accent }}><Plus size={14} /> Adicionar</button>
-                <input ref={arquivo} type="file" accept=".xlsx,.csv" className="hidden" onChange={e => importar(e.target.files?.[0])} />
-              </div>
-            </div>
-
-            {faq.length === 0 ? (
-              <p className="text-[13px]" style={{ color: T.mute }}>
-                Nenhuma pergunta. Adicione uma por uma ou importe uma planilha com as colunas Pergunta e Resposta.
-              </p>
-            ) : (
-              <>
-                <Reorder.Group axis="y" values={faq} onReorder={setFaq}
-                  className="rounded-xl overflow-hidden divide-y divide-[color:var(--a-rule)] border border-[color:var(--a-rule)]">
-                  {faq.map((f, i) => (
-                    <ItemPergunta key={f.id} f={f} n={i + 1} aberta={aberta === f.id} abrir={() => setAberta(aberta === f.id ? null : f.id)}
-                      pegando={pegando} setPegando={setPegando} soltar={soltar}
-                      muda={(c, v) => muda(faq, setFaq, i, c, v)} remover={() => setFaq(faq.filter(x => x.id !== f.id))}
-                      inverter={() => setFaq(faq.map(x => (x.id === f.id ? { ...x, pergunta: x.resposta, resposta: x.pergunta } : x)))} />
-                  ))}
-                </Reorder.Group>
-                {faq.length > 1 && (
-                  <p className="text-[12px] mt-2" style={{ color: T.mute }}>
-                    Arraste pela alça ⋮⋮ para mudar a ordem. Com a pergunta aberta, arraste o nome do campo até outro campo para trocar os textos.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
-          {(msg.erro || msg.ok) && <p className="text-[13px]" style={{ color: msg.erro ? 'var(--a-red)' : 'var(--a-amber)' }}>{msg.erro || msg.ok}</p>}
+          <p className="text-[12px] mt-2" style={{ color: msg.erro ? 'var(--a-red)' : msg.ok || incompletas ? 'var(--a-amber)' : T.mute }}>
+            {msg.erro || msg.ok || (incompletas
+              ? `${incompletas} pergunta${incompletas > 1 ? 's' : ''} sem pergunta ou sem resposta não ${incompletas > 1 ? 'aparecem' : 'aparece'} na página até ser completada.`
+              : 'Clique no texto para editar. Arraste pela alça ⋮⋮ para mudar a ordem; ⇅ troca pergunta e resposta.')}
+          </p>
         </div>
       )}
-    </section>
+    </Moldura>
   );
 }

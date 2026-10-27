@@ -11,7 +11,7 @@ import { Link, navegar, parametro } from '../router';
 import { supabase } from '../supabase';
 import AbaAlunos from './AbaAlunos';
 import { CartaoVenda } from './Vendas';
-import { CartaoBonusFaq, CartaoInstrutor } from './BonusFaq';
+import { CartaoBonus, CartaoInstrutor, CartaoPerguntas } from './BonusFaq';
 import { SoAdmin, AdminLayout, gerarSlug, inputCls, Rotulo, Chave, botaoPrimario, botaoSecundario, CAPA_PADRAO, SalvarTudo, type ParteSalvavel } from './comum';
 
 /* ─── Tipos ─────────────────────────────────────────────────────── */
@@ -492,7 +492,8 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
       </Cartao>
 
       <CartaoInstrutor cursoId={curso.id} />
-      <CartaoBonusFaq cursoId={curso.id} />
+      <CartaoBonus cursoId={curso.id} />
+      <CartaoPerguntas cursoId={curso.id} />
 
       <Cartao titulo="Módulos" sub="As partes do curso. As aulas de cada módulo você organiza na aba Aulas.">
         <ul className="space-y-2" style={{ opacity: ocupado ? 0.6 : 1 }}>
