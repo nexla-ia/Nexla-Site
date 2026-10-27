@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, ChevronDown, Clock, Gift, Lock, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { Check, ChevronDown, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
-import { AppLayout, BarraProgresso, Carregando, TituloPagina } from './AppLayout';
+import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { Link } from './router';
 import { useCursosAluno, type CursoAluno, type CursoVitrine } from './dados';
 import { reais } from './Compra';
@@ -13,106 +13,55 @@ const SEM_FOTO = {
   backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(135deg, ${T.dark}, #1E1B4B 60%, ${T.accent})`,
   backgroundSize: '24px 24px, 24px 24px, cover',
 };
-const VIDRO = { background: 'rgba(15,23,42,0.55)', color: '#FFFFFF', backdropFilter: 'blur(6px)' };
-
-/* Capa do card: a foto aproxima um pouco ao passar o mouse no card */
-function Capa({ url, children }: { url: string | null; children: React.ReactNode }) {
+/* Capa do card (16:9): a foto aproxima um pouco ao passar o mouse. Embaixo pode ir uma barra fina de progresso. */
+function Capa({ url, progresso }: { url: string | null; progresso?: number }) {
   return (
-    <div className="relative h-28 overflow-hidden">
-      <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+    <div className="relative aspect-video rounded-xl overflow-hidden" style={{ border: `1px solid ${T.rule}` }}>
+      <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         style={url ? { backgroundImage: `url("${url}")` } : SEM_FOTO} />
       {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 object-contain opacity-80" />}
-      {children}
+      {progresso !== undefined && (
+        <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: 'rgba(15,23,42,0.35)' }}>
+          <div className="h-full" style={{ width: `${progresso}%`, background: progresso >= 100 ? '#22C55E' : '#6366F1' }} />
+        </div>
+      )}
     </div>
   );
 }
 
-const cardCls = 'group rounded-xl overflow-hidden flex flex-col shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-22px_rgba(79,70,229,0.45)]';
+/* Card minimalista: capa, título e uma linha de informação (o card inteiro é o link) */
+const cardCls = 'group flex flex-col rounded-xl focus-visible:outline-offset-4';
+const titulo = 'font-semibold text-[15px] leading-snug line-clamp-2 mt-3 transition-colors group-hover:text-[var(--a-accent)]';
 
-/* Selo redondo no canto da foto: cadeado (não comprou) ou check (já é seu) */
-const selo = 'absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center';
-
-/* Categoria e título: igual nos dois cards */
-function Cabecalho({ c }: { c: CursoVitrine | CursoAluno }) {
-  return (
-    <>
-      {c.categoria && <p className="text-[12px] font-semibold mb-1 truncate" style={{ color: T.accent }}>{c.categoria}</p>}
-      <h3 className="font-bold text-[15.5px] leading-snug line-clamp-2" style={display}>{c.titulo}</h3>
-    </>
-  );
-}
-
-/* Card de um curso que o aluno ainda não tem (cadeado: só a aula de amostra está liberada) */
+/* Curso que o aluno ainda não tem: preço (ou Grátis / Em breve) */
 export function CardVitrine({ c }: { c: CursoVitrine }) {
   const gratis = c.preco?.valor === 0;
   return (
-    <Link para={`/curso/${c.slug}`} className={cardCls} style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <Capa url={c.capa}>
-        {!c.preco && (
-          <span className="absolute top-2.5 left-3 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: '#4F46E5', color: '#FFFFFF' }}>
-            <Clock size={12} strokeWidth={2} /> Em breve
-          </span>
-        )}
-        {gratis ? (
-          <span className="absolute top-2.5 left-3 inline-flex items-center gap-1 text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: '#16A34A', color: '#FFFFFF' }}>
-            <Gift size={12} strokeWidth={2} /> Grátis
-          </span>
-        ) : (
-          <span className={selo} title="Curso bloqueado" style={VIDRO}>
-            <Lock size={14} strokeWidth={2} aria-label="Curso bloqueado" />
-          </span>
-        )}
-      </Capa>
-      <div className="p-4 flex-1 flex flex-col">
-        <Cabecalho c={c} />
-        <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>{c.totalAulas} aulas · {c.horas}h de conteúdo</p>
-        <div className="mt-auto pt-4">
-          <div className="pt-3 flex items-center justify-between gap-3" style={{ borderTop: `1px solid ${T.rule}` }}>
-            {gratis ? (
-              <p className="font-bold text-[16px] whitespace-nowrap" style={{ ...display, color: 'var(--a-green)' }}>Grátis</p>
-            ) : c.preco ? (
-              <p className="leading-tight whitespace-nowrap">
-                {c.preco.de != null && <span className="text-[12px] line-through mr-1.5" style={{ color: T.mute }}>{reais(c.preco.de)}</span>}
-                <span className="font-bold text-[16px]" style={display}>{reais(c.preco.valor)}</span>
-              </p>
-            ) : <p className="font-semibold text-[14px] whitespace-nowrap" style={{ color: T.mute }}>Em breve</p>}
-            <span className="inline-flex items-center gap-1 text-[13.5px] font-semibold whitespace-nowrap" style={{ color: T.accent }}>
-              Ver curso <ArrowRight size={14} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </div>
-        </div>
-      </div>
+    <Link para={`/curso/${c.slug}`} className={cardCls}>
+      <Capa url={c.capa} />
+      <h3 className={titulo} style={{ color: T.ink }}>{c.titulo}</h3>
+      <p className="text-[13px] mt-1" style={{ color: T.mute }}>{c.totalAulas} {c.totalAulas === 1 ? 'aula' : 'aulas'} · {c.horas}h</p>
+      <p className="mt-1.5 text-[14px] whitespace-nowrap">
+        {gratis ? <span className="font-semibold" style={{ color: 'var(--a-green)' }}>Grátis</span>
+          : c.preco ? (
+            <>
+              <span className="font-semibold" style={{ color: T.ink }}>{reais(c.preco.valor)}</span>
+              {c.preco.de != null && <span className="text-[12.5px] line-through ml-1.5" style={{ color: T.mute }}>{reais(c.preco.de)}</span>}
+            </>
+          ) : <span style={{ color: T.mute }}>Em breve</span>}
+      </p>
     </Link>
   );
 }
 
-/* Card de um curso que o aluno já tem (na vitrine, para ele saber que já é dele) */
+/* Curso que o aluno já tem: barra fina de progresso na capa */
 function CardMeu({ c }: { c: CursoAluno }) {
+  const status = c.percentual >= 100 ? 'Concluído' : c.feitas.size ? `${c.percentual}% concluído` : 'Não iniciado';
   return (
-    <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className={cardCls} style={{ background: T.card, border: `1px solid ${T.rule}` }}>
-      <Capa url={c.capa}>
-        <span className={selo} title="Você já tem este curso" style={{ background: '#16A34A', color: '#FFFFFF' }}>
-          <Check size={15} strokeWidth={2.5} aria-label="Você já tem este curso" />
-        </span>
-      </Capa>
-      <div className="p-4 flex-1 flex flex-col">
-        <Cabecalho c={c} />
-        <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>Você já tem · {c.aulas.length} aulas</p>
-        <div className="mt-auto pt-4">
-          <div className="pt-3" style={{ borderTop: `1px solid ${T.rule}` }}>
-            <div className="flex items-center gap-2.5">
-              <div className="flex-1"><BarraProgresso valor={c.percentual} /></div>
-              <span className="text-[12.5px] font-semibold" style={{ color: c.percentual >= 100 ? 'var(--a-green)' : T.ink }}>{c.percentual}%</span>
-            </div>
-            <p className="inline-flex items-center gap-1 mt-2.5 text-[13.5px] font-semibold" style={{ color: T.accent }}>
-              {c.percentual >= 100 ? 'Rever curso' : c.feitas.size ? 'Continuar' : 'Começar'}
-              <ArrowRight size={14} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
-            </p>
-          </div>
-        </div>
-      </div>
+    <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className={cardCls}>
+      <Capa url={c.capa} progresso={c.percentual} />
+      <h3 className={titulo} style={{ color: T.ink }}>{c.titulo}</h3>
+      <p className="text-[13px] mt-1" style={{ color: T.mute }}>{c.aulas.length} {c.aulas.length === 1 ? 'aula' : 'aulas'} · {status}</p>
     </Link>
   );
 }
@@ -132,7 +81,7 @@ function porCategoria(itens: Item[]) {
 }
 
 /* Grade dos cards (a mesma no Explorar, no painel e nos resultados da busca) */
-export const GRADE_CURSOS = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4';
+export const GRADE_CURSOS = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-8';
 
 /* Grade de cursos separada por categoria (usada no Explorar e no painel de quem ainda não tem cursos) */
 export function GradeCategorias({ outros, cursos = [] }: { outros: CursoVitrine[]; cursos?: CursoAluno[] }) {
