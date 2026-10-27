@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from 'react';
+import { StrictMode, Suspense, lazy, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import Login from './Login';
 import CriarConta from './CriarConta';
@@ -9,13 +9,14 @@ import Certificados from './Certificados';
 import Perfil from './Perfil';
 import Explorar from './Explorar';
 import { Comprar, RetornoCompra } from './Compra';
-import AdminCursos from './admin/AdminCursos';
-import AdminCurso from './admin/AdminCurso';
-import VisaoGeral from './admin/VisaoGeral';
-import AdminComunidade from './admin/AdminComunidade';
-import AdminVendas from './admin/Vendas';
-import AdminMetricas from './admin/Metricas';
-import AdminLeads from './admin/Leads';
+// Área admin em arquivos separados: o aluno não baixa esse código
+const AdminCursos = lazy(() => import('./admin/AdminCursos'));
+const AdminCurso = lazy(() => import('./admin/AdminCurso'));
+const VisaoGeral = lazy(() => import('./admin/VisaoGeral'));
+const AdminComunidade = lazy(() => import('./admin/AdminComunidade'));
+const AdminVendas = lazy(() => import('./admin/Vendas'));
+const AdminMetricas = lazy(() => import('./admin/Metricas'));
+const AdminLeads = lazy(() => import('./admin/Leads'));
 import { Carregando } from './AppLayout';
 import { useRota, navegar, parametro } from './router';
 import { useSessao, useEhAdmin, useSessaoUnica, supabaseConfigurado, marcarNovoLogin } from './supabase';
@@ -78,6 +79,8 @@ function Academy() {
     if (!sessao && !telaAcesso && !publica && !novaSenha) navegar(`/?voltar=${encodeURIComponent(rota)}`, { substituir: true });
     // Admin só usa a área admin (e as páginas de curso, pelo "Ver como aluno")
     if (sessao && admin && !telaAcesso && !publica && !novaSenha && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) navegar('/admin', { substituir: true });
+    // Aluno não tem área admin (os dados já seriam bloqueados pelo banco; aqui só não mostra a tela vazia)
+    if (sessao && admin === false && rota.startsWith('/admin')) navegar('/painel', { substituir: true });
   }, [sessao, telaAcesso, publica, novaSenha, admin, rota]);
 
   // Funil: registra a visita de cada página (menos de quem é admin e da área admin)
@@ -105,15 +108,19 @@ function Academy() {
   }
   if (telaAcesso || admin === undefined) return <Carregando />;
   if (admin && !rota.startsWith('/admin') && !rota.startsWith('/curso/')) return <Carregando />;
+  if (!admin && rota.startsWith('/admin')) return <Carregando />;
   if (pendente === undefined) return <Carregando />;
   if (pendente) return <CompletarCadastro sessao={sessao} aoConcluir={cadastroCompleto} />;
-  if (rota === '/admin') return <VisaoGeral sessao={sessao} />;
-  if (rota === '/admin/cursos') return <AdminCursos sessao={sessao} />;
-  if (rota === '/admin/vendas') return <AdminVendas sessao={sessao} />;
-  if (rota === '/admin/metricas') return <AdminMetricas sessao={sessao} />;
-  if (rota === '/admin/leads') return <AdminLeads sessao={sessao} />;
-  if (rota === '/admin/comunidade') return <AdminComunidade sessao={sessao} />;
-  if (adminCurso) return <AdminCurso key={adminCurso} sessao={sessao} id={adminCurso} />;
+  const telaAdmin =
+    rota === '/admin' ? <VisaoGeral sessao={sessao} />
+    : rota === '/admin/cursos' ? <AdminCursos sessao={sessao} />
+    : rota === '/admin/vendas' ? <AdminVendas sessao={sessao} />
+    : rota === '/admin/metricas' ? <AdminMetricas sessao={sessao} />
+    : rota === '/admin/leads' ? <AdminLeads sessao={sessao} />
+    : rota === '/admin/comunidade' ? <AdminComunidade sessao={sessao} />
+    : adminCurso ? <AdminCurso key={adminCurso} sessao={sessao} id={adminCurso} />
+    : null;
+  if (telaAdmin) return <Suspense fallback={<Carregando />}>{telaAdmin}</Suspense>;
   if (comprar) return <Comprar key={comprar} sessao={sessao} slug={comprar} />;
   if (retornoCompra) return <RetornoCompra key={retornoCompra} sessao={sessao} id={retornoCompra} />;
   if (rota === '/cursos') return <Explorar sessao={sessao} />;

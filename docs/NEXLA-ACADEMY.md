@@ -95,6 +95,7 @@ Todos foram rodados no SQL Editor, na ordem dos números, e podem ser rodados de
 | `025_meta_pixel.sql` | Dados do Pixel no pedido, para a API de Conversões |
 | `027_excluir_conta.sql` | Pedidos continuam guardados (anônimos) quando a conta é excluída |
 | `028_contas_lancamento.sql` | **Já rodado (27/10).** Deixou `adm.nexla@gmail.com` como admin e apagou as contas de teste. Manteve `adm@nexla.com.br`, que é admin do outro sistema. Não rodar de novo |
+| `029_seguranca_revisao.sql` | **Falta rodar.** Aula só conta como concluída depois de assistir 70% da duração cadastrada (por isso os minutos de cada aula no admin precisam estar certos). O aluno não muda mais o e-mail nem a data de cadastro do perfil. Amostra e aula grátis só valem em curso publicado |
 
 ## Configurações feitas fora do código
 

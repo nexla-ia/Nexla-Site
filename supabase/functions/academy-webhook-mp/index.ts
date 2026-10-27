@@ -36,6 +36,7 @@ async function sha256(texto: string) {
    usa no evento Purchase, então o Meta junta os dois e não conta a venda duas vezes.
    Nunca derruba o webhook: qualquer erro só vai para o log. */
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function compraNoMeta(admin: any, pedido: any, valor: number) {
   const token = Deno.env.get('META_CAPI_TOKEN');
   if (!token || !(valor > 0)) return;

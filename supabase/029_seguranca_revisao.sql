@@ -5,7 +5,8 @@
 -- 1) Perfil: o aluno só altera nome, WhatsApp, consentimento de marketing e a origem (UTM).
 --    Antes dava para trocar o e-mail do perfil (usado nos e-mails do n8n e nos leads) e a data de cadastro.
 -- 2) Aula concluída só depois de assistir: o banco soma o tempo assistido a partir das posições que o
---    player grava (no máximo 2,1× o tempo real, para quem assiste acelerado) e só aceita "concluída"
+--    player grava (no máximo 2,1× o tempo real, para quem assiste acelerado, e 2 min por gravação —
+--    assim não adianta abrir a aula, voltar no dia seguinte e pular para o fim) e só aceita "concluída"
 --    com pelo menos 70% da duração cadastrada da aula. Aula sem vídeo ou sem duração não é conferida.
 --    Antes dava para marcar todas as aulas na hora e tirar o certificado sem assistir.
 -- 3) Amostra e aula gratuita só valem em curso publicado (rascunho fica fechado; quem comprou continua vendo).
@@ -33,12 +34,16 @@ begin
     v_avanco := new.posicao_seg - old.posicao_seg;
     if v_avanco > 0 then
       new.assistido_seg := old.assistido_seg
-        + least(v_avanco, ceil(extract(epoch from (now() - old.atualizado_em)) * 2.1)::int);
+        + least(v_avanco, ceil(extract(epoch from (now() - old.atualizado_em)) * 2.1)::int, 120);
     end if;
   end if;
 
-  -- Marcar como concluída exige ter assistido
-  if new.concluida and (tg_op = 'INSERT' or not old.concluida) and not public.academy_eh_admin() then
+  -- Marcar como concluída exige ter assistido.
+  -- O site marca com "upsert": num INSERT de uma linha que já existe, quem confere é o UPDATE logo em seguida
+  -- (aqui o tempo assistido ainda estaria zerado).
+  if new.concluida and (tg_op = 'INSERT' or not old.concluida) and not public.academy_eh_admin()
+     and not (tg_op = 'INSERT' and exists (
+       select 1 from academy_lesson_progress p where p.user_id = new.user_id and p.lesson_id = new.lesson_id)) then
     select duracao_seg, nullif(btrim(video_id), '') into v_dur, v_video from academy_lessons where id = new.lesson_id;
     if v_video is not null and coalesce(v_dur, 0) > 0 and new.assistido_seg < v_dur * 0.7 then
       raise exception 'assista_aula';
