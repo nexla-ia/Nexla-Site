@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, ImageIcon, Layers, ListVideo, Paperclip, Pencil, Plus,
@@ -97,6 +97,59 @@ function NovoCurso() {
   );
 }
 
+/* Duração real do vídeo no Bunny: abre o player escondido e pergunta a duração (protocolo player.js).
+   É essa duração que o banco usa para exigir que o aluno assista 70% antes de concluir a aula. */
+function useDuracaoVideo(aulaId: string, videoId: string) {
+  const [estado, setEstado] = useState<{ seg: number | null; lendo: boolean }>({ seg: null, lendo: false });
+  const [url, setUrl] = useState('');
+  const iframe = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const id = videoId.trim();
+    setUrl(''); setEstado({ seg: null, lendo: false });
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+    let vivo = true;
+    const t = window.setTimeout(async () => {
+      setEstado({ seg: null, lendo: true });
+      const { data } = await supabase.functions.invoke('academy-video', { body: { aula: aulaId, video: id } });
+      if (!vivo) return;
+      if (data?.url) setUrl(data.url as string); else setEstado({ seg: null, lendo: false });
+    }, 500);
+    return () => { vivo = false; window.clearTimeout(t); };
+  }, [aulaId, videoId]);
+
+  useEffect(() => {
+    if (!url) return;
+    const mandar = (d: object) => iframe.current?.contentWindow?.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', ...d }), '*');
+    let tentativas = 0;
+    let repetir: number | undefined;
+    const perguntar = () => mandar({ method: 'getDuration', listener: 'nx-duracao' });
+    const aoReceber = (e: MessageEvent) => {
+      if (e.source !== iframe.current?.contentWindow) return;
+      let m: { context?: string; event?: string; listener?: string; value?: unknown } = {};
+      try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+      if (m?.context !== 'player.js') return;
+      if (m.event === 'ready') perguntar();
+      if (m.event === 'nx-duracao' || m.listener === 'nx-duracao' || m.event === 'getDuration') { // o Bunny responde com event: 'getDuration'
+        const seg = Number(m.value);
+        if (seg > 0) setEstado({ seg: Math.round(seg), lendo: false });
+        else if (tentativas++ < 10) repetir = window.setTimeout(perguntar, 1000); // o vídeo ainda está carregando
+        else setEstado({ seg: null, lendo: false });
+      }
+    };
+    window.addEventListener('message', aoReceber);
+    const desiste = window.setTimeout(() => setEstado(e => (e.lendo ? { seg: null, lendo: false } : e)), 20000);
+    return () => { window.removeEventListener('message', aoReceber); window.clearTimeout(desiste); window.clearTimeout(repetir); };
+  }, [url]);
+
+  const player = url
+    ? <iframe ref={iframe} src={url} title="Leitura da duração" aria-hidden tabIndex={-1} className="fixed w-px h-px opacity-0 pointer-events-none" style={{ left: -9999, top: 0 }} />
+    : null;
+  return { ...estado, player };
+}
+
+const tempoVideo = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 /* ─── Editor de aula (janela) ────────────────────────────────────── */
 function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
   aula: AulaA; modulos: ModuloA[]; moduloAtual: string; onFechar: () => void; onSalvo: () => void;
@@ -104,8 +157,16 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
   const [titulo, setTitulo] = useState(aula.titulo);
   const [descricao, setDescricao] = useState(aula.descricao ?? '');
   const [minutos, setMinutos] = useState(String(Math.round(aula.duracao_seg / 60)));
+  const [segundos, setSegundos] = useState(aula.duracao_seg); // o que vai para o banco (exato, quando vem do vídeo)
   const [gratuita, setGratuita] = useState(aula.gratuita);
   const [videoId, setVideoId] = useState(aula.video_id ?? '');
+  const duracao = useDuracaoVideo(aula.id, videoId);
+  // Achou a duração no vídeo: preenche sozinho (com os segundos exatos)
+  useEffect(() => {
+    if (duracao.seg === null) return;
+    setSegundos(duracao.seg);
+    setMinutos(String(Math.round((duracao.seg / 60) * 10) / 10).replace('.', ','));
+  }, [duracao.seg]);
   const [moduloId, setModuloId] = useState(moduloAtual);
   const [materiais, setMateriais] = useState(aula.academy_lesson_materials);
   const [enviando, setEnviando] = useState(false);
@@ -118,7 +179,7 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
     const destino = modulos.find(m => m.id === moduloId);
     const { error } = await supabase.from('academy_lessons').update({
       titulo: titulo.trim(), descricao: descricao.trim() || null,
-      duracao_seg: Math.max(0, Math.round(Number(minutos.replace(',', '.')) * 60) || 0),
+      duracao_seg: Math.max(0, segundos),
       gratuita, video_id: videoId.trim() || null,
       ...(moduloId !== moduloAtual && destino ? { module_id: moduloId, ordem: destino.academy_lessons.length + 1 } : {}),
     }).eq('id', aula.id);
@@ -166,11 +227,23 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
                 {modulos.map((m, i) => <option key={m.id} value={m.id}>{i + 1}. {m.titulo}</option>)}
               </select>
             </Rotulo>
-            <Rotulo texto="Duração (min)"><input className={inputCls} inputMode="decimal" value={minutos} onChange={e => setMinutos(e.target.value)} /></Rotulo>
+            <Rotulo texto="Duração (min)">
+              <input className={inputCls} inputMode="decimal" value={minutos}
+                onChange={e => { setMinutos(e.target.value); setSegundos(Math.max(0, Math.round(Number(e.target.value.replace(',', '.')) * 60) || 0)); }} />
+            </Rotulo>
           </div>
-          <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo (Video ID / GUID) da biblioteca do Bunny Stream.">
-            <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
-          </Rotulo>
+          <div>
+            <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo (Video ID / GUID) da biblioteca do Bunny Stream. A duração é preenchida sozinha a partir do vídeo.">
+              <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
+            </Rotulo>
+            {duracao.lendo && <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>Lendo a duração do vídeo…</p>}
+            {duracao.seg !== null && (
+              <p className="text-[12.5px] mt-1.5 font-medium" style={{ color: 'var(--a-green)' }}>
+                Duração do vídeo: {tempoVideo(duracao.seg)} (preenchida automaticamente). O aluno precisa assistir 70% para concluir.
+              </p>
+            )}
+            {duracao.player}
+          </div>
           <Rotulo texto="Descrição (aparece abaixo do vídeo)">
             <textarea className="acad-field w-full rounded-[10px] px-3.5 py-3 text-[14.5px] leading-relaxed" rows={4} value={descricao} onChange={e => setDescricao(e.target.value)} />
           </Rotulo>
@@ -262,7 +335,7 @@ function AbaAulas({ curso, recarregar, irConfig }: { curso: CursoA; recarregar: 
                 <button onClick={() => setEditando({ aula: a, modulo: m.id })} className="flex-1 min-w-0 text-left">
                   <span className="block text-[14.5px] font-medium truncate" style={{ color: T.ink }}>{ai + 1}. {a.titulo}</span>
                   <span className="flex flex-wrap items-center gap-x-2.5 text-[12px]" style={{ color: T.mute }}>
-                    {Math.round(a.duracao_seg / 60)} min
+                    {a.duracao_seg < 60 ? `${a.duracao_seg} s` : `${Math.round(a.duracao_seg / 60)} min`}
                     {a.gratuita && <span className="font-semibold" style={{ color: T.accent }}>grátis</span>}
                     {!a.video_id && <span style={{ color: 'var(--a-amber)' }}>sem vídeo</span>}
                     {a.academy_lesson_materials.length > 0 && <span className="inline-flex items-center gap-1"><Paperclip size={12} /> {a.academy_lesson_materials.length}</span>}

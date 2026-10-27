@@ -2,6 +2,7 @@
 // Nexla Academy — link do player de vídeo (Bunny Stream)
 //
 // POST { aula } → { url } do player do Bunny para quem PODE assistir a aula.
+// POST { aula, video } → só admin: player de um vídeo ainda não salvo (o editor de aula lê a duração dele).
 //
 // A aula é lida COMO O ALUNO (com o token dele): as regras do banco (academy_pode_assistir)
 // decidem se ele comprou o curso, se é a aula de amostra, se é admin e se este é o dispositivo ativo.
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors(origem) });
   if (req.method !== 'POST') return json({ erro: 'metodo' }, 405);
 
-  let entrada: { aula?: string };
+  let entrada: { aula?: string; video?: string };
   try { entrada = await req.json(); } catch { return json({ erro: 'entrada' }, 400); }
   const aulaId = String(entrada.aula ?? '');
   if (!/^[0-9a-f-]{36}$/i.test(aulaId)) return json({ erro: 'entrada' }, 400);
@@ -53,9 +54,19 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
     global: { headers: { Authorization: req.headers.get('authorization') ?? '', 'x-dispositivo': dispositivo } },
   });
-  const { data: aula } = await comoAluno.from('academy_lessons').select('id, video_id').eq('id', aulaId).maybeSingle();
-  if (!aula) return json({ erro: 'sem_acesso' }, 403);
-  const video = String(aula.video_id ?? '').trim();
+
+  // Admin no editor de aula: pré-visualiza um vídeo ainda não salvo (para detectar a duração)
+  let video = '';
+  if (entrada.video) {
+    const previa = String(entrada.video).trim();
+    const { data: ehAdmin } = await comoAluno.rpc('academy_eh_admin');
+    if (ehAdmin !== true || !/^[0-9a-f-]{36}$/i.test(previa)) return json({ erro: 'sem_acesso' }, 403);
+    video = previa;
+  } else {
+    const { data: aula } = await comoAluno.from('academy_lessons').select('id, video_id').eq('id', aulaId).maybeSingle();
+    if (!aula) return json({ erro: 'sem_acesso' }, 403);
+    video = String(aula.video_id ?? '').trim();
+  }
   if (!video) return json({ erro: 'sem_video' }, 404);
 
   const biblioteca = (Deno.env.get('BUNNY_LIBRARY_ID') ?? '').trim() || BIBLIOTECA_PADRAO;

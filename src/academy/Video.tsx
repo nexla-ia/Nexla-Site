@@ -83,15 +83,15 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
     return () => { vivo = false; };
   }, [aulaId, userId]);
 
-  // Grava a posição (no fim do vídeo volta para 0, para a próxima vez começar do início)
-  const gravar = (seg: number) => {
-    if (!userId) return;
-    const { dur } = atual.current;
-    const pertoDoFim = dur ? Math.min(15, Math.max(1, dur * 0.05)) : 0;
-    const pos = dur && dur - seg < pertoDoFim ? 0 : Math.floor(seg);
-    if (Math.abs(pos - ultimoSalvo.current) < 3) return;
+  // Grava a posição. O banco soma o tempo assistido a partir dessas gravações (SQL 029), então:
+  //   • ao dar play, grava o ponto de partida (forcar), senão o primeiro trecho não contaria;
+  //   • vídeo curto grava com mais frequência (a cada 10% dele, entre 2 e 10 s).
+  const gravar = (seg: number, forcar = false): Promise<void> => {
+    if (!userId) return Promise.resolve();
+    const pos = Math.floor(seg);
+    if (!forcar && Math.abs(pos - ultimoSalvo.current) < 2) return Promise.resolve();
     ultimoSalvo.current = pos;
-    supabase.from('academy_lesson_progress').upsert({ user_id: userId, lesson_id: aulaId, posicao_seg: pos }, { onConflict: 'user_id,lesson_id' })
+    return Promise.resolve(supabase.from('academy_lesson_progress').upsert({ user_id: userId, lesson_id: aulaId, posicao_seg: pos }, { onConflict: 'user_id,lesson_id' }))
       .then(() => undefined, () => undefined);
   };
   const gravarRef = useRef(gravar);
@@ -100,30 +100,40 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   // Conversa com o player: retomar, acompanhar o tempo e saber quando terminou
   useEffect(() => {
     if (estado.tipo !== 'ok') return;
+    let partida = false;  // deu play: grava o ponto de partida na próxima atualização de tempo
+    let terminou = false; // acabou: a posição já voltou para 0 (próxima vez começa do início)
     const aoReceber = (e: MessageEvent) => {
       if (e.source !== iframe.current?.contentWindow) return;
       let m: { context?: string; event?: string; value?: { seconds?: number; duration?: number } } = {};
       try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
       if (m?.context !== 'player.js') return;
       if (m.event === 'ready') {
-        ['ended', 'timeupdate', 'pause'].forEach(ev => mandar({ method: 'addEventListener', value: ev, listener: `nx-${ev}` }));
+        ['ended', 'timeupdate', 'pause', 'play'].forEach(ev => mandar({ method: 'addEventListener', value: ev, listener: `nx-${ev}` }));
         pronto.current = true;
         retomarRef.current();
       }
+      if (m.event === 'play') { partida = true; terminou = false; }
       if (m.event === 'timeupdate' && m.value) {
         atual.current = { seg: Number(m.value.seconds ?? 0), dur: Number(m.value.duration ?? 0) };
-        if (Math.abs(atual.current.seg - ultimoSalvo.current) >= 10) gravarRef.current(atual.current.seg);
+        const intervalo = atual.current.dur ? Math.min(10, Math.max(2, atual.current.dur / 10)) : 10;
+        if (partida) { partida = false; gravarRef.current(atual.current.seg, true); }
+        else if (Math.abs(atual.current.seg - ultimoSalvo.current) >= intervalo) gravarRef.current(atual.current.seg);
       }
-      if (m.event === 'pause') gravarRef.current(atual.current.seg);
-      if (m.event === 'ended') { gravarRef.current(atual.current.dur); fim.current?.(); }
+      if (m.event === 'pause' && !terminou) gravarRef.current(atual.current.seg);
+      if (m.event === 'ended' && !terminou) {
+        terminou = true;
+        // Primeiro grava o fim (conta o último trecho), depois conclui a aula e volta a posição para 0
+        const dur = atual.current.dur || atual.current.seg;
+        gravarRef.current(dur, true).then(() => { fim.current?.(); gravarRef.current(0, true); });
+      }
     };
-    const aoSair = () => { if (document.visibilityState === 'hidden') gravarRef.current(atual.current.seg); };
+    const aoSair = () => { if (document.visibilityState === 'hidden' && !terminou) gravarRef.current(atual.current.seg); };
     window.addEventListener('message', aoReceber);
     document.addEventListener('visibilitychange', aoSair);
     return () => {
       window.removeEventListener('message', aoReceber);
       document.removeEventListener('visibilitychange', aoSair);
-      gravarRef.current(atual.current.seg); // trocou de aula ou saiu da página
+      if (!terminou) gravarRef.current(atual.current.seg); // trocou de aula ou saiu da página
     };
   }, [estado]); // eslint-disable-line react-hooks/exhaustive-deps
 
