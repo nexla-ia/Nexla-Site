@@ -167,9 +167,9 @@ export async function buscarResumos(): Promise<Map<string, ResumoCurso>> {
     }]));
 }
 
-/* Pedido pendente que passou do prazo. O link de pagamento do Mercado Pago vale 2 h (academy-checkout);
+/* Pedido pendente que passou do prazo. O link de pagamento do Mercado Pago vale 30 min (academy-checkout);
    Pix ou boleto já gerado tem até 4 dias para ser pago. Depois disso o pedido conta como expirado. */
-export const PRAZO_LINK_H = 2;
+export const PRAZO_LINK_H = 0.5; // 30 minutos
 export const pedidoExpirado = (p: { status: string; forma_pagamento: string | null; criado_em?: string | null }) =>
   p.status === 'pendente' && !!p.criado_em
   && Date.now() - new Date(p.criado_em).getTime() > (p.forma_pagamento ? 4 * 24 : PRAZO_LINK_H) * 3600 * 1000;
