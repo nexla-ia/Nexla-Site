@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
-import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
+import { AppLayout, Carregando } from './AppLayout';
 import { reais } from './Compra';
 import { Link } from './router';
 import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno, type CursoVitrine } from './dados';
@@ -38,37 +38,35 @@ function Miniatura({ url, className }: { url: string | null; className: string }
   return (
     <div className={`relative aspect-video rounded-lg overflow-hidden shrink-0 ${className}`}>
       <div className="absolute inset-0 bg-cover bg-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]"
-        style={url ? { backgroundImage: `url("${url}")` } : { background: 'var(--a-soft)' }} />
-      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-2/3 object-contain opacity-90" />}
+        style={url ? { backgroundImage: `url("${url}")` } : { background: T.card }} />
+      {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2/5 h-1/2 object-contain opacity-90" />}
     </div>
   );
 }
 
 const surgir = { initial: { opacity: 0, y: 12 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-40px' }, transition: { duration: 0.5, ease } };
 
-/* Bloco: caixa pequena com a miniatura à esquerda e o texto ao lado; a borda ganha cor no hover */
-const BLOCO = 'group flex items-center gap-3 rounded-xl p-2.5 pr-4 border border-[color:var(--a-rule)] transition-colors hover:border-[color:var(--a-accent)]';
-const GRADE_BLOCOS = 'grid sm:grid-cols-2 xl:grid-cols-3 gap-3';
-const TITULO = 'text-[14.5px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]';
+/* Blocos sem caixa: capa em cima e o texto embaixo, 4 por linha (menores que os do Explorar) */
+const GRADE_BLOCOS = 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-6';
+const TITULO = 'mt-2 text-[14px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]';
+const LINHA = 'text-[12.5px] mt-0.5';
 
-/* Curso em andamento: nome, aulas e tempo, e o progresso fino (o bloco inteiro leva à próxima aula) */
+/* Curso em andamento: nome, a próxima aula (ou aulas e tempo) e o progresso fino; leva direto à próxima aula */
 function BlocoAndamento({ c }: { c: CursoAluno }) {
   const total = c.aulas.reduce((s, a) => s + (a.duracao_seg || 0), 0);
   return (
     <motion.div {...surgir}>
-      <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className={BLOCO} style={{ background: T.card }}>
-        <Miniatura url={c.capa} className="w-28" />
-        <div className="flex-1 min-w-0">
-          <p className={TITULO}>{c.titulo}</p>
-          <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>
-            {[plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : ''].filter(Boolean).join(' · ')}
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
-              <div className="h-full rounded-full" style={{ width: `${c.percentual}%`, background: T.accent }} />
-            </div>
-            <span className="text-[12px]" style={{ color: T.mute }}>{c.percentual}%</span>
+      <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className="group block">
+        <Miniatura url={c.capa} className="w-full" />
+        <p className={TITULO}>{c.titulo}</p>
+        <p className={`${LINHA} truncate`} style={{ color: T.mute }}>
+          {c.proxima ? `Próxima: ${c.proxima.titulo}` : [plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : ''].filter(Boolean).join(' · ')}
+        </p>
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
+            <div className="h-full rounded-full" style={{ width: `${c.percentual}%`, background: T.accent }} />
           </div>
+          <span className="text-[12px]" style={{ color: T.mute }}>{c.percentual}%</span>
         </div>
       </Link>
     </motion.div>
@@ -78,19 +76,17 @@ function BlocoAndamento({ c }: { c: CursoAluno }) {
 /* Curso concluído: nome, quando terminou e o certificado */
 function BlocoConcluido({ c }: { c: CursoAluno }) {
   return (
-    <motion.div {...surgir} className={BLOCO} style={{ background: T.card }}>
-      <Link para={`/curso/${c.slug}`} className="block" aria-label={c.titulo}><Miniatura url={c.capa} className="w-28" /></Link>
-      <div className="flex-1 min-w-0">
-        <Link para={`/curso/${c.slug}`} className={`block ${TITULO}`}>{c.titulo}</Link>
-        <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>
-          Concluído{c.ultima ? ` em ${new Date(c.ultima).toLocaleDateString('pt-BR')}` : ''}
-        </p>
-        {certificadoLiberado(c) && (
-          <Link para={`/certificado/${c.slug}`} className="inline-block mt-1.5 text-[13px] font-medium hover:underline underline-offset-4" style={{ color: 'var(--a-green)' }}>
-            Ver certificado
-          </Link>
-        )}
-      </div>
+    <motion.div {...surgir}>
+      <Link para={`/curso/${c.slug}`} className="group block">
+        <Miniatura url={c.capa} className="w-full" />
+        <p className={TITULO}>{c.titulo}</p>
+        <p className={LINHA} style={{ color: T.mute }}>Concluído{c.ultima ? ` em ${new Date(c.ultima).toLocaleDateString('pt-BR')}` : ''}</p>
+      </Link>
+      {certificadoLiberado(c) && (
+        <Link para={`/certificado/${c.slug}`} className="inline-block mt-1 text-[13px] font-medium hover:underline underline-offset-4" style={{ color: 'var(--a-green)' }}>
+          Ver certificado
+        </Link>
+      )}
     </motion.div>
   );
 }
@@ -100,12 +96,10 @@ function Sugestao({ c }: { c: CursoVitrine }) {
   const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
   return (
     <motion.div {...surgir}>
-      <Link para={`/curso/${c.slug}`} className={BLOCO} style={{ background: T.card }}>
-        <Miniatura url={c.capa} className="w-28" />
-        <div className="min-w-0">
-          <p className={TITULO}>{c.titulo}</p>
-          <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>{plural(c.totalAulas, 'aula', 'aulas')} · {preco}</p>
-        </div>
+      <Link para={`/curso/${c.slug}`} className="group block">
+        <Miniatura url={c.capa} className="w-full" />
+        <p className={TITULO}>{c.titulo}</p>
+        <p className={LINHA} style={{ color: T.mute }}>{plural(c.totalAulas, 'aula', 'aulas')} · {preco}</p>
       </Link>
     </motion.div>
   );
@@ -116,10 +110,9 @@ export default function Painel({ sessao }: { sessao: Session }) {
   if (!dados) return <AppLayout nome=""><Carregando /></AppLayout>;
 
   const { nome, cursos, outros, erro } = dados;
-  const emAndamento = cursos.filter(c => c.percentual < 100).sort((a, b) => b.ultima - a.ultima)[0];
   const totalFeitas = cursos.reduce((s, c) => s + c.feitas.size, 0);
   const certificados = cursos.filter(certificadoLiberado).length;
-  const andamento = cursos.filter(c => c.percentual < 100);
+  const andamento = cursos.filter(c => c.percentual < 100).sort((a, b) => b.ultima - a.ultima);
   const concluidos = cursos.filter(c => c.percentual >= 100).sort((a, b) => b.ultima - a.ultima);
 
   return (
@@ -151,31 +144,6 @@ export default function Painel({ sessao }: { sessao: Session }) {
 
         {erro && <p className="mt-6 text-[14px] rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)' }}>{erro}</p>}
 
-        {/* Continue de onde parou: a próxima aula do curso mexido por último */}
-        {emAndamento?.proxima && (
-          <Secao titulo="Continue de onde parou">
-            <Link para={`/curso/${emAndamento.slug}?aula=${emAndamento.proxima.id}`}
-              className="group flex items-center gap-4 sm:gap-5 rounded-xl p-3 pr-4 sm:pr-5 border border-[color:var(--a-rule)] transition-colors hover:border-[color:var(--a-accent)]"
-              style={{ background: T.card }}>
-              <div className="relative hidden sm:block w-40 aspect-video rounded-lg overflow-hidden shrink-0 bg-cover bg-center"
-                style={emAndamento.capa ? { backgroundImage: `url("${emAndamento.capa}")` } : { background: 'var(--a-soft)' }}>
-                {!emAndamento.capa && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain opacity-90" />}
-              </div>
-              <div className="flex-1 min-w-0 py-1">
-                <p className="text-[13px] truncate" style={{ color: T.mute }}>{emAndamento.titulo}</p>
-                <p className="text-[16px] font-semibold leading-snug mt-0.5 line-clamp-2" style={{ color: T.ink }}>{emAndamento.proxima.titulo}</p>
-                <div className="flex items-center gap-3 mt-2.5 max-w-xs">
-                  <div className="flex-1"><BarraProgresso valor={emAndamento.percentual} /></div>
-                  <span className="text-[12.5px]" style={{ color: T.mute }}>{emAndamento.percentual}%</span>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-1 text-[14px] font-medium shrink-0" style={{ color: T.accent }}>
-                Continuar <ArrowRight size={15} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-          </Secao>
-        )}
-
         {/* Sem cursos ainda: mostra direto os cursos disponíveis */}
         {cursos.length === 0 && outros.length > 0 ? (
           <div className="mt-10"><GradeCategorias outros={outros} /></div>
@@ -187,7 +155,7 @@ export default function Painel({ sessao }: { sessao: Session }) {
         ) : (
           <>
             {andamento.length > 0 && (
-              <Secao titulo="Meus cursos">
+              <Secao titulo="Continuar">
                 <div className={GRADE_BLOCOS}>{andamento.map(c => <BlocoAndamento key={c.id} c={c} />)}</div>
               </Secao>
             )}
@@ -202,7 +170,7 @@ export default function Painel({ sessao }: { sessao: Session }) {
         {/* Outros cursos publicados que o aluno ainda não tem */}
         {cursos.length > 0 && outros.length > 0 && (
           <Secao titulo="Você também pode gostar" link={{ para: '/cursos', texto: 'Explorar cursos' }}>
-            <div className={GRADE_BLOCOS}>{outros.slice(0, 3).map(c => <Sugestao key={c.id} c={c} />)}</div>
+            <div className={GRADE_BLOCOS}>{outros.slice(0, 4).map(c => <Sugestao key={c.id} c={c} />)}</div>
           </Secao>
         )}
       </motion.div>
