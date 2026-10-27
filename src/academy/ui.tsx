@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Info, Mail } from 'lucide-react';
 
@@ -142,5 +144,22 @@ export function Divisor({ texto }: { texto: string }) {
     <div className="flex items-center gap-4 my-6 text-[12.5px]" style={{ color: T.mute }}>
       <span className="flex-1 h-px" style={{ background: T.rule }} /> {texto} <span className="flex-1 h-px" style={{ background: T.rule }} />
     </div>
+  );
+}
+
+/* Foto da conta: a do Google (quem entrou pelo Google); sem foto ou se ela não carregar, a inicial do nome */
+export const fotoDaConta = (sessao: Session | null | undefined) => {
+  const meta = sessao?.user.user_metadata ?? {};
+  const url = String(meta.avatar_url ?? meta.picture ?? '');
+  return /^https:\/\//.test(url) ? url : '';
+};
+export function Avatar({ foto, nome, email, fundo }: { foto: string; nome: string; email: string; fundo: string }) {
+  const [falhou, setFalhou] = useState(false);
+  if (foto && !falhou) {
+    return <img src={foto} alt="" referrerPolicy="no-referrer" onError={() => setFalhou(true)} className="w-9 h-9 shrink-0 rounded-full object-cover" />;
+  }
+  return (
+    <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
+      style={{ background: fundo }} aria-hidden>{(nome.trim()[0] || email[0] || '?').toUpperCase()}</span>
   );
 }

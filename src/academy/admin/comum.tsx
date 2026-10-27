@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, BookOpen, LineChart, LogOut, Menu, MessagesSquare, Moon, Receipt, ShieldAlert, Users, X } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
-import { T, LOGO, display, ease } from '../ui';
+import { T, LOGO, display, ease, Avatar, fotoDaConta } from '../ui';
 import { AppLayout, Carregando } from '../AppLayout';
 import { Link, navegar, useRota } from '../router';
 import { supabase, useSessao } from '../supabase';
@@ -37,11 +37,10 @@ function Marca() {
 }
 
 /* Conteúdo do menu lateral do admin: marca, seções em grupos e, no rodapé, conta, tema e sair */
-function MenuAdmin({ nome, email }: { nome: string; email: string }) {
+function MenuAdmin({ foto, nome, email }: { foto: string; nome: string; email: string }) {
   const rota = useRota();
   const { escuro, alternar } = useTema();
   const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
-  const inicial = (nome.trim()[0] || email[0] || 'A').toUpperCase();
   return (
     <div className="h-full flex flex-col">
       <div className="h-16 px-5 shrink-0 flex items-center"><Marca /></div>
@@ -67,8 +66,7 @@ function MenuAdmin({ nome, email }: { nome: string; email: string }) {
 
       <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${T.rule}` }}>
         <div className="flex items-center gap-3 px-2 py-2">
-          <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
-            style={{ background: `linear-gradient(135deg, #4F46E5, ${T.violet})` }} aria-hidden>{inicial}</span>
+          <Avatar foto={foto} nome={nome} email={email} fundo={`linear-gradient(135deg, #4F46E5, ${T.violet})`} />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || email.split('@')[0]}</p>
             <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
@@ -108,7 +106,7 @@ export function AdminLayout({ nome, children }: { nome: string; children: React.
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <aside className="hidden lg:block fixed inset-y-0 left-0 w-60 z-30" style={{ background: T.card, borderRight: `1px solid ${T.rule}` }}>
-        <MenuAdmin nome={nome} email={email} />
+        <MenuAdmin foto={fotoDaConta(sessao)} nome={nome} email={email} />
       </aside>
 
       {/* Celular e tablet */}
@@ -132,7 +130,7 @@ export function AdminLayout({ nome, children }: { nome: string; children: React.
                 className="absolute top-3 right-3 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-slate-100" style={{ color: T.mute }}>
                 <X size={20} strokeWidth={1.75} />
               </button>
-              <MenuAdmin nome={nome} email={email} />
+              <MenuAdmin foto={fotoDaConta(sessao)} nome={nome} email={email} />
             </motion.aside>
           </div>
         )}

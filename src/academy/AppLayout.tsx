@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Award, BookOpen, Compass, LayoutDashboard, LogOut, Menu, Moon, UserRound, X } from 'lucide-react';
-import { T, LOGO, display, ease } from './ui';
+import { T, LOGO, display, ease, Avatar, fotoDaConta } from './ui';
 import { Link, navegar, useRota } from './router';
 import { supabase, useSessao, useEhAdmin } from './supabase';
 import { useTema } from './tema';
@@ -39,9 +39,8 @@ function useNomeConta(nome: string) {
 }
 
 /* Conteúdo do menu lateral: marca, links e, no rodapé, a conta com o botão de sair */
-function MenuLateral({ nome, email, admin }: { nome: string; email: string; admin: boolean }) {
+function MenuLateral({ foto, nome, email, admin }: { foto: string; nome: string; email: string; admin: boolean }) {
   const rota = useRota();
-  const inicial = (nome.trim()[0] || email[0] || '?').toUpperCase();
   const sair = async () => { await supabase.auth.signOut(); navegar('/'); };
   const { escuro, alternar } = useTema();
   return (
@@ -65,8 +64,7 @@ function MenuLateral({ nome, email, admin }: { nome: string; email: string; admi
 
       <div className="p-3 shrink-0" style={{ borderTop: `1px solid ${T.rule}` }}>
         <div className="flex items-center gap-3 px-2 py-2">
-          <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
-            style={{ background: `linear-gradient(135deg, ${T.accent}, ${T.violet})` }} aria-hidden>{inicial}</span>
+          <Avatar foto={foto} nome={nome} email={email} fundo={`linear-gradient(135deg, ${T.accent}, ${T.violet})`} />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold truncate" style={{ color: T.ink }}>{nome || email.split('@')[0]}</p>
             <p className="text-[12.5px] truncate" style={{ color: T.mute }}>{email}</p>
@@ -110,7 +108,7 @@ export function AppLayout({ nome: nomePagina, children }: { nome: string; childr
   return (
     <div className="min-h-screen" style={{ background: T.paper, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <aside className="hidden lg:block fixed inset-y-0 left-0 w-60 z-30" style={{ background: T.card, borderRight: `1px solid ${T.rule}` }}>
-        <MenuLateral nome={nome} email={email} admin={admin} />
+        <MenuLateral foto={fotoDaConta(sessao)} nome={nome} email={email} admin={admin} />
       </aside>
 
       {/* Celular e tablet */}
@@ -137,7 +135,7 @@ export function AppLayout({ nome: nomePagina, children }: { nome: string; childr
                 className="absolute top-3 right-3 w-10 h-10 rounded-lg flex items-center justify-center hover:bg-slate-100" style={{ color: T.mute }}>
                 <X size={20} strokeWidth={1.75} />
               </button>
-              <MenuLateral nome={nome} email={email} admin={admin} />
+              <MenuLateral foto={fotoDaConta(sessao)} nome={nome} email={email} admin={admin} />
             </motion.aside>
           </div>
         )}
