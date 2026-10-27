@@ -126,17 +126,13 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
 }) {
   const [titulo, setTitulo] = useState(aula.titulo);
   const [descricao, setDescricao] = useState(aula.descricao ?? '');
+  const [segundos, setSegundos] = useState(aula.duracao_seg); // lida do vídeo; à mão só se não der para ler
   const [minutos, setMinutos] = useState(String(Math.round(aula.duracao_seg / 60)));
-  const [segundos, setSegundos] = useState(aula.duracao_seg); // o que vai para o banco (exato, quando vem do vídeo)
   const [gratuita, setGratuita] = useState(aula.gratuita);
   const [videoId, setVideoId] = useState(aula.video_id ?? '');
   const duracao = useDuracaoVideo(aula.id, videoId);
-  // Achou a duração no vídeo: preenche sozinho (com os segundos exatos)
-  useEffect(() => {
-    if (duracao.seg === null) return;
-    setSegundos(duracao.seg);
-    setMinutos(String(Math.round((duracao.seg / 60) * 10) / 10).replace('.', ','));
-  }, [duracao.seg]);
+  // Achou a duração no vídeo: é ela que vale (segundos exatos)
+  useEffect(() => { if (duracao.seg !== null) setSegundos(duracao.seg); }, [duracao.seg]);
   const [moduloId, setModuloId] = useState(moduloAtual);
   const [materiais, setMateriais] = useState(aula.academy_lesson_materials);
   const [enviando, setEnviando] = useState(false);
@@ -191,31 +187,33 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
         <h2 className="font-bold text-[20px] mb-5" style={display}>Editar aula</h2>
         <div className="space-y-5">
           <Rotulo texto="Título da aula"><input className={inputCls} value={titulo} onChange={e => setTitulo(e.target.value)} /></Rotulo>
-          <div className="grid sm:grid-cols-[1fr_9rem] gap-5">
-            <Rotulo texto="Módulo">
-              <select className={inputCls} value={moduloId} onChange={e => setModuloId(e.target.value)}>
-                {modulos.map((m, i) => <option key={m.id} value={m.id}>{i + 1}. {m.titulo}</option>)}
-              </select>
-            </Rotulo>
-            <Rotulo texto="Duração (min)">
-              <input className={inputCls} inputMode="decimal" value={minutos}
-                onChange={e => { setMinutos(e.target.value); setSegundos(Math.max(0, Math.round(Number(e.target.value.replace(',', '.')) * 60) || 0)); }} />
-            </Rotulo>
-          </div>
+          <Rotulo texto="Módulo">
+            <select className={inputCls} value={moduloId} onChange={e => setModuloId(e.target.value)}>
+              {modulos.map((m, i) => <option key={m.id} value={m.id}>{i + 1}. {m.titulo}</option>)}
+            </select>
+          </Rotulo>
           <div>
-            <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo (Video ID / GUID) da biblioteca do Bunny Stream. A duração é preenchida sozinha a partir do vídeo.">
+            <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo (Video ID / GUID) da biblioteca do Bunny Stream. A duração da aula vem do próprio vídeo.">
               <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
             </Rotulo>
             {duracao.lendo && <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>Lendo a duração do vídeo…</p>}
-            {duracao.falhou && (
-              <p className="text-[12.5px] mt-1.5" style={{ color: 'var(--a-amber)' }}>
-                Não deu para ler a duração deste vídeo. Confira o ID ou preencha os minutos à mão.
-              </p>
-            )}
             {duracao.seg !== null && (
               <p className="text-[12.5px] mt-1.5 font-medium" style={{ color: 'var(--a-green)' }}>
-                Duração do vídeo: {tempoVideo(duracao.seg)} (preenchida automaticamente). O aluno precisa assistir 70% para concluir.
+                Duração: {tempoVideo(duracao.seg)} (lida do vídeo). O aluno precisa assistir 70% para concluir.
               </p>
+            )}
+            {duracao.falhou && (
+              <div className="mt-3 flex flex-wrap items-end gap-3">
+                <p className="text-[12.5px] flex-1 min-w-[14rem]" style={{ color: 'var(--a-amber)' }}>
+                  Não deu para ler a duração deste vídeo. Confira o ID ou informe os minutos.
+                </p>
+                <div className="w-32">
+                  <Rotulo texto="Duração (min)">
+                    <input className={inputCls} inputMode="decimal" value={minutos}
+                      onChange={e => { setMinutos(e.target.value); setSegundos(Math.max(0, Math.round(Number(e.target.value.replace(',', '.')) * 60) || 0)); }} />
+                  </Rotulo>
+                </div>
+              </div>
             )}
           </div>
           <Rotulo texto="Descrição (aparece abaixo do vídeo)">
