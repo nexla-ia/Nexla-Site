@@ -38,7 +38,7 @@ function Miniatura({ url, className }: { url: string | null; className: string }
   return (
     <div className={`relative aspect-video rounded-lg overflow-hidden shrink-0 ${className}`}>
       <div className="absolute inset-0 bg-cover bg-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]"
-        style={url ? { backgroundImage: `url("${url}")` } : { background: T.card }} />
+        style={url ? { backgroundImage: `url("${url}")` } : { background: 'var(--a-soft)' }} />
       {!url && <img src={LOGO} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-2/3 object-contain opacity-90" />}
     </div>
   );
@@ -46,48 +46,65 @@ function Miniatura({ url, className }: { url: string | null; className: string }
 
 const surgir = { initial: { opacity: 0, y: 12 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-40px' }, transition: { duration: 0.5, ease } };
 
-/* Curso do aluno, sem caixa: capa, nome, uma linha de detalhes, progresso fino e as ações */
-function CursoLinha({ c }: { c: CursoAluno }) {
-  const concluido = c.percentual >= 100;
+/* Bloco: caixa pequena com a miniatura à esquerda e o texto ao lado; a borda ganha cor no hover */
+const BLOCO = 'group flex items-center gap-3 rounded-xl p-2.5 pr-4 border border-[color:var(--a-rule)] transition-colors hover:border-[color:var(--a-accent)]';
+const GRADE_BLOCOS = 'grid sm:grid-cols-2 xl:grid-cols-3 gap-3';
+const TITULO = 'text-[14.5px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]';
+
+/* Curso em andamento: nome, aulas e tempo, e o progresso fino (o bloco inteiro leva à próxima aula) */
+function BlocoAndamento({ c }: { c: CursoAluno }) {
   const total = c.aulas.reduce((s, a) => s + (a.duracao_seg || 0), 0);
-  const detalhes = [plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : '', c.media !== null ? `★ ${c.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : '']
-    .filter(Boolean).join(' · ');
-  const curso = `/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`;
   return (
-    <motion.li {...surgir} className="flex items-center gap-4 sm:gap-6 py-4 first:pt-0">
-      <Link para={curso} className="group block w-32 sm:w-48" aria-label={c.titulo}><Miniatura url={c.capa} className="w-full" /></Link>
-      <div className="flex-1 min-w-0">
-        <Link para={curso} className="block font-semibold text-[16px] leading-snug truncate hover:underline underline-offset-4" style={{ color: T.ink }}>{c.titulo}</Link>
-        <p className="text-[13px] mt-0.5" style={{ color: T.mute }}>{detalhes}</p>
-        <div className="flex items-center gap-3 mt-3 max-w-sm">
-          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
-            <div className="h-full rounded-full" style={{ width: `${c.percentual}%`, background: concluido ? 'var(--a-green)' : T.accent }} />
+    <motion.div {...surgir}>
+      <Link para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} className={BLOCO} style={{ background: T.card }}>
+        <Miniatura url={c.capa} className="w-28" />
+        <div className="flex-1 min-w-0">
+          <p className={TITULO}>{c.titulo}</p>
+          <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>
+            {[plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : ''].filter(Boolean).join(' · ')}
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
+              <div className="h-full rounded-full" style={{ width: `${c.percentual}%`, background: T.accent }} />
+            </div>
+            <span className="text-[12px]" style={{ color: T.mute }}>{c.percentual}%</span>
           </div>
-          <span className="text-[12.5px] w-9 text-right" style={{ color: T.mute }}>{c.percentual}%</span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-3 text-[13.5px] font-medium">
-          <Link para={curso} className="hover:underline underline-offset-4" style={{ color: T.accent }}>
-            {concluido ? 'Rever curso' : c.feitas.size ? 'Continuar' : 'Começar'}
-          </Link>
-          {certificadoLiberado(c)
-            ? <Link para={`/certificado/${c.slug}`} className="hover:underline underline-offset-4" style={{ color: 'var(--a-green)' }}>Ver certificado</Link>
-            : <span className="font-normal" style={{ color: T.mute }}>Certificado: falta{c.faltamCertificado > 1 ? 'm' : ''} {plural(c.faltamCertificado, 'aula', 'aulas')}</span>}
-        </div>
-      </div>
-    </motion.li>
+      </Link>
+    </motion.div>
   );
 }
 
-/* Sugestão: miniatura pequena, nome e "aulas · preço" ao lado */
+/* Curso concluído: nome, quando terminou e o certificado */
+function BlocoConcluido({ c }: { c: CursoAluno }) {
+  return (
+    <motion.div {...surgir} className={BLOCO} style={{ background: T.card }}>
+      <Link para={`/curso/${c.slug}`} className="block" aria-label={c.titulo}><Miniatura url={c.capa} className="w-28" /></Link>
+      <div className="flex-1 min-w-0">
+        <Link para={`/curso/${c.slug}`} className={`block ${TITULO}`}>{c.titulo}</Link>
+        <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>
+          Concluído{c.ultima ? ` em ${new Date(c.ultima).toLocaleDateString('pt-BR')}` : ''}
+        </p>
+        {certificadoLiberado(c) && (
+          <Link para={`/certificado/${c.slug}`} className="inline-block mt-1.5 text-[13px] font-medium hover:underline underline-offset-4" style={{ color: 'var(--a-green)' }}>
+            Ver certificado
+          </Link>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* Sugestão: nome e "aulas · preço" */
 function Sugestao({ c }: { c: CursoVitrine }) {
   const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
   return (
     <motion.div {...surgir}>
-      <Link para={`/curso/${c.slug}`} className="group flex items-center gap-3">
+      <Link para={`/curso/${c.slug}`} className={BLOCO} style={{ background: T.card }}>
         <Miniatura url={c.capa} className="w-28" />
         <div className="min-w-0">
-          <p className="text-[14.5px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]">{c.titulo}</p>
-          <p className="text-[13px] mt-0.5" style={{ color: T.mute }}>{plural(c.totalAulas, 'aula', 'aulas')} · {preco}</p>
+          <p className={TITULO}>{c.titulo}</p>
+          <p className="text-[12.5px] mt-0.5" style={{ color: T.mute }}>{plural(c.totalAulas, 'aula', 'aulas')} · {preco}</p>
         </div>
       </Link>
     </motion.div>
@@ -102,6 +119,8 @@ export default function Painel({ sessao }: { sessao: Session }) {
   const emAndamento = cursos.filter(c => c.percentual < 100).sort((a, b) => b.ultima - a.ultima)[0];
   const totalFeitas = cursos.reduce((s, c) => s + c.feitas.size, 0);
   const certificados = cursos.filter(certificadoLiberado).length;
+  const andamento = cursos.filter(c => c.percentual < 100);
+  const concluidos = cursos.filter(c => c.percentual >= 100).sort((a, b) => b.ultima - a.ultima);
 
   return (
     <AppLayout nome={nome}>
@@ -166,19 +185,24 @@ export default function Painel({ sessao }: { sessao: Session }) {
             <Link para="/cursos" className="font-medium hover:underline underline-offset-4" style={{ color: T.accent }}>Explorar cursos</Link>
           </p>
         ) : (
-          <Secao titulo="Meus cursos">
-            <ul className="divide-y divide-[color:var(--a-rule)]">
-              {cursos.map(c => <CursoLinha key={c.id} c={c} />)}
-            </ul>
-          </Secao>
+          <>
+            {andamento.length > 0 && (
+              <Secao titulo="Meus cursos">
+                <div className={GRADE_BLOCOS}>{andamento.map(c => <BlocoAndamento key={c.id} c={c} />)}</div>
+              </Secao>
+            )}
+            {concluidos.length > 0 && (
+              <Secao titulo="Concluídos">
+                <div className={GRADE_BLOCOS}>{concluidos.map(c => <BlocoConcluido key={c.id} c={c} />)}</div>
+              </Secao>
+            )}
+          </>
         )}
 
         {/* Outros cursos publicados que o aluno ainda não tem */}
         {cursos.length > 0 && outros.length > 0 && (
           <Secao titulo="Você também pode gostar" link={{ para: '/cursos', texto: 'Explorar cursos' }}>
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-4">
-              {outros.slice(0, 3).map(c => <Sugestao key={c.id} c={c} />)}
-            </div>
+            <div className={GRADE_BLOCOS}>{outros.slice(0, 3).map(c => <Sugestao key={c.id} c={c} />)}</div>
           </Secao>
         )}
       </motion.div>
