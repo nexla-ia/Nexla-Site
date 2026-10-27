@@ -72,7 +72,7 @@ Para publicar: `npx supabase@2.121.0 functions deploy <nome> --project-ref lyvkn
 2. Rode `npm install` e depois `npm run dev`.
 3. Abra `http://localhost:5173/academy`. Use a porta 5173, que é a liberada nas funções e no login.
 
-**Conta de teste:** `teste@nexla.com.br`. A senha **não está no repositório**.
+**Contas:** o admin da Academy é `adm.nexla@gmail.com` (entra com Google). As contas de teste foram apagadas no `028`. Para testar como aluno, crie uma conta nova.
 
 ## Scripts do banco (`supabase/`)
 
@@ -94,6 +94,7 @@ Todos foram rodados no SQL Editor, na ordem dos números, e podem ser rodados de
 | `024_certificados.sql` / `026_certificado_100.sql` | Registro e validação de certificados, regra dos 100% |
 | `025_meta_pixel.sql` | Dados do Pixel no pedido, para a API de Conversões |
 | `027_excluir_conta.sql` | Pedidos continuam guardados (anônimos) quando a conta é excluída |
+| `028_contas_lancamento.sql` | **Já rodado (27/10).** Deixou `adm.nexla@gmail.com` como admin e apagou as contas de teste. Manteve `adm@nexla.com.br`, que é admin do outro sistema. Não rodar de novo |
 
 ## Configurações feitas fora do código
 
