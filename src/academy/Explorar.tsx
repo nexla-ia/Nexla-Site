@@ -25,8 +25,8 @@ function Capa({ url, progresso }: { url: string | null; progresso?: number }) {
   );
 }
 
-/* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link). Também usado em Meus certificados. */
-export function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string }) {
+/* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link) */
+function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string }) {
   return (
     <Link para={para} className="group block rounded-lg focus-visible:outline-offset-4">
       <Capa url={capa} progresso={progresso} />
