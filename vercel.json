@@ -1,5 +1,15 @@
 {
   "rewrites": [
+    {
+      "source": "/academy/curso/:slug",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Facebot|LinkedInBot|Twitterbot|TelegramBot|Slackbot|Discordbot|SkypeUriPreview).*" }],
+      "destination": "/api/previa?curso=:slug"
+    },
+    {
+      "source": "/academy/validar/:codigo",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Facebot|LinkedInBot|Twitterbot|TelegramBot|Slackbot|Discordbot|SkypeUriPreview).*" }],
+      "destination": "/api/previa?certificado=:codigo"
+    },
     { "source": "/academy", "destination": "/academy/index.html" },
     { "source": "/academy/:path*", "destination": "/academy/index.html" },
     { "source": "/tasabendo", "destination": "/tasabendo/index.html" }

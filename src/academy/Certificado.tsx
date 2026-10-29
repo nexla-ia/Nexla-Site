@@ -1,12 +1,46 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Award, Download, FileImage, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, Download, FileImage, Linkedin, Lock, Share2, ShieldCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link } from './router';
 import { supabase, organizar, pct, CERTIFICADO_MIN, SELECT_CURSO, type Curso as CursoT } from './supabase';
 import { desenharCertificado, codigoValidacao, dataPorExtenso, CERT_W, CERT_H, type DadosCertificado } from './certificadoCanvas';
+
+/* LinkedIn: "Adicionar ao perfil" abre o formulário de Licenças e certificados já preenchido (nome do curso,
+   Nexla Academy, mês de conclusão, código e o link de validação). "Publicar" compartilha o link de validação,
+   que mostra a prévia "Fulano concluiu o curso X" (api/previa.js). */
+function NoLinkedIn({ cert }: { cert: DadosCertificado }) {
+  const validacao = `https://www.nexla.com.br/academy/validar/${encodeURIComponent(cert.codigo)}`;
+  const perfil = 'https://www.linkedin.com/profile/add?' + new URLSearchParams({
+    startTask: 'CERTIFICATION_NAME',
+    name: cert.curso,
+    organizationName: 'Nexla Academy',
+    issueYear: String(cert.concluidoEm.getFullYear()),
+    issueMonth: String(cert.concluidoEm.getMonth() + 1),
+    certId: cert.codigo,
+    ...(cert.validavel ? { certUrl: validacao } : {}),
+  });
+  const publicar = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(validacao)}`;
+  return (
+    <div className="mt-6 pt-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4" style={{ borderTop: `1px solid ${T.rule}` }}>
+      <p className="text-[14px] font-medium sm:mr-auto" style={{ color: T.ink2 }}>Mostre sua conquista no LinkedIn</p>
+      <a href={perfil} target="_blank" rel="noopener noreferrer"
+        className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white transition-[filter] hover:brightness-110"
+        style={{ background: '#0A66C2' }}>
+        <Linkedin size={17} strokeWidth={2} /> Adicionar ao perfil
+      </a>
+      {cert.validavel && (
+        <a href={publicar} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold transition-colors hover:bg-[color:var(--a-soft)]"
+          style={{ color: T.ink, border: `1px solid ${T.rule}` }}>
+          <Share2 size={16} strokeWidth={2} /> Publicar no LinkedIn
+        </a>
+      )}
+    </div>
+  );
+}
 
 type Estado =
   | { tipo: 'carregando' }
@@ -175,6 +209,8 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
               <Link para={`/validar/${cert.codigo}`} className="font-medium underline underline-offset-2" style={{ color: T.accent }}>nexla.com.br/academy/validar</Link>.</>}
           </span>
         </p>
+
+        <NoLinkedIn cert={cert} />
       </motion.div>
     </AppLayout>
   );
