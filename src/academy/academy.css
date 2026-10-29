@@ -16,6 +16,8 @@
 body { background: var(--a-paper); }
 /* Lista que abre nos <select>: com o campo transparente, o navegador usaria fundo branco e o texto claro do tema escuro sumiria */
 select option { background: var(--a-card); color: var(--a-ink); }
+/* Campos de busca já têm o próprio botão de limpar: esconde o "x" que o Chrome/Edge colocam */
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 
 /* Troca de tema animada (tema.tsx): o círculo é feito no JavaScript, aqui só desliga o esmaecer padrão */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }

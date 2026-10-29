@@ -114,7 +114,7 @@ export function Mensagem({ erro, aviso }: { erro: string; aviso: string }) {
           className="flex items-start gap-2.5 text-[13.5px] leading-relaxed rounded-[10px] px-3.5 py-3"
           style={erro
             ? { background: 'rgba(239,68,68,0.07)', color: 'var(--a-red)', border: '1px solid rgba(239,68,68,0.2)' }
-            : { background: 'rgba(79,70,229,0.07)', color: '#3730A3', border: '1px solid rgba(79,70,229,0.2)' }}>
+            : { background: 'rgba(99,102,241,0.1)', color: T.accent, border: '1px solid rgba(99,102,241,0.25)' }}>
           <Info size={16} strokeWidth={2} className="shrink-0 mt-0.5" /> {erro || aviso}
         </motion.p>
       )}

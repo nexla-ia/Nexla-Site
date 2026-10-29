@@ -6,6 +6,7 @@ import { AppLayout, Carregando } from './AppLayout';
 import { reais } from './Compra';
 import { Link } from './router';
 import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno, type CursoVitrine } from './dados';
+import { tempoTotal } from './supabase';
 import { GradeCategorias } from './Explorar';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -27,11 +28,6 @@ function Secao({ titulo, link, children }: { titulo: string; link?: { para: stri
   );
 }
 
-/* Tempo total do curso: "45 min" ou "2h 10min" */
-const duracao = (seg: number) => {
-  const min = Math.max(1, Math.round(seg / 60));
-  return min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${min % 60 ? ` ${min % 60}min` : ''}`;
-};
 
 /* Capa pequena (16:9) que cresce de leve no hover; sem foto, o símbolo da Nexla */
 function Miniatura({ url, className }: { url: string | null; className: string }) {
@@ -60,7 +56,7 @@ function BlocoAndamento({ c }: { c: CursoAluno }) {
         <Miniatura url={c.capa} className="w-full" />
         <p className={TITULO}>{c.titulo}</p>
         <p className={`${LINHA} truncate`} style={{ color: T.mute }}>
-          {c.proxima ? `Próxima: ${c.proxima.titulo}` : [plural(c.aulas.length, 'aula', 'aulas'), total ? duracao(total) : ''].filter(Boolean).join(' · ')}
+          {c.proxima ? `Próxima: ${c.proxima.titulo}` : [plural(c.aulas.length, 'aula', 'aulas'), total ? tempoTotal(total) : ''].filter(Boolean).join(' · ')}
         </p>
         <div className="flex items-center gap-2 mt-2">
           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>

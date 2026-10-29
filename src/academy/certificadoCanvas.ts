@@ -20,17 +20,6 @@ export const dataPorExtenso = (d: Date) => `${d.getDate()} de ${MESES[d.getMonth
 const DISPLAY = "'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif";
 const TEXTO   = "'Plus Jakarta Sans', system-ui, sans-serif";
 
-/* Código de validação estável para o par aluno + curso (enquanto a tabela de certificados não existe) */
-export function codigoValidacao(userId: string, courseId: string) {
-  let h1 = 0x811c9dc5, h2 = 0x01000193;
-  for (const ch of `${userId}:${courseId}`) {
-    h1 = Math.imul(h1 ^ ch.charCodeAt(0), 16777619);
-    h2 = Math.imul(h2 + ch.charCodeAt(0), 2246822507);
-  }
-  const b = ((h1 >>> 0).toString(36) + (h2 >>> 0).toString(36)).toUpperCase().replace(/[^A-Z0-9]/g, '').padEnd(8, '0');
-  return `NX-${b.slice(0, 4)}-${b.slice(4, 8)}`;
-}
-
 let logoCache: Promise<HTMLImageElement> | null = null;
 const carregarLogo = () => (logoCache ??= new Promise((ok, falha) => {
   const img = new Image();

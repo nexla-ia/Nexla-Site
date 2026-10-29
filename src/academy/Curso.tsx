@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link, navegar, parametro } from './router';
-import { supabase, organizar, pct, minutos, CERTIFICADO_MIN, SELECT_CURSO, type Aula, type Curso as CursoT } from './supabase';
+import { supabase, organizar, pct, minutos, plural, CERTIFICADO_MIN, SELECT_CURSO, type Aula, type Curso as CursoT } from './supabase';
 import Comunidade from './Comunidade';
 import Avaliacao from './Avaliacao';
 import PaginaCurso from './PaginaCurso';
@@ -164,7 +164,7 @@ function ListaAulas({ curso, aulaId, feitas, matriculado, percentual, abrir }: {
           <span className="text-[13px] font-semibold">{percentual}%</span>
         </div>
         <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>
-          {feitas.size} de {curso.aulas.length} aulas concluídas{percentual < CERTIFICADO_MIN && ' · certificado ao concluir todas'}
+          {feitas.size} de {plural(curso.aulas.length, 'aula concluída', 'aulas concluídas')}{percentual < CERTIFICADO_MIN && ' · certificado ao concluir todas'}
         </p>
       </div>
 
@@ -183,7 +183,7 @@ function ListaAulas({ curso, aulaId, feitas, matriculado, percentual, abrir }: {
               <span className="flex-1 min-w-0">
                 <span className="block text-[14px] font-semibold leading-snug">{m.titulo}</span>
                 <span className="block text-[12px] mt-0.5" style={{ color: T.mute }}>
-                  {feitasMod}/{m.academy_lessons.length} aulas · {minutos(m.academy_lessons.reduce((s, a) => s + a.duracao_seg, 0))}
+                  {feitasMod}/{plural(m.academy_lessons.length, 'aula', 'aulas')} · {minutos(m.academy_lessons.reduce((s, a) => s + a.duracao_seg, 0))}
                 </span>
               </span>
               <ChevronDown size={17} strokeWidth={1.75} className="shrink-0 transition-transform" style={{ color: T.mute, transform: aberto ? 'rotate(180deg)' : 'none' }} />
@@ -559,7 +559,7 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
                 Parabéns, {nome.trim().split(/\s+/)[0] || 'aluno'}! Você concluiu o curso.
               </h2>
               <p className="text-[15px] mt-2" style={{ color: T.mute }}>
-                Você terminou todas as {curso.aulas.length} aulas de <strong style={{ color: T.ink2 }}>{curso.titulo}</strong>. Seu certificado já está liberado.
+                Você terminou {curso.aulas.length === 1 ? 'a aula' : `todas as ${curso.aulas.length} aulas`} de <strong style={{ color: T.ink2 }}>{curso.titulo}</strong>. Seu certificado já está liberado.
               </p>
               <Link para={`/certificado/${slug}`}
                 className="acad-btn mt-6 w-full inline-flex items-center justify-center gap-2 h-12 rounded-[10px] text-[15px] font-semibold text-white">

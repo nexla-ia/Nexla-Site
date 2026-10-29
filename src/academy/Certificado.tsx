@@ -6,7 +6,7 @@ import { T, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link } from './router';
 import { supabase, organizar, pct, CERTIFICADO_MIN, SELECT_CURSO, type Curso as CursoT } from './supabase';
-import { desenharCertificado, codigoValidacao, dataPorExtenso, CERT_W, CERT_H, type DadosCertificado } from './certificadoCanvas';
+import { desenharCertificado, dataPorExtenso, CERT_W, CERT_H, type DadosCertificado } from './certificadoCanvas';
 
 /* LinkedIn: "Adicionar ao perfil" abre o formulário de Licenças e certificados já preenchido (nome do curso,
    Nexla Academy, mês de conclusão, código e o link de validação). "Publicar" compartilha o link de validação,
@@ -45,6 +45,8 @@ function NoLinkedIn({ cert }: { cert: DadosCertificado }) {
 type Estado =
   | { tipo: 'carregando' }
   | { tipo: 'nao-encontrado' }
+  | { tipo: 'sem-curso'; nome: string; slug: string; titulo: string }   // não comprou (ou o acesso foi encerrado)
+  | { tipo: 'erro'; nome: string; slug: string }                       // o servidor não emitiu agora
   | { tipo: 'bloqueado'; nome: string; slug: string; titulo: string; percentual: number; faltam: number; proxima: string | null }
   | { tipo: 'liberado'; nome: string; slug: string; cert: DadosCertificado };
 
@@ -61,12 +63,15 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
       if (!vivo) return;
       if (!c) return setEstado({ tipo: 'nao-encontrado' });
       const curso = organizar(c as unknown as CursoT);
-      const [perfil, prog] = await Promise.all([
+      const [perfil, prog, matricula] = await Promise.all([
         supabase.from('academy_profiles').select('nome').eq('id', uid).maybeSingle(),
         supabase.from('academy_lesson_progress').select('lesson_id, atualizado_em').eq('user_id', uid).eq('concluida', true).in('lesson_id', curso.aulas.map(a => a.id)),
+        supabase.from('academy_enrollments').select('ativo').eq('user_id', uid).eq('course_id', curso.id).eq('ativo', true).maybeSingle(),
       ]);
       if (!vivo) return;
       const nome = (perfil.data?.nome as string | undefined) || (sessao.user.user_metadata?.nome as string | undefined) || sessao.user.email || '';
+      // Sem matrícula o aluno só enxerga as aulas grátis: a conta de "quanto falta" não vale, e o certificado não existe
+      if (!matricula.data) return setEstado({ tipo: 'sem-curso', nome, slug, titulo: curso.titulo });
       const feitas = prog.data ?? [];
       const percentual = pct(feitas.length, curso.aulas.length);
 
@@ -80,20 +85,20 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
       }
 
       // O servidor confere a conclusão, registra o certificado e devolve o código que pode ser validado
-      // em /academy/validar. Sem o 024 no banco, segue com o código calculado aqui (só não dá para validar).
+      // em /academy/validar. Só existe certificado emitido por ele (nada de código feito aqui no navegador).
       const { data: emitido } = await supabase.rpc('academy_emitir_certificado', { p_course: curso.id });
       if (!vivo) return;
       const srv = emitido as { codigo: string; nome: string; carga_h: number; concluido_em: string } | null;
-      const segundos = curso.aulas.reduce((s, a) => s + a.duracao_seg, 0);
+      if (!srv?.codigo) return setEstado({ tipo: 'erro', nome, slug });
       setEstado({
         tipo: 'liberado', nome, slug,
         cert: {
-          nome: srv?.nome || nome,
+          nome: srv.nome || nome,
           curso: curso.titulo,
-          horas: srv?.carga_h ?? Math.max(1, Math.round(segundos / 3600)),
-          concluidoEm: srv ? new Date(srv.concluido_em) : new Date(Math.max(...feitas.map(p => new Date(p.atualizado_em as string).getTime()))),
-          codigo: srv?.codigo ?? codigoValidacao(uid, curso.id),
-          validavel: !!srv,
+          horas: srv.carga_h,
+          concluidoEm: new Date(srv.concluido_em),
+          codigo: srv.codigo,
+          validavel: true,
         },
       });
     })();
@@ -136,6 +141,32 @@ export default function Certificado({ sessao, slug }: { sessao: Session; slug: s
             <ArrowLeft size={15} /> Voltar para meus cursos
           </Link>
         </div>
+      </AppLayout>
+    );
+  }
+
+  if (estado.tipo === 'sem-curso' || estado.tipo === 'erro') {
+    const semCurso = estado.tipo === 'sem-curso';
+    return (
+      <AppLayout nome={estado.nome}>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}
+          className="max-w-xl mx-auto text-center rounded-2xl p-8 md:p-10" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
+          <span className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'var(--a-soft)', color: T.mute }}>
+            <Lock size={24} strokeWidth={1.75} />
+          </span>
+          <h1 className="font-bold text-[24px] md:text-[28px] leading-tight mt-5" style={display}>
+            {semCurso ? 'Você ainda não tem este curso' : 'Não foi possível abrir o certificado agora'}
+          </h1>
+          <p className="text-[15px] mt-2" style={{ color: T.mute }}>
+            {semCurso
+              ? <>O certificado de <strong style={{ color: T.ink2 }}>{estado.titulo}</strong> é liberado para quem tem o curso e conclui todas as aulas.</>
+              : 'Recarregue a página em alguns instantes. Se continuar, fale com a Nexla.'}
+          </p>
+          <Link para={semCurso ? `/curso/${estado.slug}` : '/certificados'}
+            className="acad-btn inline-flex items-center justify-center gap-2 h-12 px-6 mt-7 rounded-[10px] text-[15px] font-semibold text-white">
+            {semCurso ? 'Ver o curso' : 'Voltar para meus certificados'} <ArrowRight size={17} strokeWidth={2} className="acad-arrow" />
+          </Link>
+        </motion.div>
       </AppLayout>
     );
   }

@@ -157,12 +157,12 @@ export function organizar(c: Curso) {
 }
 
 /* Resumo público de cada curso: só números e a aula de amostra (a grade completa só para quem comprou) */
-export type ResumoCurso = { modulos: number; aulas: number; horas: number; amostra: { id: string; titulo: string; duracao_seg: number } | null };
+export type ResumoCurso = { modulos: number; aulas: number; horas: number; segundos: number; amostra: { id: string; titulo: string; duracao_seg: number } | null };
 export async function buscarResumos(): Promise<Map<string, ResumoCurso>> {
   const { data } = await supabase.rpc('academy_resumo_cursos');
   return new Map(((data ?? []) as { course_id: string; modulos: number; aulas: number; segundos: number; amostra_id: string | null; amostra_titulo: string | null; amostra_duracao: number | null }[])
     .map(r => [r.course_id, {
-      modulos: r.modulos, aulas: r.aulas, horas: Math.max(1, Math.round(r.segundos / 3600)),
+      modulos: r.modulos, aulas: r.aulas, horas: Math.max(1, Math.round(r.segundos / 3600)), segundos: r.segundos,
       amostra: r.amostra_id ? { id: r.amostra_id, titulo: r.amostra_titulo ?? '', duracao_seg: r.amostra_duracao ?? 0 } : null,
     }]));
 }
@@ -175,4 +175,12 @@ export const pedidoExpirado = (p: { status: string; forma_pagamento: string | nu
   && Date.now() - new Date(p.criado_em).getTime() > (p.forma_pagamento ? 4 * 24 : PRAZO_LINK_H) * 3600 * 1000;
 
 export const pct = (feitas: number, total: number) => (total ? Math.round((feitas / total) * 100) : 0);
+/* "1 aula", "3 aulas" */
+export const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+/* Tempo total de conteúdo, sem exagerar: "2 min", "45 min", "1h 20min", "3h" */
+export const tempoTotal = (seg: number) => {
+  const min = Math.max(1, Math.round(seg / 60));
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${min % 60 ? ` ${min % 60}min` : ''}`;
+};
 export const minutos = (seg: number) => `${Math.max(1, Math.round(seg / 60))} min`;

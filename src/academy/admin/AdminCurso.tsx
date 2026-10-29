@@ -8,7 +8,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
 import { Link, navegar, parametro } from '../router';
-import { supabase } from '../supabase';
+import { supabase, tempoTotal, plural } from '../supabase';
 import AbaAlunos from './AbaAlunos';
 import { CartaoVenda } from './Vendas';
 import { CartaoBonus, CartaoInstrutor, CartaoPerguntas } from './BonusFaq';
@@ -38,7 +38,7 @@ const ordenar = (c: CursoA): CursoA => ({
 });
 const kb = (n: number | null) => (n == null ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 const totalAulas = (c: CursoA) => c.academy_modules.reduce((s, m) => s + m.academy_lessons.length, 0);
-const horasAulas = (c: CursoA) => Math.max(1, Math.round(c.academy_modules.reduce((s, m) => s + m.academy_lessons.reduce((x, a) => x + a.duracao_seg, 0), 0) / 3600));
+const tempoAulas = (c: CursoA) => tempoTotal(c.academy_modules.reduce((s, m) => s + m.academy_lessons.reduce((x, a) => x + a.duracao_seg, 0), 0));
 
 /* Reordena: troca o item de posição e regrava a ordem 1..n de quem mudou */
 async function mover<X extends { id: string; ordem: number }>(tabela: string, itens: X[], i: number, delta: number) {
@@ -504,7 +504,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
                 onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 className="flex-1 min-w-0 bg-transparent font-medium text-[14.5px] px-2 h-9 rounded-md hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 aria-label="Nome do módulo" />
-              <span className="text-[12px] shrink-0 hidden sm:block" style={{ color: T.mute }}>{m.academy_lessons.length} aulas</span>
+              <span className="text-[12px] shrink-0 hidden sm:block" style={{ color: T.mute }}>{plural(m.academy_lessons.length, 'aula', 'aulas')}</span>
               <button className={iconeBtn} disabled={i === 0 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, i, -1))} aria-label="Subir módulo"><ArrowUp size={15} /></button>
               <button className={iconeBtn} disabled={i === curso.academy_modules.length - 1 || ocupado} onClick={() => acao(() => mover('academy_modules', curso.academy_modules, i, 1))} aria-label="Descer módulo"><ArrowDown size={15} /></button>
               <button className={iconeBtn} disabled={ocupado} onClick={() => apagarModulo(m)} aria-label="Apagar módulo" style={{ color: 'var(--a-red)' }}><Trash2 size={15} /></button>
@@ -604,7 +604,7 @@ function Editor({ nome, id }: { nome: string; id: string }) {
               </span>
             </div>
             <p className="text-[13.5px] mt-1" style={{ color: T.mute }}>
-              {curso.academy_modules.length} módulos · {totalAulas(curso)} aulas · {horasAulas(curso)}h de conteúdo
+              {plural(curso.academy_modules.length, 'módulo', 'módulos')} · {plural(totalAulas(curso), 'aula', 'aulas')} · {tempoAulas(curso)} de conteúdo
             </p>
           </div>
           <Link para={`/curso/${curso.slug}`} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold shrink-0 hover:bg-white"

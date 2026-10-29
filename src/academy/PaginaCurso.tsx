@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link, BASE } from './router';
-import { supabase, minutos, buscarResumos, type ResumoCurso } from './supabase';
+import { supabase, minutos, tempoTotal, buscarResumos, type ResumoCurso } from './supabase';
 import { useCursosAluno } from './dados';
 import { CardVitrine, GRADE_CURSOS } from './Explorar';
 import { checkout } from './Compra';
@@ -95,7 +95,8 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   }, [preco === undefined, curso.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const amostra = resumo?.amostra ?? null;
-  const horas = det?.carga_horaria_h ?? resumo?.horas ?? 1;
+  // Tempo de conteúdo: a carga horária fixa do curso (se houver) ou a soma real das aulas
+  const conteudo = det?.carga_horaria_h ? `${det.carga_horaria_h}h` : resumo ? tempoTotal(resumo.segundos) : '';
   const totalAulas = resumo?.aulas ?? 0;
   const emitirCertificado = det?.certificado ?? true;
   const faq = [...extras.faq, ...FAQ_PADRAO];
@@ -151,8 +152,8 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
                   <strong style={{ color: T.ink }}>{nota.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong> ({nota.total})
                 </span>
               )}
-              {resumo && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {resumo.modulos} módulos · {totalAulas} aulas</span>}
-              <span className="inline-flex items-center gap-1.5"><Clock size={15} /> {horas}h de conteúdo</span>
+              {resumo && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {resumo.modulos} {resumo.modulos === 1 ? 'módulo' : 'módulos'} · {totalAulas} {totalAulas === 1 ? 'aula' : 'aulas'}</span>}
+              <span className="inline-flex items-center gap-1.5"><Clock size={15} /> {conteudo} de conteúdo</span>
               {det?.nivel && <span className="inline-flex items-center gap-1.5"><BarChart3 size={15} /> {NIVEL[det.nivel] ?? det.nivel}</span>}
               {emitirCertificado && <span className="inline-flex items-center gap-1.5"><Award size={15} /> Certificado</span>}
             </div>
@@ -309,7 +310,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
           <p className="text-[13px] font-semibold mt-6 mb-2.5" style={{ color: T.ink }}>Este curso inclui</p>
           <ul className="space-y-2.5 text-[14px]" style={{ color: T.ink2 }}>
             {[
-              totalAulas ? `${totalAulas} aulas · ${horas}h de conteúdo` : `${horas}h de conteúdo`,
+              [totalAulas ? `${totalAulas} ${totalAulas === 1 ? 'aula' : 'aulas'}` : '', conteudo ? `${conteudo} de conteúdo` : ''].filter(Boolean).join(' · '),
               'Acesso no celular e no computador',
               'Materiais para baixar',
               ...(emitirCertificado ? ['Certificado de conclusão'] : []),

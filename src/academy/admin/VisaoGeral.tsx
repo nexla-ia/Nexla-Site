@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando, BarraProgresso } from '../AppLayout';
 import { Link } from '../router';
-import { supabase, pct, CERTIFICADO_MIN } from '../supabase';
+import { supabase, pct, plural, CERTIFICADO_MIN } from '../supabase';
 import { SoAdmin, AdminLayout, TituloAdmin } from './comum';
 
 type LinhaCurso = {
@@ -155,7 +155,7 @@ function Painel({ nome }: { nome: string }) {
                       <tr key={c.id} style={i ? { borderTop: `1px solid ${T.rule}` } : undefined}>
                         <td className="px-5 py-3.5">
                           <Link para={`/admin/curso/${c.id}`} className="font-semibold hover:underline underline-offset-4" style={{ color: T.ink }}>{c.titulo}</Link>
-                          <span className="block text-[12px]" style={{ color: T.mute }}>{c.aulas} aulas{c.publicado ? '' : ' · rascunho'}</span>
+                          <span className="block text-[12px]" style={{ color: T.mute }}>{plural(c.aulas, 'aula', 'aulas')}{c.publicado ? '' : ' · rascunho'}</span>
                         </td>
                         <td className="px-3 py-3.5 text-right font-bold" style={display}>{c.alunos}</td>
                         <td className="px-3 py-3.5">
