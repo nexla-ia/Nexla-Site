@@ -430,14 +430,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
     ? `Apagar o módulo "${m.titulo}" e as ${m.academy_lessons.length} aulas dele? O progresso dos alunos nessas aulas também será apagado.`
     : `Apagar o módulo "${m.titulo}"?`) && acao(() => supabase.from('academy_modules').delete().eq('id', m.id));
 
-  const apagarCurso = async () => {
-    const conf = window.prompt(`Isso apaga o curso, todas as aulas, matrículas e o progresso dos alunos.\nPara confirmar, digite o endereço do curso: ${curso.slug}`);
-    if (conf === null) return;
-    if (conf.trim() !== curso.slug) return window.alert('O endereço digitado não confere. O curso não foi apagado.');
-    const { error } = await supabase.from('academy_courses').delete().eq('id', curso.id);
-    if (error) return window.alert('Não foi possível apagar o curso. Tente de novo em instantes.');
-    navegar('/admin/cursos');
-  };
+  const [apagando, setApagando] = useState(false);
 
   const iconeBtn = 'w-8 h-8 rounded-md flex items-center justify-center hover:bg-slate-100 disabled:opacity-30';
 
@@ -540,12 +533,107 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
       </div>
 
       <Cartao titulo="Apagar curso" sub="Remove o curso, as aulas, as matrículas e o progresso dos alunos. Para só esconder, deixe como rascunho." perigo>
-        <button onClick={apagarCurso} className={botaoSecundario} style={{ color: 'var(--a-red)', border: '1px solid rgba(185,28,28,0.3)' }}>
+        <button onClick={() => setApagando(true)} className={botaoSecundario} style={{ color: 'var(--a-red)', border: '1px solid rgba(185,28,28,0.3)' }}>
           <Trash2 size={15} strokeWidth={1.75} /> Apagar curso
         </button>
       </Cartao>
+      <AnimatePresence>
+        {apagando && <ConfirmarApagar curso={curso} onFechar={() => setApagando(false)} />}
+      </AnimatePresence>
     </div>
     </SalvarTudo.Provider>
+  );
+}
+
+/* ─── Confirmação de apagar o curso: mostra o que some e pede o nome do curso ── */
+function ConfirmarApagar({ curso, onFechar }: { curso: CursoA; onFechar: () => void }) {
+  const [alunos, setAlunos] = useState<number | null>(null);
+  const [pedidos, setPedidos] = useState<number | null>(null);
+  const [digitado, setDigitado] = useState('');
+  const [apagando, setApagando] = useState(false);
+  const [erro, setErro] = useState('');
+  const confere = digitado.trim().toLowerCase() === curso.titulo.trim().toLowerCase();
+  const aulas = totalAulas(curso);
+  const materiais = curso.academy_modules.flatMap(m => m.academy_lessons.flatMap(a => a.academy_lesson_materials.map(x => x.arquivo)));
+
+  useEffect(() => {
+    supabase.from('academy_enrollments').select('user_id', { count: 'exact', head: true }).eq('course_id', curso.id).eq('ativo', true)
+      .then(({ count }) => setAlunos(count ?? 0));
+    supabase.from('academy_orders').select('id', { count: 'exact', head: true }).eq('course_id', curso.id)
+      .then(({ count }) => setPedidos(count ?? 0));
+  }, [curso.id]);
+
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape' && !apagando) onFechar(); };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [apagando, onFechar]);
+
+  const apagar = async () => {
+    if (!confere || apagando) return;
+    setApagando(true); setErro('');
+    const { error } = await supabase.from('academy_courses').delete().eq('id', curso.id);
+    if (error) { setApagando(false); return setErro('Não foi possível apagar o curso. Tente de novo em instantes.'); }
+    // Arquivos que ficariam soltos no Storage: materiais das aulas e a foto de capa
+    if (materiais.length) await supabase.storage.from(MATERIAIS).remove(materiais);
+    if (curso.capa?.includes(`/${CAPAS}/`)) await supabase.storage.from(CAPAS).remove([curso.capa.split(`/${CAPAS}/`)[1]]);
+    navegar('/admin/cursos');
+  };
+
+  const itens = [
+    `${plural(curso.academy_modules.length, 'módulo', 'módulos')} e ${plural(aulas, 'aula', 'aulas')}${materiais.length ? `, com ${plural(materiais.length, 'material', 'materiais')} para baixar` : ''}`,
+    alunos ? `O acesso de ${plural(alunos, 'aluno', 'alunos')}, com o progresso e os certificados` : '',
+    'As avaliações, os preços, os cupons só deste curso e a página de vendas',
+  ].filter(Boolean);
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ background: 'rgba(15,23,42,0.55)' }}
+      onMouseDown={e => { if (e.target === e.currentTarget && !apagando) onFechar(); }}>
+      <motion.div role="alertdialog" aria-modal="true" aria-labelledby="apagar-titulo"
+        initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 8, opacity: 0 }} transition={{ duration: 0.3, ease }}
+        className="relative w-full max-w-md rounded-2xl p-6 md:p-7 my-8" style={{ background: T.card, color: T.ink }}>
+        <h2 id="apagar-titulo" className="font-bold text-[20px]" style={display}>Apagar este curso?</h2>
+        <p className="text-[14px] mt-2 leading-relaxed" style={{ color: T.mute }}>
+          <strong style={{ color: T.ink }}>{curso.titulo}</strong> será apagado para sempre. Isso não pode ser desfeito.
+        </p>
+
+        <p className="text-[13px] font-semibold mt-5 mb-2" style={{ color: T.ink2 }}>Será apagado junto</p>
+        <ul className="space-y-1.5 text-[13.5px]" style={{ color: T.ink2 }}>
+          {itens.map(t => (
+            <li key={t} className="flex gap-2.5"><span className="mt-[7px] w-1 h-1 rounded-full shrink-0" style={{ background: 'var(--a-red)' }} />{t}</li>
+          ))}
+        </ul>
+        {!!pedidos && (
+          <p className="text-[13px] mt-3 leading-relaxed" style={{ color: T.mute }}>
+            {pedidos === 1 ? 'O pedido de venda continua' : `Os ${pedidos} pedidos de venda continuam`} no histórico de Vendas.
+          </p>
+        )}
+        {curso.publicado && (
+          <p className="text-[13px] mt-3 leading-relaxed" style={{ color: T.mute }}>
+            Só quer tirar do ar? Mude de Publicado para Rascunho acima e salve: o curso some do catálogo e nada é apagado.
+          </p>
+        )}
+
+        <label className="block mt-5">
+          <span className="block text-[13px] mb-2" style={{ color: T.ink2 }}>
+            Para confirmar, digite o nome do curso: <strong>{curso.titulo}</strong>
+          </span>
+          <input className={inputCls} value={digitado} autoFocus autoComplete="off" spellCheck={false} disabled={apagando}
+            onChange={e => setDigitado(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') apagar(); }} />
+        </label>
+
+        {erro && <p className="text-[13.5px] mt-3" style={{ color: 'var(--a-red)' }}>{erro}</p>}
+        <div className="flex justify-end gap-3 mt-6">
+          <button onClick={onFechar} disabled={apagando} className={botaoSecundario} style={{ color: T.mute, border: `1px solid ${T.rule}` }}>Cancelar</button>
+          <button onClick={apagar} disabled={!confere || apagando}
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] text-[14.5px] font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: '#DC2626' }}>
+            <Trash2 size={15} strokeWidth={1.75} /> {apagando ? 'Apagando…' : 'Apagar curso'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
