@@ -35,7 +35,7 @@ function Interruptor({ ligado, onChange, children }: { ligado: boolean; onChange
     <button type="button" role="switch" aria-checked={ligado} onClick={() => onChange(!ligado)}
       className="w-full flex items-start justify-between gap-4 text-left">
       <span className="text-[14px] leading-relaxed" style={{ color: T.ink2 }}>{children}</span>
-      <span className="relative w-11 h-6 rounded-full shrink-0 transition-colors" style={{ background: ligado ? '#4F46E5' : 'var(--a-track)' }}>
+      <span className="relative w-11 h-6 rounded-full shrink-0 transition-colors" style={{ background: ligado ? '#4F46E5' : 'var(--a-caixa)' }}>
         <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-[left]" style={{ left: ligado ? 22 : 2 }} />
       </span>
     </button>

@@ -6,6 +6,7 @@ import { T, LOGO, display, ease } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { Link } from './router';
 import { useCursosAluno, type CursoAluno, type CursoVitrine } from './dados';
+import { categoriasDe } from './supabase';
 import { reais } from './Compra';
 
 /* Fundo de quem ainda não tem foto: a cor de cartão do tema com o símbolo da Nexla */
@@ -35,7 +36,7 @@ function Capa({ url, progresso }: { url: string | null; progresso?: number }) {
 
 /* Card simples: capa, nome do curso e uma linha discreta (o card inteiro é o link).
    Surge de baixo para cima quando entra na tela. */
-function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string }) {
+function Card({ para, capa, progresso, titulo, linha, selo }: { para: string; capa: string | null; progresso?: number; titulo: string; linha: string; selo?: string | null }) {
   const parado = useReducedMotion();
   return (
     <motion.div initial={parado ? false : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}
@@ -45,7 +46,9 @@ function Card({ para, capa, progresso, titulo, linha }: { para: string; capa: st
         <h3 className="mt-2.5 text-[14.5px] font-semibold leading-snug line-clamp-2 transition-colors text-[color:var(--a-ink)] group-hover:text-[color:var(--a-accent)]">
           {titulo}
         </h3>
-        <p className="mt-0.5 text-[13px]" style={{ color: T.mute }}>{linha}</p>
+        <p className="mt-0.5 text-[13px]" style={{ color: T.mute }}>
+          {linha}{selo && <> · <span className="font-semibold" style={{ color: T.accent }}>{selo}</span></>}
+        </p>
       </Link>
     </motion.div>
   );
@@ -56,7 +59,7 @@ const aulas = (n: number) => `${n} ${n === 1 ? 'aula' : 'aulas'}`;
 /* Curso que o aluno ainda não tem: aulas e preço */
 export function CardVitrine({ c }: { c: CursoVitrine }) {
   const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
-  return <Card para={`/curso/${c.slug}`} capa={c.capa} titulo={c.titulo} linha={`${aulas(c.totalAulas)} · ${preco}`} />;
+  return <Card para={`/curso/${c.slug}`} capa={c.capa} titulo={c.titulo} linha={`${aulas(c.totalAulas)} · ${preco}`} selo={c.preco?.selo} />;
 }
 
 /* Curso que o aluno já tem: quanto já fez */
@@ -70,14 +73,20 @@ function CardMeu({ c }: { c: CursoAluno }) {
 
 type Item = { meu: true; c: CursoAluno } | { meu: false; c: CursoVitrine };
 
-/* Agrupa por categoria (na ordem dos cursos); os sem categoria ficam por último */
+// "Automação" e "automacao" acham o mesmo curso
+const normal = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const temCategoria = (i: Item, chave: string) => categoriasDe(i.c).some(t => normal(t) === chave);
+
+/* Agrupa por categoria (na ordem dos cursos); curso com várias categorias aparece em cada uma; os sem categoria ficam por último */
 function porCategoria(itens: Item[]) {
   const grupos = new Map<string, { nome: string; itens: Item[] }>();
   for (const i of [...itens].sort((a, b) => a.c.ordem - b.c.ordem)) {
-    const nome = i.c.categoria?.trim() ?? '';
-    const chave = nome.toLowerCase();
-    if (!grupos.has(chave)) grupos.set(chave, { nome, itens: [] });
-    grupos.get(chave)!.itens.push(i);
+    const nomes = categoriasDe(i.c);
+    for (const nome of nomes.length ? nomes : ['']) {
+      const chave = normal(nome);
+      if (!grupos.has(chave)) grupos.set(chave, { nome, itens: [] });
+      grupos.get(chave)!.itens.push(i);
+    }
   }
   return [...grupos.values()].sort((a, b) => Number(!a.nome) - Number(!b.nome));
 }
@@ -121,8 +130,6 @@ const ABAS: { id: Aba; texto: string; filtro: (i: Item) => boolean }[] = [
   { id: 'em-breve',  texto: 'Em breve',        filtro: i => !i.meu && !i.c.preco },
 ];
 
-// "Automação" e "automacao" acham o mesmo curso
-const normal = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const alterna = (s: Set<string>, v: string) => { const n = new Set(s); if (n.has(v)) n.delete(v); else n.add(v); return n; };
 
 /* Caixinha de marcar do painel de filtros, com quantos cursos tem */
@@ -131,7 +138,7 @@ function Marcar({ marcado, onChange, texto, qtd, unica }: { marcado: boolean; on
     <label className="flex items-center gap-3 py-1.5 cursor-pointer group">
       <input type={unica ? 'radio' : 'checkbox'} name={unica} checked={marcado} onChange={onChange} className="sr-only peer" />
       <span className={`w-[18px] h-[18px] shrink-0 ${unica ? 'rounded-full' : 'rounded-[5px]'} flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400`}
-        style={marcado ? { background: '#4F46E5', border: '1.5px solid #4F46E5' } : { border: `1.5px solid ${T.rule}`, background: T.card }}>
+        style={marcado ? { background: '#4F46E5', border: '1.5px solid #4F46E5' } : { border: '1.5px solid var(--a-caixa)', background: T.card }}>
         {marcado && (unica ? <span className="w-[7px] h-[7px] rounded-full bg-white" /> : <Check size={12} strokeWidth={3} color="#FFFFFF" />)}
       </span>
       <span className="flex-1 text-[14px] leading-snug transition-colors" style={{ color: marcado ? T.ink : T.ink2, fontWeight: marcado ? 600 : 400 }}>{texto}</span>
@@ -164,7 +171,7 @@ export default function Explorar({ sessao }: { sessao: Session }) {
 
   const todos: Item[] = [...outros.map(c => ({ meu: false as const, c })), ...cursos.map(c => ({ meu: true as const, c }))];
   const daAba = todos.filter(ABAS.find(a => a.id === aba)!.filtro);
-  const categorias = [...new Map(todos.filter(i => i.c.categoria?.trim()).map(i => [normal(i.c.categoria!), i.c.categoria!.trim()])).entries()]
+  const categorias = [...new Map(todos.flatMap(i => categoriasDe(i.c)).map(t => [normal(t), t])).entries()]
     .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
   const listaNiveis = Object.keys(NIVEIS).filter(n => todos.some(i => i.c.nivel === n));
   const qtdFiltros = cats.size + niveis.size + (aba !== 'todos' ? 1 : 0);
@@ -175,8 +182,8 @@ export default function Explorar({ sessao }: { sessao: Session }) {
   const termo = normal(busca);
   const precoDe = (i: Item) => (i.meu ? null : i.c.preco?.valor ?? null);
   const achados = daAba
-    .filter(i => !termo || normal(`${i.c.titulo} ${i.c.subtitulo ?? ''} ${i.c.categoria ?? ''}`).includes(termo))
-    .filter(i => !cats.size || cats.has(normal(i.c.categoria ?? '')))
+    .filter(i => !termo || normal(`${i.c.titulo} ${i.c.subtitulo ?? ''} ${categoriasDe(i.c).join(' ')}`).includes(termo))
+    .filter(i => !cats.size || [...cats].some(k => temCategoria(i, k)))
     .filter(i => !niveis.size || (!!i.c.nivel && niveis.has(i.c.nivel)))
     .sort((a, b) => {
       if (ordem === 'avaliados') return (b.c.media ?? 0) - (a.c.media ?? 0) || b.c.avaliacoes - a.c.avaliacoes || a.c.ordem - b.c.ordem;
@@ -199,7 +206,7 @@ export default function Explorar({ sessao }: { sessao: Session }) {
         <GrupoFiltro titulo="Categorias">
           {categorias.map(([chave, texto]) => (
             <Marcar key={chave} texto={texto} marcado={cats.has(chave)} onChange={() => setCats(s => alterna(s, chave))}
-              qtd={daAba.filter(i => normal(i.c.categoria ?? '') === chave).length} />
+              qtd={daAba.filter(i => temCategoria(i, chave)).length} />
           ))}
         </GrupoFiltro>
       )}

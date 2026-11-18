@@ -95,7 +95,9 @@ function Sugestao({ c }: { c: CursoVitrine }) {
       <Link para={`/curso/${c.slug}`} className="group block">
         <Miniatura url={c.capa} className="w-full" />
         <p className={TITULO}>{c.titulo}</p>
-        <p className={LINHA} style={{ color: T.mute }}>{plural(c.totalAulas, 'aula', 'aulas')} · {preco}</p>
+        <p className={LINHA} style={{ color: T.mute }}>
+          {plural(c.totalAulas, 'aula', 'aulas')} · {preco}{c.preco?.selo && <> · <span className="font-semibold" style={{ color: T.accent }}>{c.preco.selo}</span></>}
+        </p>
       </Link>
     </motion.div>
   );

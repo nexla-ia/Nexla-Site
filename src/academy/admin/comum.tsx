@@ -75,7 +75,7 @@ function MenuAdmin({ foto, nome, email }: { foto: string; nome: string; email: s
         <button role="switch" aria-checked={escuro} onClick={alternar}
           className="w-full mt-1 flex items-center gap-3 px-3 h-10 rounded-lg text-[14px] font-medium text-left transition-colors hover:bg-slate-100" style={{ color: T.ink2 }}>
           <Moon size={18} strokeWidth={1.75} style={{ color: T.mute }} /> Modo escuro
-          <span className="ml-auto relative w-9 h-5 rounded-full shrink-0 transition-colors" style={{ background: escuro ? '#4F46E5' : 'var(--a-track)' }}>
+          <span className="ml-auto relative w-9 h-5 rounded-full shrink-0 transition-colors" style={{ background: escuro ? '#4F46E5' : 'var(--a-caixa)' }}>
             <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-[left]" style={{ left: escuro ? 18 : 2 }} />
           </span>
         </button>
@@ -206,8 +206,8 @@ export function Rotulo({ texto, children, dica }: { texto: string; children: Rea
 
 export function Chave({ ligado, onChange, texto }: { ligado: boolean; onChange: (v: boolean) => void; texto: string }) {
   return (
-    <button type="button" role="switch" aria-checked={ligado} onClick={() => onChange(!ligado)} className="inline-flex items-center gap-3">
-      <span className="relative w-11 h-6 rounded-full shrink-0 transition-colors" style={{ background: ligado ? T.accent : 'rgba(15,23,42,0.18)' }}>
+    <button type="button" role="switch" aria-checked={ligado} onClick={() => onChange(!ligado)} className="inline-flex items-center gap-3 text-left">
+      <span className="relative w-11 h-6 rounded-full shrink-0 transition-colors" style={{ background: ligado ? '#4F46E5' : 'var(--a-caixa)' }}>
         <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-[left]" style={{ left: ligado ? 22 : 2 }} />
       </span>
       <span className="text-[14px]" style={{ color: T.ink2 }}>{texto}</span>

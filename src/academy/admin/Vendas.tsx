@@ -12,7 +12,8 @@ const numero = (v: string) => { const n = Number(v.replace(/\./g, '').replace(',
 const paraCampo = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
 /* ─── Bloco "Venda" nas Configurações do curso: preço e oferta extra ─── */
-type Produto = { id?: string; tipo: 'curso' | 'oferta_extra'; titulo: string; descricao: string | null; preco: number; preco_promocional: number | null; ativo: boolean };
+type Produto = { id?: string; tipo: 'curso' | 'oferta_extra'; titulo: string; descricao: string | null; preco: number; preco_promocional: number | null; ativo: boolean; selo?: string | null };
+const SELOS = ['Black Friday', 'Lançamento'];
 
 export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloCurso: string }) {
   const [carregado, setCarregado] = useState(false);
@@ -24,9 +25,13 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
   const [extraAtivo, setExtraAtivo] = useState(false);
   const [extraTitulo, setExtraTitulo] = useState('Pacote de modelos prontos');
   const [extraPreco, setExtraPreco] = useState('');
+  // Selo da promoção: "Black Friday", "Lançamento" ou um texto próprio
+  const [seloLigado, setSeloLigado] = useState(false);
+  const [selo, setSelo] = useState(SELOS[0]);
+  const [seloProprio, setSeloProprio] = useState(false);
   const [erro, setErro] = useState('');
   const [salvo, setSalvo] = useState(''); // o que está gravado (para saber se mudou)
-  const atual = JSON.stringify([preco, promo, aVenda, gratis, extraAtivo, extraTitulo, extraPreco]);
+  const atual = JSON.stringify([preco, promo, aVenda, gratis, extraAtivo, extraTitulo, extraPreco, seloLigado, seloLigado ? selo : '']);
 
   useEffect(() => {
     supabase.from('academy_products').select('*').eq('course_id', cursoId).then(({ data, error }) => {
@@ -34,10 +39,13 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
       const c = (data ?? []).find(p => p.tipo === 'curso') as Produto | undefined;
       const e = (data ?? []).find(p => p.tipo === 'oferta_extra') as Produto | undefined;
       if (c) { setPreco(Number(c.preco) === 0 ? '' : paraCampo(c.preco)); setPromo(paraCampo(c.preco_promocional)); setAVenda(c.ativo); setGratis(Number(c.preco) === 0); }
+      const seloSalvo = c?.selo?.trim() ?? '';
+      if (seloSalvo) { setSeloLigado(true); setSelo(seloSalvo); setSeloProprio(!SELOS.includes(seloSalvo)); }
       if (e) { setExtraAtivo(e.ativo); setExtraTitulo(e.titulo); setExtraPreco(paraCampo(e.preco)); }
       setSalvo(JSON.stringify([
         c ? (Number(c.preco) === 0 ? '' : paraCampo(c.preco)) : '', c ? paraCampo(c.preco_promocional) : '', c ? c.ativo : true, c ? Number(c.preco) === 0 : false,
         e ? e.ativo : false, e ? e.titulo : 'Pacote de modelos prontos', e ? paraCampo(e.preco) : '',
+        !!seloSalvo, seloSalvo,
       ]));
       setCarregado(true);
     });
@@ -49,11 +57,12 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
     const p = gratis ? 0 : numero(preco); const pr = !gratis && promo.trim() ? numero(promo) : null; const ep = numero(extraPreco);
     const invalido = !gratis && !(p > 0) ? 'Informe o preço do curso (ou marque como gratuito).'
       : pr !== null && !(pr > 0 && pr < p) ? 'O preço promocional precisa ser menor que o preço normal.'
-      : !gratis && extraAtivo && (!extraTitulo.trim() || !(ep > 0)) ? 'Informe o nome e o preço da oferta extra.' : '';
+      : !gratis && extraAtivo && (!extraTitulo.trim() || !(ep > 0)) ? 'Informe o nome e o preço da oferta extra.'
+      : pr !== null && seloLigado && !selo.trim() ? 'Escreva o texto do selo da promoção.' : '';
     setErro(invalido);
     if (invalido) return invalido;
     const linhas = [
-      { course_id: cursoId, tipo: 'curso', titulo: tituloCurso, preco: p, preco_promocional: pr, ativo: aVenda },
+      { course_id: cursoId, tipo: 'curso', titulo: tituloCurso, preco: p, preco_promocional: pr, ativo: aVenda, selo: pr !== null && seloLigado ? selo.trim().slice(0, 24) : null },
       ...(extraTitulo.trim() && ep > 0 ? [{ course_id: cursoId, tipo: 'oferta_extra', titulo: extraTitulo.trim(), preco: ep, preco_promocional: null, ativo: extraAtivo && !gratis }] : []),
     ];
     const { error } = await supabase.from('academy_products').upsert(linhas, { onConflict: 'course_id,tipo' });
@@ -82,6 +91,35 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
               <input className={inputCls} inputMode="decimal" placeholder="29,90" value={promo} onChange={e => setPromo(e.target.value)} />
             </Rotulo>
           </div>
+          {promo.trim() && (
+            <div className="space-y-3">
+              <Chave ligado={seloLigado} onChange={setSeloLigado} texto="Mostrar o motivo da promoção (selo ao lado do preço)" />
+              {seloLigado && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {SELOS.map(s => {
+                    const ativo = !seloProprio && selo === s;
+                    return (
+                      <button key={s} type="button" onClick={() => { setSeloProprio(false); setSelo(s); }} aria-pressed={ativo}
+                        className="h-9 px-3.5 rounded-lg text-[13.5px] font-semibold transition-colors"
+                        style={ativo ? { background: '#4F46E5', color: '#FFFFFF', border: '1px solid #4F46E5' } : { color: T.ink2, border: `1px solid ${T.rule}` }}>
+                        {s}
+                      </button>
+                    );
+                  })}
+                  <button type="button" onClick={() => { if (!seloProprio) { setSeloProprio(true); setSelo(''); } }} aria-pressed={seloProprio}
+                    className="h-9 px-3.5 rounded-lg text-[13.5px] font-semibold transition-colors"
+                    style={seloProprio ? { background: '#4F46E5', color: '#FFFFFF', border: '1px solid #4F46E5' } : { color: T.ink2, border: `1px solid ${T.rule}` }}>
+                    Outro
+                  </button>
+                  {seloProprio && (
+                    <input className={`${inputCls} !h-9 max-w-[14rem]`} value={selo} maxLength={24} autoFocus placeholder="Ex.: Dia do Cliente"
+                      onChange={e => setSelo(e.target.value)} />
+                  )}
+                </div>
+              )}
+              {seloLigado && <p className="text-[12px]" style={{ color: T.mute }}>Aparece na página de vendas e no catálogo, junto do preço promocional. Para encerrar, desligue ou apague o preço promocional.</p>}
+            </div>
+          )}
           <div className="pt-5 space-y-4" style={{ borderTop: `1px solid ${T.rule}` }}>
             <Chave ligado={extraAtivo} onChange={setExtraAtivo} texto="Oferta extra na tela de compra" />
             {extraAtivo && (

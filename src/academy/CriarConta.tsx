@@ -35,7 +35,7 @@ export function Caixa({ marcado, onChange, children }: { marcado: boolean; onCha
     <label className="flex items-start gap-3 text-[13.5px] leading-relaxed cursor-pointer select-none" style={{ color: T.mute }}>
       <input type="checkbox" checked={marcado} onChange={e => onChange(e.target.checked)} className="sr-only peer" />
       <span className="mt-0.5 w-[18px] h-[18px] rounded-[5px] shrink-0 flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500"
-        style={{ background: marcado ? T.accent : T.card, border: `1.5px solid ${marcado ? T.accent : 'rgba(15,23,42,0.25)'}` }}>
+        style={{ background: marcado ? '#4F46E5' : T.card, border: `1.5px solid ${marcado ? '#4F46E5' : 'var(--a-caixa)'}` }}>
         {marcado && <Check size={12} strokeWidth={3} color="#FFFFFF" />}
       </span>
       <span>{children}</span>

@@ -111,7 +111,7 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
                   className="w-full text-left rounded-2xl p-5 flex items-start gap-4 transition-colors"
                   style={{ background: comOferta ? 'rgba(79,70,229,0.06)' : T.card, border: `1.5px ${comOferta ? 'solid' : 'dashed'} ${comOferta ? T.accent : 'rgba(79,70,229,0.4)'}` }}>
                   <span className="mt-0.5 w-5 h-5 rounded-[5px] shrink-0 flex items-center justify-center"
-                    style={{ background: comOferta ? T.accent : T.card, border: `1.5px solid ${comOferta ? T.accent : 'rgba(15,23,42,0.25)'}` }}>
+                    style={{ background: comOferta ? '#4F46E5' : T.card, border: `1.5px solid ${comOferta ? '#4F46E5' : 'var(--a-caixa)'}` }}>
                     {comOferta && <CheckCircle2 size={14} color="#FFFFFF" />}
                   </span>
                   <span className="flex-1">

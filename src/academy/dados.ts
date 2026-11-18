@@ -19,7 +19,14 @@ export type CursoVitrine = ReturnType<typeof organizar> & {
   preco: Preco | null;     // null = ainda sem produto ativo (vendas em breve)
 };
 
-export type Preco = { valor: number; de: number | null }; // de = preço cheio quando há promoção
+// de = preço cheio quando há promoção; selo = "Black Friday", "Lançamento"... (só com promoção)
+export type Preco = { valor: number; de: number | null; selo: string | null };
+type LinhaPreco = { preco: number; preco_promocional: number | null; selo?: string | null };
+export const lerPreco = (p: LinhaPreco): Preco => ({
+  valor: Number(p.preco_promocional ?? p.preco),
+  de: p.preco_promocional != null ? Number(p.preco) : null,
+  selo: p.preco_promocional != null ? p.selo?.trim() || null : null,
+});
 type Medias = Map<string, { media: number; total: number }>;
 
 // Quem não comprou não lê a grade do curso: os números vêm do resumo público
@@ -56,7 +63,7 @@ export function useCursosAluno(sessao: Session) {
         supabase.rpc('academy_media_cursos'), // se o 006 não rodou, volta erro e as médias ficam vazias
         supabase.from('academy_course_reviews').select('course_id, estrelas').eq('user_id', uid),
         buscarResumos(),
-        supabase.from('academy_products').select('course_id, preco, preco_promocional').eq('tipo', 'curso').eq('ativo', true),
+        supabase.from('academy_products').select('course_id, preco, preco_promocional, selo').eq('tipo', 'curso').eq('ativo', true),
       ]);
       if (!vivo) return;
       const erro = matriculas.error || progresso.error;
@@ -64,8 +71,7 @@ export function useCursosAluno(sessao: Session) {
         .map(n => [n.course_id, { media: Number(n.media), total: n.total }]));
       const minhasNotas = new Map(((minhas.data ?? []) as { course_id: string; estrelas: number | null }[])
         .map(r => [r.course_id, r.estrelas]));
-      const precos = new Map(((produtos.data ?? []) as { course_id: string; preco: number; preco_promocional: number | null }[])
-        .map(p => [p.course_id, { valor: Number(p.preco_promocional ?? p.preco), de: p.preco_promocional != null ? Number(p.preco) : null }]));
+      const precos = new Map(((produtos.data ?? []) as (LinhaPreco & { course_id: string })[]).map(p => [p.course_id, lerPreco(p)]));
       const feitasTodas = new Map((progresso.data ?? []).map(p => [p.lesson_id as string, new Date(p.atualizado_em as string).getTime()]));
 
       const cursos: CursoAluno[] = (matriculas.data ?? [])

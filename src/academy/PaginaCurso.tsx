@@ -5,8 +5,8 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link, BASE } from './router';
-import { supabase, minutos, tempoTotal, buscarResumos, type ResumoCurso } from './supabase';
-import { useCursosAluno } from './dados';
+import { supabase, minutos, tempoTotal, buscarResumos, categoriasDe, type ResumoCurso } from './supabase';
+import { useCursosAluno, lerPreco, type Preco } from './dados';
 import { CardVitrine, GRADE_CURSOS } from './Explorar';
 import { checkout } from './Compra';
 import VideoAula from './Video';
@@ -15,7 +15,7 @@ import { evento } from './pixel';
 type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
 type Detalhes = {
   descricao: string | null; aprendizados: string[]; nivel: string | null; instrutor: string | null;
-  categoria: string | null; certificado: boolean; carga_horaria_h: number | null;
+  categorias: string[] | null; certificado: boolean; carga_horaria_h: number | null;
 };
 type Bonus = { titulo: string; descricao?: string };
 type Pergunta = { pergunta: string; resposta: string };
@@ -66,7 +66,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   const [det, setDet] = useState<Detalhes | null>(null);
   const [extras, setExtras] = useState<{ bonus: Bonus[]; faq: Pergunta[] }>({ bonus: [], faq: [] });
   const [sobreInstrutor, setSobreInstrutor] = useState<{ ferramentas: string[]; bio: string | null }>({ ferramentas: [], bio: null });
-  const [preco, setPreco] = useState<{ valor: number; de: number | null } | null | undefined>(undefined);
+  const [preco, setPreco] = useState<Preco | null | undefined>(undefined);
   const [nota, setNota] = useState<{ media: number; total: number } | null>(null);
   const [faqAberta, setFaqAberta] = useState<number | null>(0);
   const [liberando, setLiberando] = useState(false);
@@ -74,14 +74,14 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
 
   useEffect(() => {
     // Cada parte é opcional: se a coluna/tabela ainda não existir no banco, a página segue sem ela
-    supabase.from('academy_courses').select('descricao, aprendizados, nivel, instrutor, categoria, certificado, carga_horaria_h').eq('id', curso.id).maybeSingle()
+    supabase.from('academy_courses').select('descricao, aprendizados, nivel, instrutor, categorias, certificado, carga_horaria_h').eq('id', curso.id).maybeSingle()
       .then(({ data }) => setDet((data as Detalhes | null) ?? null));
     supabase.from('academy_courses').select('bonus, faq').eq('id', curso.id).maybeSingle()
       .then(({ data }) => setExtras({ bonus: ((data?.bonus ?? []) as Bonus[]).filter(b => b?.titulo), faq: ((data?.faq ?? []) as Pergunta[]).filter(f => f?.pergunta) }));
     supabase.from('academy_courses').select('ferramentas, instrutor_bio').eq('id', curso.id).maybeSingle()
       .then(({ data }) => setSobreInstrutor({ ferramentas: ((data?.ferramentas ?? []) as string[]).filter(Boolean), bio: (data?.instrutor_bio as string | null) ?? null }));
-    supabase.from('academy_products').select('preco, preco_promocional').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle()
-      .then(({ data }) => setPreco(data ? { valor: Number(data.preco_promocional ?? data.preco), de: data.preco_promocional != null ? Number(data.preco) : null } : null));
+    supabase.from('academy_products').select('preco, preco_promocional, selo').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle()
+      .then(({ data }) => setPreco(data ? lerPreco(data) : null));
     supabase.rpc('academy_media_cursos').then(({ data }) => {
       const n = ((data ?? []) as { course_id: string; media: number; total: number }[]).find(x => x.course_id === curso.id);
       if (n) setNota({ media: Number(n.media), total: n.total });
@@ -105,6 +105,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   const destinoComprar = sessao ? compra : `/criar-conta?voltar=${encodeURIComponent(compra)}`;
 
   const gratis = preco?.valor === 0;
+  const desconto = preco?.de ? Math.round((1 - preco.valor / preco.de) * 100) : 0;
   // Curso gratuito: o servidor cria o pedido de R$ 0 e libera na hora; depois abre o curso já liberado
   const liberar = async () => {
     setLiberando(true); setErroLiberar('');
@@ -139,7 +140,11 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
         <div className="min-w-0 space-y-12">
           {/* ── Nome, descrição e números ── */}
           <section>
-            {det?.categoria && <p className="text-[13px] font-semibold mb-2" style={{ color: T.accent }}>{det.categoria}</p>}
+            {det && categoriasDe(det).length > 0 && (
+              <p className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] font-semibold mb-2" style={{ color: T.accent }}>
+                {categoriasDe(det).map(t => <span key={t}>#{t}</span>)}
+              </p>
+            )}
             <h1 className="font-bold leading-[1.1]" style={{ ...display, fontSize: 'clamp(28px,3.6vw,42px)' }}>{curso.titulo}</h1>
             {curso.subtitulo && <p className="text-[17px] leading-relaxed mt-3" style={{ color: T.ink2 }}>{curso.subtitulo}</p>}
             {det?.instrutor && (
@@ -270,7 +275,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
               style={{ background: T.card, border: '1px solid rgba(79,70,229,0.25)' }}>
               <div>
                 <p className="font-bold text-[20px]" style={display}>Pronto para começar?</p>
-                <p className="text-[14.5px] mt-1" style={{ color: T.mute }}>{gratis ? 'Grátis · acesso na hora' : `${reais(preco.valor)}${parcelas(preco.valor) > 1 ? ` ou até ${parcelas(preco.valor)}x no cartão` : ''} · 7 dias de garantia`}</p>
+                <p className="text-[14.5px] mt-1" style={{ color: T.mute }}>{gratis ? 'Grátis · acesso na hora' : `${preco.selo ? `${preco.selo}: ` : ''}${reais(preco.valor)}${parcelas(preco.valor) > 1 ? ` ou até ${parcelas(preco.valor)}x no cartão` : ''} · 7 dias de garantia`}</p>
               </div>
               <BotaoComprar />
             </section>
@@ -287,6 +292,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             </>
           ) : preco ? (
             <>
+              {preco.selo && (
+                <p className="inline-flex items-center gap-2 text-[12.5px] font-semibold rounded-md px-2.5 py-1 mb-3"
+                  style={{ background: 'rgba(99,102,241,0.12)', color: T.accent }}>
+                  {preco.selo}{desconto > 0 && <span>· {desconto}% off</span>}
+                </p>
+              )}
               {preco.de != null && <p className="text-[14px]" style={{ color: T.mute }}>De <s>{reais(preco.de)}</s> por</p>}
               <p className="font-bold text-[34px] leading-none mt-1" style={display}>{reais(preco.valor)}</p>
               {parcelas(preco.valor) > 1 && (
@@ -354,6 +365,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
         style={{ background: 'var(--a-vidro)', borderTop: `1px solid ${T.rule}`, backdropFilter: 'blur(8px)' }}>
         {preco && (
           <span className="shrink-0 leading-tight">
+            {!gratis && preco.selo && <span className="block text-[11.5px] font-semibold" style={{ color: T.accent }}>{preco.selo}</span>}
             <span className="block font-bold text-[18px]" style={gratis ? { ...display, color: 'var(--a-green)' } : display}>{gratis ? 'Grátis' : reais(preco.valor)}</span>
             {!gratis && parcelas(preco.valor) > 1 && <span className="block text-[12px]" style={{ color: T.mute }}>ou até {parcelas(preco.valor)}x</span>}
           </span>

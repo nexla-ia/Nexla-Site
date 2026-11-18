@@ -8,7 +8,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
 import { Link, navegar, parametro } from '../router';
-import { supabase, tempoTotal, plural } from '../supabase';
+import { supabase, tempoTotal, plural, categoriasDe } from '../supabase';
 import AbaAlunos from './AbaAlunos';
 import { CartaoVenda } from './Vendas';
 import { CartaoBonus, CartaoInstrutor, CartaoPerguntas } from './BonusFaq';
@@ -20,13 +20,13 @@ type AulaA = { id: string; titulo: string; descricao: string | null; ordem: numb
 type ModuloA = { id: string; titulo: string; ordem: number; academy_lessons: AulaA[] };
 type CursoA = {
   id: string; slug: string; titulo: string; subtitulo: string | null; descricao: string | null; capa: string | null;
-  publicado: boolean; ordem: number; destaque: boolean; categoria: string | null; nivel: string | null; instrutor: string | null;
+  publicado: boolean; ordem: number; destaque: boolean; categorias: string[] | null; nivel: string | null; instrutor: string | null;
   aprendizados: string[]; certificado: boolean; carga_horaria_h: number | null; academy_modules: ModuloA[];
 };
 
 const MATERIAIS = 'academy-materiais';
 const CAPAS = 'academy-capas';
-const SELECT = 'id, slug, titulo, subtitulo, descricao, capa, publicado, ordem, destaque, categoria, nivel, instrutor, aprendizados, certificado, carga_horaria_h, '
+const SELECT = 'id, slug, titulo, subtitulo, descricao, capa, publicado, ordem, destaque, categorias, nivel, instrutor, aprendizados, certificado, carga_horaria_h, '
   + 'academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita, video_id, academy_lesson_materials(id, nome, arquivo, tamanho)))';
 const NIVEIS = [{ v: '', t: 'Não informar' }, { v: 'iniciante', t: 'Iniciante' }, { v: 'intermediario', t: 'Intermediário' }, { v: 'avancado', t: 'Avançado' }];
 
@@ -336,11 +336,73 @@ function AbaAulas({ curso, recarregar, irConfig }: { curso: CursoA; recarregar: 
   );
 }
 
+/* ─── Categorias do curso: etiquetas com #, uma ou várias ─────────── */
+const MAX_CATEGORIAS = 5;
+const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function CampoCategorias({ valor, onChange, usadas }: { valor: string[]; onChange: (v: string[]) => void; usadas: string[] }) {
+  const [texto, setTexto] = useState('');
+  const tem = (t: string) => valor.some(v => semAcento(v) === semAcento(t));
+  // Aceita uma ou várias separadas por vírgula; usa a grafia que já existe em outro curso ("automacao" vira "Automação")
+  const adicionar = (bruto: string) => {
+    setTexto('');
+    const nova = [...valor];
+    for (const parte of bruto.split(/[,;]/)) {
+      const t = parte.trim().replace(/^#+/, '').replace(/\s+/g, ' ').trim().slice(0, 30);
+      if (t && nova.length < MAX_CATEGORIAS && !nova.some(v => semAcento(v) === semAcento(t))) nova.push(usadas.find(u => semAcento(u) === semAcento(t)) ?? t);
+    }
+    if (nova.length !== valor.length) onChange(nova);
+  };
+  const sugestoes = usadas.filter(u => !tem(u) && (!texto.trim() || semAcento(u).includes(semAcento(texto.replace(/^#+/, '').trim()))));
+  const cheio = valor.length >= MAX_CATEGORIAS;
+
+  return (
+    <div>
+      <span className="block text-[13px] font-semibold mb-1.5" style={{ color: T.ink2 }}>Categorias</span>
+      <div className="acad-field w-full min-h-11 rounded-[10px] px-2 py-1.5 flex flex-wrap items-center gap-1.5 focus-within:border-[#4F46E5]">
+        {valor.map(t => (
+          <span key={t} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-md text-[13.5px] font-medium" style={{ background: 'var(--a-soft)', color: T.ink }}>
+            #{t}
+            <button type="button" onClick={() => onChange(valor.filter(v => v !== t))} aria-label={`Tirar a categoria ${t}`}
+              className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-100" style={{ color: T.mute }}>
+              <X size={13} strokeWidth={2} />
+            </button>
+          </span>
+        ))}
+        {!cheio && (
+          <input value={texto} aria-label="Nova categoria" placeholder={valor.length ? 'Adicionar outra' : 'Ex.: Atendimento (aperte Enter)'}
+            className="flex-1 min-w-[10rem] h-7 bg-transparent px-1.5 text-[14.5px] focus:outline-none"
+            onChange={e => { if (/[,;]/.test(e.target.value)) adicionar(e.target.value); else setTexto(e.target.value); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); adicionar(texto); }
+              else if (e.key === 'Backspace' && !texto && valor.length) onChange(valor.slice(0, -1));
+            }}
+            onBlur={() => adicionar(texto)} />
+        )}
+      </div>
+      {!cheio && sugestoes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <span className="text-[12px] mr-1" style={{ color: T.mute }}>Usadas em outros cursos:</span>
+          {sugestoes.slice(0, 12).map(u => (
+            <button key={u} type="button" onMouseDown={e => e.preventDefault()} onClick={() => adicionar(u)}
+              className="h-7 px-2.5 rounded-md text-[12.5px] font-medium transition-colors hover:bg-slate-50"
+              style={{ color: T.accent, border: `1px solid ${T.rule}` }}>
+              + #{u}
+            </button>
+          ))}
+        </div>
+      )}
+      <span className="block text-[12px] mt-1.5" style={{ color: T.mute }}>
+        {cheio ? `Até ${MAX_CATEGORIAS} categorias por curso.` : 'Escreva e aperte Enter. O curso aparece em cada categoria e nos filtros do Explorar.'}
+      </span>
+    </div>
+  );
+}
+
 /* ─── Aba Configurações ──────────────────────────────────────────── */
 function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Promise<void> }) {
   const [f, setF] = useState({
     titulo: curso.titulo, slug: curso.slug, subtitulo: curso.subtitulo ?? '', descricao: curso.descricao ?? '',
-    categoria: curso.categoria ?? '', nivel: curso.nivel ?? '', instrutor: curso.instrutor ?? '',
+    categorias: categoriasDe(curso), nivel: curso.nivel ?? '', instrutor: curso.instrutor ?? '',
     aprendizados: curso.aprendizados.join('\n'), publicado: curso.publicado, destaque: curso.destaque,
     ordem: String(curso.ordem),
   });
@@ -360,8 +422,8 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
   // Categorias já usadas em outros cursos, sugeridas no campo para não escrever a mesma de jeitos diferentes
   const [categorias, setCategorias] = useState<string[]>([]);
   useEffect(() => {
-    supabase.from('academy_courses').select('categoria').not('categoria', 'is', null).then(({ data }) =>
-      setCategorias([...new Set((data ?? []).map(d => (d.categoria as string).trim()).filter(Boolean))].sort()));
+    supabase.from('academy_courses').select('categorias').then(({ data }) =>
+      setCategorias([...new Set((data ?? []).flatMap(d => categoriasDe(d as { categorias: string[] | null })))].sort((a, b) => a.localeCompare(b, 'pt-BR'))));
   }, []);
 
   // Informações e vitrine (devolve o erro ou null)
@@ -369,7 +431,7 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
     if (!f.titulo.trim() || !f.slug) return 'Nome e endereço são obrigatórios.';
     const { error } = await supabase.from('academy_courses').update({
       titulo: f.titulo.trim(), slug: f.slug, subtitulo: f.subtitulo.trim() || null, descricao: f.descricao.trim() || null,
-      categoria: f.categoria.trim() || null, nivel: f.nivel || null, instrutor: f.instrutor.trim() || null,
+      categorias: f.categorias, categoria: f.categorias[0] ?? null, nivel: f.nivel || null, instrutor: f.instrutor.trim() || null,
       aprendizados: f.aprendizados.split('\n').map(s => s.trim()).filter(Boolean),
       publicado: f.publicado, destaque: f.destaque, ordem: Number(f.ordem) || 0,
       // Todo curso emite certificado; a carga horária é a soma da duração das aulas (calculada ao emitir)
@@ -471,11 +533,8 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
             <textarea className="acad-field w-full rounded-[10px] px-3.5 py-3 text-[14.5px] leading-relaxed" rows={4} value={f.aprendizados}
               placeholder={'Montar um agente de atendimento no WhatsApp\nAutomatizar confirmações de agenda'} onChange={e => muda('aprendizados', e.target.value)} />
           </Rotulo>
-          <div className="grid md:grid-cols-3 gap-5">
-            <Rotulo texto="Categoria">
-              <input className={inputCls} value={f.categoria} placeholder="Ex.: Atendimento" list="categorias-cursos" onChange={e => muda('categoria', e.target.value)} />
-              <datalist id="categorias-cursos">{categorias.map(c => <option key={c} value={c} />)}</datalist>
-            </Rotulo>
+          <CampoCategorias valor={f.categorias} onChange={v => muda('categorias', v)} usadas={categorias} />
+          <div className="grid md:grid-cols-2 gap-5">
             <Rotulo texto="Nível">
               <select className={inputCls} value={f.nivel} onChange={e => muda('nivel', e.target.value)}>
                 {NIVEIS.map(n => <option key={n.v} value={n.v}>{n.t}</option>)}

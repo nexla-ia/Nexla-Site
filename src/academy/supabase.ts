@@ -144,10 +144,14 @@ export function erroAuth(msg: string) {
 /* ─── Tipos e consulta de cursos com progresso ─────────────────── */
 export type Aula   = { id: string; titulo: string; descricao: string | null; ordem: number; duracao_seg: number; gratuita: boolean };
 export type Modulo = { id: string; titulo: string; ordem: number; academy_lessons: Aula[] };
-export type Curso  = { id: string; slug: string; titulo: string; subtitulo: string | null; ordem: number; capa: string | null; categoria: string | null; nivel: string | null; academy_modules: Modulo[] };
+export type Curso  = { id: string; slug: string; titulo: string; subtitulo: string | null; ordem: number; capa: string | null; categorias: string[] | null; nivel: string | null; academy_modules: Modulo[] };
 
 export const SELECT_CURSO =
-  'id, slug, titulo, subtitulo, ordem, capa, categoria, nivel, academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita))';
+  'id, slug, titulo, subtitulo, ordem, capa, categorias, nivel, academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita))';
+
+/* Categorias do curso, sem vazias e sem repetir */
+export const categoriasDe = (c: { categorias?: string[] | null }) =>
+  [...new Set((c.categorias ?? []).map(t => t.trim()).filter(Boolean))];
 
 /* Ordena módulos e aulas e devolve a lista linear de aulas do curso */
 export function organizar(c: Curso) {
