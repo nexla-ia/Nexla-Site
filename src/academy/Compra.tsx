@@ -13,6 +13,7 @@ type Resumo = {
   cupom: string | null; cupom_msg: string; preco_de: number | null; parcelas_max: number;
   oferta_extra: { titulo: string; valor: number; de: number | null } | null;
   acesso_em?: string | null; // pré-venda: quando as aulas abrem para quem comprar agora
+  desconto_aluno?: number; desconto_aluno_pct?: number; // quem já pagou outro curso
 };
 
 export const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -153,6 +154,9 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
                 {resumo.itens.map(i => (
                   <div key={i.titulo} className="flex justify-between gap-3"><span style={{ color: T.ink2 }}>{i.titulo}</span><span>{reais(i.valor)}</span></div>
                 ))}
+                {!!resumo.desconto_aluno && (
+                  <div className="flex justify-between gap-3" style={{ color: 'var(--a-green)' }}><span>Desconto de aluno ({resumo.desconto_aluno_pct}%)</span><span>− {reais(resumo.desconto_aluno)}</span></div>
+                )}
                 {resumo.desconto > 0 && (
                   <div className="flex justify-between gap-3" style={{ color: 'var(--a-green)' }}><span>Cupom {resumo.cupom}</span><span>− {reais(resumo.desconto)}</span></div>
                 )}

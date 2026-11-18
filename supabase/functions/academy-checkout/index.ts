@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
   const lancaEm = curso.lancamento_em ? new Date(curso.lancamento_em).getTime() : 0;
   const preLancamento = lancaEm > Date.now();
   if (preLancamento && !curso.prevenda) return json({ erro: 'em_breve' }, 409);
-  const { data: produtos } = await admin.from('academy_products').select('id, tipo, titulo, preco, preco_promocional, ativo').eq('course_id', curso.id).eq('ativo', true);
+  const { data: produtos } = await admin.from('academy_products').select('id, tipo, titulo, preco, preco_promocional, ativo, desconto_aluno_pct').eq('course_id', curso.id).eq('ativo', true);
   const principal = produtos?.find(p => p.tipo === 'curso');
   const extra = produtos?.find(p => p.tipo === 'oferta_extra');
   if (!principal) return json({ erro: 'sem_preco' }, 409);
@@ -65,6 +65,16 @@ Deno.serve(async (req) => {
   const especial = preLancamento ? Number(curso.prevenda_preco ?? 0) : 0;
   const comPrevenda = especial > 0 && especial < valorDe(principal);
   const valorCurso = comPrevenda ? especial : valorDe(principal);
+
+  // Desconto para quem já é aluno (SQL 034): já pagou por outro curso
+  const pctAluno = Math.min(90, Math.max(0, Number(principal.desconto_aluno_pct ?? 0)));
+  let ehAluno = false;
+  if (pctAluno > 0 && valorCurso > 0) {
+    const { count } = await admin.from('academy_orders').select('id', { count: 'exact', head: true })
+      .eq('user_id', usuario.id).eq('status', 'pago').gt('total', 0).or(`course_id.is.null,course_id.neq.${curso.id}`);
+    ehAluno = (count ?? 0) > 0;
+  }
+  const descontoAluno = ehAluno ? centavos(valorCurso * pctAluno / 100) : 0;
 
   // Vendas fechadas para o público (ex.: enquanto o token do Mercado Pago é de TESTE, qualquer um
   // com conta de teste "pagaria" com cartão de teste). Lista de e-mails autorizados no segredo
@@ -88,15 +98,17 @@ Deno.serve(async (req) => {
     else if (c.validade && new Date(c.validade) < new Date()) cupomMsg = 'Este cupom expirou.';
     else if (c.limite_usos && c.usos >= c.limite_usos) cupomMsg = 'Este cupom já atingiu o limite de usos.';
     else {
-      desconto = centavos(c.tipo === 'percentual' ? subtotal * Number(c.valor) / 100 : Math.min(Number(c.valor), subtotal));
+      const base = subtotal - descontoAluno; // o cupom vale sobre o que sobra depois do desconto de aluno
+      desconto = centavos(c.tipo === 'percentual' ? base * Number(c.valor) / 100 : Math.min(Number(c.valor), base));
       cupomOk = true;
       cupomMsg = c.tipo === 'percentual' ? `${Number(c.valor)}% de desconto aplicado.` : 'Desconto aplicado.';
     }
   }
-  const total = centavos(Math.max(0, subtotal - desconto));
+  const total = centavos(Math.max(0, subtotal - descontoAluno - desconto));
   const resumo = {
     curso: curso.titulo, itens, subtotal, desconto, total,
     cupom: cupomOk ? codigo : null, cupom_msg: cupomMsg,
+    desconto_aluno: descontoAluno, desconto_aluno_pct: ehAluno ? pctAluno : 0,
     oferta_extra: extra && valorCurso > 0 ? { titulo: extra.titulo, valor: valorDe(extra), de: extra.preco_promocional != null ? Number(extra.preco) : null } : null,
     preco_de: principal.preco_promocional != null || comPrevenda ? Number(principal.preco) : null,
     // Pré-venda: quando as aulas abrem para quem comprar agora
@@ -124,7 +136,7 @@ Deno.serve(async (req) => {
     .eq('status', 'pendente').not('forma_pagamento', 'is', null).lt('criado_em', horasAtras(PRAZO_PIX_BOLETO_H));
 
   const { data: pedido, error: erroPedido } = await admin.from('academy_orders').insert({
-    user_id: usuario.id, course_id: curso.id, itens, subtotal, desconto, total,
+    user_id: usuario.id, course_id: curso.id, itens, subtotal, desconto: centavos(desconto + descontoAluno), total,
     cupom: cupomOk ? codigo : null, com_oferta_extra: itens.length > 1, status: 'pendente',
   }).select('id').single();
   if (erroPedido || !pedido) return json({ erro: 'pedido' }, 500);

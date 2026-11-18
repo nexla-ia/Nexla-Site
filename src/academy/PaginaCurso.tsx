@@ -68,6 +68,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   const [sobreInstrutor, setSobreInstrutor] = useState<{ ferramentas: string[]; bio: string | null }>({ ferramentas: [], bio: null });
   const [preco, setPreco] = useState<Preco | null | undefined>(undefined);
   const [nota, setNota] = useState<{ media: number; total: number } | null>(null);
+  const [descontoAluno, setDescontoAluno] = useState(0); // % para quem já pagou outro curso
   const [faqAberta, setFaqAberta] = useState<number | null>(0);
   const [liberando, setLiberando] = useState(false);
   const [erroLiberar, setErroLiberar] = useState('');
@@ -80,8 +81,17 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       .then(({ data }) => setExtras({ bonus: ((data?.bonus ?? []) as Bonus[]).filter(b => b?.titulo), faq: ((data?.faq ?? []) as Pergunta[]).filter(f => f?.pergunta) }));
     supabase.from('academy_courses').select('ferramentas, instrutor_bio').eq('id', curso.id).maybeSingle()
       .then(({ data }) => setSobreInstrutor({ ferramentas: ((data?.ferramentas ?? []) as string[]).filter(Boolean), bio: (data?.instrutor_bio as string | null) ?? null }));
-    supabase.from('academy_products').select('preco, preco_promocional, selo').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle()
-      .then(({ data }) => setPreco(precoComLancamento(curso, data ? lerPreco(data) : null)));
+    supabase.from('academy_products').select('preco, preco_promocional, selo, desconto_aluno_pct').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle()
+      .then(({ data }) => {
+        setPreco(precoComLancamento(curso, data ? lerPreco(data) : null));
+        // Já é aluno (pagou outro curso)? O desconto entra no pagamento; aqui só avisa
+        const pct = Number(data?.desconto_aluno_pct ?? 0);
+        if (pct > 0 && sessao) {
+          supabase.from('academy_orders').select('id', { count: 'exact', head: true })
+            .eq('user_id', sessao.user.id).eq('status', 'pago').gt('total', 0).neq('course_id', curso.id)
+            .then(({ count }) => { if (count) setDescontoAluno(pct); });
+        }
+      });
     supabase.rpc('academy_media_cursos').then(({ data }) => {
       const n = ((data ?? []) as { course_id: string; media: number; total: number }[]).find(x => x.course_id === curso.id);
       if (n) setNota({ media: Number(n.media), total: n.total });
@@ -306,6 +316,11 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
                 <p className="text-[15px] font-semibold mt-2" style={{ color: T.ink }}>ou em até {parcelas(preco.valor)}x no cartão</p>
               )}
               <p className="text-[13px] mt-1" style={{ color: T.mute }}>Pix, boleto ou cartão de crédito</p>
+              {descontoAluno > 0 && (
+                <p className="text-[13px] font-semibold mt-3" style={{ color: 'var(--a-green)' }}>
+                  Você já é aluno: {descontoAluno}% de desconto no pagamento ({reais(Math.round(preco.valor * (100 - descontoAluno)) / 100)}).
+                </p>
+              )}
               {preLancamento && <AvisoPrevenda curso={curso} />}
             </>
           ) : preco === null ? (

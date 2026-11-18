@@ -12,7 +12,7 @@ const numero = (v: string) => { const n = Number(v.replace(/\./g, '').replace(',
 const paraCampo = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
 /* ─── Bloco "Venda" nas Configurações do curso: preço e oferta extra ─── */
-type Produto = { id?: string; tipo: 'curso' | 'oferta_extra'; titulo: string; descricao: string | null; preco: number; preco_promocional: number | null; ativo: boolean; selo?: string | null };
+type Produto = { id?: string; tipo: 'curso' | 'oferta_extra'; titulo: string; descricao: string | null; preco: number; preco_promocional: number | null; ativo: boolean; selo?: string | null; desconto_aluno_pct?: number };
 const SELOS = ['Black Friday', 'Lançamento'];
 
 export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloCurso: string }) {
@@ -29,9 +29,12 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
   const [seloLigado, setSeloLigado] = useState(false);
   const [selo, setSelo] = useState(SELOS[0]);
   const [seloProprio, setSeloProprio] = useState(false);
+  // Desconto para quem já pagou outro curso
+  const [alunoLigado, setAlunoLigado] = useState(false);
+  const [alunoPct, setAlunoPct] = useState('10');
   const [erro, setErro] = useState('');
   const [salvo, setSalvo] = useState(''); // o que está gravado (para saber se mudou)
-  const atual = JSON.stringify([preco, promo, aVenda, gratis, extraAtivo, extraTitulo, extraPreco, seloLigado, seloLigado ? selo : '']);
+  const atual = JSON.stringify([preco, promo, aVenda, gratis, extraAtivo, extraTitulo, extraPreco, seloLigado, seloLigado ? selo : '', alunoLigado, alunoLigado ? alunoPct : '']);
 
   useEffect(() => {
     supabase.from('academy_products').select('*').eq('course_id', cursoId).then(({ data, error }) => {
@@ -41,11 +44,13 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
       if (c) { setPreco(Number(c.preco) === 0 ? '' : paraCampo(c.preco)); setPromo(paraCampo(c.preco_promocional)); setAVenda(c.ativo); setGratis(Number(c.preco) === 0); }
       const seloSalvo = c?.selo?.trim() ?? '';
       if (seloSalvo) { setSeloLigado(true); setSelo(seloSalvo); setSeloProprio(!SELOS.includes(seloSalvo)); }
+      const pctSalvo = Number(c?.desconto_aluno_pct ?? 0);
+      if (pctSalvo > 0) { setAlunoLigado(true); setAlunoPct(String(pctSalvo)); }
       if (e) { setExtraAtivo(e.ativo); setExtraTitulo(e.titulo); setExtraPreco(paraCampo(e.preco)); }
       setSalvo(JSON.stringify([
         c ? (Number(c.preco) === 0 ? '' : paraCampo(c.preco)) : '', c ? paraCampo(c.preco_promocional) : '', c ? c.ativo : true, c ? Number(c.preco) === 0 : false,
         e ? e.ativo : false, e ? e.titulo : 'Pacote de modelos prontos', e ? paraCampo(e.preco) : '',
-        !!seloSalvo, seloSalvo,
+        !!seloSalvo, seloSalvo, pctSalvo > 0, pctSalvo > 0 ? String(pctSalvo) : '',
       ]));
       setCarregado(true);
     });
@@ -54,15 +59,17 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
   // Gravado pelo botão Salvar da página (devolve o erro ou null)
   const salvar = async (): Promise<string | null> => {
     // Curso gratuito: preço 0 (o servidor libera direto, sem Mercado Pago) e sem oferta extra
-    const p = gratis ? 0 : numero(preco); const pr = !gratis && promo.trim() ? numero(promo) : null; const ep = numero(extraPreco);
+    const p = gratis ? 0 : numero(preco); const pr = !gratis && promo.trim() ? numero(promo) : null; const ep = numero(extraPreco); const pa = Number(alunoPct.replace(',', '.'));
     const invalido = !gratis && !(p > 0) ? 'Informe o preço do curso (ou marque como gratuito).'
       : pr !== null && !(pr > 0 && pr < p) ? 'O preço promocional precisa ser menor que o preço normal.'
       : !gratis && extraAtivo && (!extraTitulo.trim() || !(ep > 0)) ? 'Informe o nome e o preço da oferta extra.'
-      : pr !== null && seloLigado && !selo.trim() ? 'Escreva o texto do selo da promoção.' : '';
+      : pr !== null && seloLigado && !selo.trim() ? 'Escreva o texto do selo da promoção.'
+      : !gratis && alunoLigado && !(Number.isInteger(pa) && pa >= 1 && pa <= 90) ? 'O desconto para quem já é aluno precisa ser de 1% a 90%.' : '';
     setErro(invalido);
     if (invalido) return invalido;
     const linhas = [
-      { course_id: cursoId, tipo: 'curso', titulo: tituloCurso, preco: p, preco_promocional: pr, ativo: aVenda, selo: pr !== null && seloLigado ? selo.trim().slice(0, 24) : null },
+      { course_id: cursoId, tipo: 'curso', titulo: tituloCurso, preco: p, preco_promocional: pr, ativo: aVenda, selo: pr !== null && seloLigado ? selo.trim().slice(0, 24) : null,
+        desconto_aluno_pct: !gratis && alunoLigado ? pa : 0 },
       ...(extraTitulo.trim() && ep > 0 ? [{ course_id: cursoId, tipo: 'oferta_extra', titulo: extraTitulo.trim(), preco: ep, preco_promocional: null, ativo: extraAtivo && !gratis }] : []),
     ];
     const { error } = await supabase.from('academy_products').upsert(linhas, { onConflict: 'course_id,tipo' });
@@ -120,6 +127,21 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
               {seloLigado && <p className="text-[12px]" style={{ color: T.mute }}>Aparece na página de vendas e no catálogo, junto do preço promocional. Para encerrar, desligue ou apague o preço promocional.</p>}
             </div>
           )}
+          <div className="pt-5 space-y-3" style={{ borderTop: `1px solid ${T.rule}` }}>
+            <Chave ligado={alunoLigado} onChange={setAlunoLigado} texto="Desconto para quem já é aluno" />
+            {alunoLigado && (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-28">
+                  <input className={`${inputCls} pr-8`} inputMode="numeric" value={alunoPct} aria-label="Porcentagem de desconto"
+                    onChange={e => setAlunoPct(e.target.value.replace(/[^\d]/g, '').slice(0, 2))} />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none" style={{ color: T.mute }}>%</span>
+                </div>
+                <p className="text-[12.5px] flex-1 min-w-[14rem]" style={{ color: T.mute }}>
+                  Quem já pagou por outro curso paga {alunoPct || '0'}% a menos neste, direto no pagamento. A página de vendas avisa o aluno.
+                </p>
+              </div>
+            )}
+          </div>
           <div className="pt-5 space-y-4" style={{ borderTop: `1px solid ${T.rule}` }}>
             <Chave ligado={extraAtivo} onChange={setExtraAtivo} texto="Oferta extra na tela de compra" />
             {extraAtivo && (
