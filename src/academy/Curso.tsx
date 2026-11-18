@@ -118,7 +118,7 @@ function FimAula({ proxima, ir, cancelar }: { proxima: Aula; ir: () => void; can
   );
 }
 
-/* Player da aula (Bunny Stream) com a chamada da próxima aula por cima quando a aula acaba */
+/* Player da aula (YouTube ou Bunny Stream) com a chamada da próxima aula por cima quando a aula acaba */
 function Player({ aulaId, liberada, fim, proxima, abrir, setFim, onFimVideo, marca, userId }: {
   aulaId: string; liberada: boolean; fim: boolean; proxima?: Aula; abrir: (id: string) => void; setFim: (v: boolean) => void; onFimVideo: () => void;
   marca?: string; userId?: string;

@@ -4,8 +4,10 @@ import { Loader2, PlayCircle, RotateCcw, VideoOff } from 'lucide-react';
 import { T } from './ui';
 import { supabase } from './supabase';
 import { lerPreferencia } from './preferencias';
+import { idYoutube, criarPlayerYoutube, ESTADO_YT, type PlayerYT } from './youtube';
 
-type Estado = { tipo: 'carregando' } | { tipo: 'ok'; url: string } | { tipo: 'sem_video' } | { tipo: 'erro'; msg: string };
+// ok = player do Bunny (link assinado); youtube = vídeo do YouTube (pelo ID)
+type Estado = { tipo: 'carregando' } | { tipo: 'ok'; url: string } | { tipo: 'youtube'; id: string } | { tipo: 'sem_video' } | { tipo: 'erro'; msg: string };
 
 const MENSAGENS: Record<string, string> = {
   sem_acesso: 'Você não tem acesso a esta aula.',
@@ -19,12 +21,14 @@ const POSICOES = [
 ];
 const tempo = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-/* Player da aula (Bunny Stream). O link vem da função academy-video, que só responde para quem
-   pode assistir a aula; com a proteção por token ligada no Bunny, o link expira e não serve para compartilhar.
+/* Player da aula: YouTube ou Bunny Stream.
+   • YouTube: o ID do vídeo é lido da aula com as regras do banco (só quem pode assistir recebe).
+   • Bunny: o link vem da função academy-video, que só responde para quem pode assistir a aula;
+     com a proteção por token ligada no Bunny, o link expira e não serve para compartilhar.
    • marca: texto da marca d'água (o e-mail do aluno), para desestimular gravação de tela.
    • userId: liga a retomada — salva o segundo em que parou e continua dali na próxima vez.
    • onFim: chamado quando o vídeo termina.
-   O player do Bunny conversa com a página pelo protocolo player.js (postMessage). */
+   O player do Bunny conversa com a página pelo protocolo player.js (postMessage); o do YouTube, pela API dele. */
 export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   aulaId: string; onFim?: () => void; marca?: string; userId?: string; children?: React.ReactNode;
 }) {
@@ -32,6 +36,8 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   const [lugar, setLugar] = useState(0);
   const [retomado, setRetomado] = useState<number | null>(null);
   const iframe = useRef<HTMLIFrameElement>(null);
+  const alvoYoutube = useRef<HTMLDivElement>(null); // o YouTube troca este elemento pelo player
+  const irPara = useRef<(seg: number) => void>(() => undefined);
   const fim = useRef(onFim);
   fim.current = onFim;
   const salvo = useRef<number | null>(null);       // posição guardada no banco (para retomar)
@@ -49,7 +55,7 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
     const pos = salvo.current ?? 0;
     if (retomou.current || !pronto.current || salvo.current === null) return;
     retomou.current = true;
-    if (pos >= 3 && lerPreferencia('retomar')) { mandar({ method: 'setCurrentTime', value: pos }); setRetomado(pos); }
+    if (pos >= 3 && lerPreferencia('retomar')) { irPara.current(pos); setRetomado(pos); }
   };
   const retomarRef = useRef(retomar);
   retomarRef.current = retomar;
@@ -63,13 +69,19 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
     ultimoSalvo.current = 0;
     pronto.current = false;
     retomou.current = false;
-    supabase.functions.invoke('academy-video', { body: { aula: aulaId } }).then(async ({ data, error }) => {
+    // Vídeo do YouTube: basta o ID (a aula só aparece para quem pode assistir). Senão, Bunny pela função.
+    supabase.from('academy_lessons').select('video_id').eq('id', aulaId).maybeSingle().then(({ data: linha }) => {
       if (!vivo) return;
-      if (data?.url) return setEstado({ tipo: 'ok', url: data.url as string });
-      let erro = '';
-      try { erro = ((await (error as { context?: Response })?.context?.json()) ?? {}).erro ?? ''; } catch { /* sem corpo */ }
-      if (!vivo) return;
-      setEstado(erro === 'sem_video' ? { tipo: 'sem_video' } : { tipo: 'erro', msg: MENSAGENS[erro] ?? 'Não foi possível carregar o vídeo. Recarregue a página.' });
+      const yt = idYoutube(String(linha?.video_id ?? ''));
+      if (yt) return setEstado({ tipo: 'youtube', id: yt });
+      supabase.functions.invoke('academy-video', { body: { aula: aulaId } }).then(async ({ data, error }) => {
+        if (!vivo) return;
+        if (data?.url) return setEstado({ tipo: 'ok', url: data.url as string });
+        let erro = '';
+        try { erro = ((await (error as { context?: Response })?.context?.json()) ?? {}).erro ?? ''; } catch { /* sem corpo */ }
+        if (!vivo) return;
+        setEstado(erro === 'sem_video' ? { tipo: 'sem_video' } : { tipo: 'erro', msg: MENSAGENS[erro] ?? 'Não foi possível carregar o vídeo. Recarregue a página.' });
+      });
     });
     if (userId) {
       supabase.from('academy_lesson_progress').select('posicao_seg').eq('user_id', userId).eq('lesson_id', aulaId).maybeSingle()
@@ -99,47 +111,80 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
 
   // Conversa com o player: retomar, acompanhar o tempo e saber quando terminou
   useEffect(() => {
-    if (estado.tipo !== 'ok') return;
+    if (estado.tipo !== 'ok' && estado.tipo !== 'youtube') return;
     let partida = false;  // deu play: grava o ponto de partida na próxima atualização de tempo
     let terminou = false; // acabou: a posição já voltou para 0 (próxima vez começa do início)
-    const aoReceber = (e: MessageEvent) => {
-      if (e.source !== iframe.current?.contentWindow) return;
-      let m: { context?: string; event?: string; value?: { seconds?: number; duration?: number } } = {};
-      try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
-      if (m?.context !== 'player.js') return;
-      if (m.event === 'ready') {
-        ['ended', 'timeupdate', 'pause', 'play'].forEach(ev => mandar({ method: 'addEventListener', value: ev, listener: `nx-${ev}` }));
-        pronto.current = true;
-        retomarRef.current();
-      }
-      if (m.event === 'play') { partida = true; terminou = false; }
-      if (m.event === 'timeupdate' && m.value) {
-        atual.current = { seg: Number(m.value.seconds ?? 0), dur: Number(m.value.duration ?? 0) };
-        const intervalo = atual.current.dur ? Math.min(10, Math.max(2, atual.current.dur / 10)) : 10;
-        if (partida) { partida = false; gravarRef.current(atual.current.seg, true); }
-        else if (Math.abs(atual.current.seg - ultimoSalvo.current) >= intervalo) gravarRef.current(atual.current.seg);
-      }
-      if (m.event === 'pause' && !terminou) gravarRef.current(atual.current.seg);
-      if (m.event === 'ended' && !terminou) {
-        terminou = true;
-        // Primeiro grava o fim (conta o último trecho), depois conclui a aula e volta a posição para 0
-        const dur = atual.current.dur || atual.current.seg;
-        gravarRef.current(dur, true).then(() => { fim.current?.(); gravarRef.current(0, true); });
-      }
+    const aoPronto = () => { pronto.current = true; retomarRef.current(); };
+    const aoPlay = () => { partida = true; terminou = false; };
+    const aoTempo = (seg: number, dur: number) => {
+      atual.current = { seg, dur };
+      const intervalo = dur ? Math.min(10, Math.max(2, dur / 10)) : 10;
+      if (partida) { partida = false; gravarRef.current(seg, true); }
+      else if (Math.abs(seg - ultimoSalvo.current) >= intervalo) gravarRef.current(seg);
     };
+    const aoPausar = () => { if (!terminou) gravarRef.current(atual.current.seg); };
+    const aoTerminar = () => {
+      if (terminou) return;
+      terminou = true;
+      // Primeiro grava o fim (conta o último trecho), depois conclui a aula e volta a posição para 0
+      const dur = atual.current.dur || atual.current.seg;
+      gravarRef.current(dur, true).then(() => { fim.current?.(); gravarRef.current(0, true); });
+    };
+
+    let desligar: () => void;
+    if (estado.tipo === 'ok') {
+      // Bunny: protocolo player.js
+      irPara.current = seg => mandar({ method: 'setCurrentTime', value: seg });
+      const aoReceber = (e: MessageEvent) => {
+        if (e.source !== iframe.current?.contentWindow) return;
+        let m: { context?: string; event?: string; value?: { seconds?: number; duration?: number } } = {};
+        try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+        if (m?.context !== 'player.js') return;
+        if (m.event === 'ready') {
+          ['ended', 'timeupdate', 'pause', 'play'].forEach(ev => mandar({ method: 'addEventListener', value: ev, listener: `nx-${ev}` }));
+          aoPronto();
+        }
+        if (m.event === 'play') aoPlay();
+        if (m.event === 'timeupdate' && m.value) aoTempo(Number(m.value.seconds ?? 0), Number(m.value.duration ?? 0));
+        if (m.event === 'pause') aoPausar();
+        if (m.event === 'ended') aoTerminar();
+      };
+      window.addEventListener('message', aoReceber);
+      desligar = () => window.removeEventListener('message', aoReceber);
+    } else {
+      // YouTube: a API não tem "timeupdate", então mede o tempo a cada segundo enquanto toca
+      let vivo = true;
+      let player: PlayerYT | null = null;
+      let relogio = 0;
+      const medir = () => { if (player) aoTempo(player.getCurrentTime(), player.getDuration()); };
+      criarPlayerYoutube(alvoYoutube.current!, estado.id, {
+        onReady: e => { player = e.target; irPara.current = seg => player?.seekTo(seg, true); aoPronto(); },
+        onStateChange: e => {
+          window.clearInterval(relogio);
+          if (e.data === ESTADO_YT.tocando) { aoPlay(); medir(); relogio = window.setInterval(medir, 1000); return; }
+          medir();
+          if (e.data === ESTADO_YT.pausado) aoPausar();
+          if (e.data === ESTADO_YT.terminou) aoTerminar();
+        },
+        onError: () => { if (vivo) setEstado({ tipo: 'erro', msg: 'Este vídeo do YouTube não pode ser exibido aqui. Confira se ele é "Não listado" e permite incorporação.' }); },
+      }).then(p => { if (vivo) player ??= p; else p.destroy(); },
+        () => { if (vivo) setEstado({ tipo: 'erro', msg: 'Não foi possível carregar o player do YouTube. Recarregue a página.' }); });
+      desligar = () => { vivo = false; window.clearInterval(relogio); try { player?.destroy(); } catch { /* já foi */ } };
+    }
+
     const aoSair = () => { if (document.visibilityState === 'hidden' && !terminou) gravarRef.current(atual.current.seg); };
-    window.addEventListener('message', aoReceber);
     document.addEventListener('visibilitychange', aoSair);
     return () => {
-      window.removeEventListener('message', aoReceber);
+      desligar();
       document.removeEventListener('visibilitychange', aoSair);
+      irPara.current = () => undefined;
       if (!terminou) gravarRef.current(atual.current.seg); // trocou de aula ou saiu da página
     };
   }, [estado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A marca d'água muda de lugar de tempos em tempos
   useEffect(() => {
-    if (!marca || estado.tipo !== 'ok') return;
+    if (!marca || (estado.tipo !== 'ok' && estado.tipo !== 'youtube')) return;
     const t = window.setInterval(() => setLugar(l => (l + 1) % POSICOES.length), 20000);
     return () => window.clearInterval(t);
   }, [marca, estado.tipo]);
@@ -152,18 +197,22 @@ export default function VideoAula({ aulaId, onFim, marca, userId, children }: {
   }, [retomado]);
 
   const doInicio = () => {
-    mandar({ method: 'setCurrentTime', value: 0 });
+    irPara.current(0);
     setRetomado(null);
   };
 
   return (
     <div className="relative aspect-video rounded-xl overflow-hidden flex flex-col items-center justify-center text-center px-6"
       style={{ background: `linear-gradient(135deg, ${T.dark}, #1E1B4B)`, color: T.darkText, border: `1px solid ${T.rule}`, boxShadow: '0 24px 50px -32px rgba(15,23,42,0.7)' }}>
-      {estado.tipo === 'ok' ? (
+      {estado.tipo === 'ok' || estado.tipo === 'youtube' ? (
         <>
-          <iframe ref={iframe} src={estado.url} title="Vídeo da aula" loading="lazy"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen
-            className="absolute inset-0 w-full h-full border-0" />
+          {estado.tipo === 'ok' ? (
+            <iframe ref={iframe} src={estado.url} title="Vídeo da aula" loading="lazy"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen
+              className="absolute inset-0 w-full h-full border-0" />
+          ) : (
+            <div key={estado.id} className="absolute inset-0"><div ref={alvoYoutube} /></div>
+          )}
           {marca && (
             <span aria-hidden className="absolute z-10 pointer-events-none select-none text-[12px] sm:text-[13px] font-medium whitespace-nowrap transition-[top,left] duration-[2000ms] ease-in-out"
               style={{ ...POSICOES[lugar], color: 'rgba(255,255,255,0.32)', textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}>
