@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { T, LOGO, display, ease } from './ui';
 import { AppLayout, BarraProgresso, Carregando } from './AppLayout';
 import { Link, navegar, parametro } from './router';
-import { supabase, organizar, pct, minutos, plural, CERTIFICADO_MIN, SELECT_CURSO, type Aula, type Curso as CursoT } from './supabase';
+import { supabase, organizar, pct, minutos, plural, acessoLiberado, acessoAbreEm, diaHora, CERTIFICADO_MIN, SELECT_CURSO, type Aula, type Curso as CursoT } from './supabase';
 import Comunidade from './Comunidade';
 import Avaliacao from './Avaliacao';
 import PaginaCurso from './PaginaCurso';
@@ -299,6 +299,23 @@ export default function Curso({ sessao, slug }: { sessao: Session; slug: string 
   if (dados === null) return <AppLayout nome=""><Carregando /></AppLayout>;
   // Quem não comprou vê a página de apresentação (sem a grade do curso), com só o 1º vídeo
   if (dados !== 'nao-encontrado' && !dados.matriculado) return <PaginaCurso sessao={sessao} slug={slug} nome={dados.nome} />;
+  // Comprou na pré-venda: as aulas abrem na data (o banco também só libera a partir dela)
+  if (dados !== 'nao-encontrado' && !dados.admin && !acessoLiberado(dados.curso)) {
+    return (
+      <AppLayout nome={dados.nome}>
+        <div className="max-w-lg mx-auto text-center py-16">
+          <p className="text-[13px] font-semibold" style={{ color: T.accent }}>Sua vaga está garantida</p>
+          <h1 className="font-bold text-[26px] leading-tight mt-2" style={display}>{dados.curso.titulo}</h1>
+          <p className="text-[15px] mt-3 leading-relaxed" style={{ color: T.mute }}>
+            As aulas abrem em <strong style={{ color: T.ink }}>{diaHora(acessoAbreEm(dados.curso)!)}</strong>. O curso aparece em Meus cursos e você recebe acesso automaticamente.
+          </p>
+          <Link para="/painel" className="inline-flex items-center gap-1.5 mt-6 font-semibold" style={{ color: T.accent }}>
+            <ArrowLeft size={15} /> Voltar para meus cursos
+          </Link>
+        </div>
+      </AppLayout>
+    );
+  }
   if (dados === 'nao-encontrado' || !curso || !aula) {
     return (
       <AppLayout nome="">

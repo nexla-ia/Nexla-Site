@@ -6,6 +6,8 @@
 //   pagar    → cria o pedido (pendente) e a preferência no Mercado Pago e devolve a URL do checkout
 //
 // O preço vem SEMPRE do banco (academy_products), nunca do navegador.
+// Lançamento (SQL 033): antes de academy_courses.lancamento_em só vende com pré-venda ligada,
+// e aí vale o prevenda_preco (se houver). Na data, volta o preço normal sozinho.
 // Segredos usados (Supabase → Edge Functions → Secrets): MP_ACCESS_TOKEN.
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são fornecidos automaticamente pelo Supabase.
 // ═══════════════════════════════════════════════════════════════════
@@ -47,24 +49,32 @@ Deno.serve(async (req) => {
   const codigo = String(entrada.cupom ?? '').trim().toUpperCase();
 
   // Curso e produtos
-  const { data: curso } = await admin.from('academy_courses').select('id, slug, titulo, publicado').eq('slug', slug).maybeSingle();
+  const { data: curso } = await admin.from('academy_courses')
+    .select('id, slug, titulo, publicado, lancamento_em, prevenda, prevenda_preco, antecipado_dias').eq('slug', slug).maybeSingle();
   if (!curso || !curso.publicado) return json({ erro: 'curso_nao_encontrado' }, 404);
+  const lancaEm = curso.lancamento_em ? new Date(curso.lancamento_em).getTime() : 0;
+  const preLancamento = lancaEm > Date.now();
+  if (preLancamento && !curso.prevenda) return json({ erro: 'em_breve' }, 409);
   const { data: produtos } = await admin.from('academy_products').select('id, tipo, titulo, preco, preco_promocional, ativo').eq('course_id', curso.id).eq('ativo', true);
   const principal = produtos?.find(p => p.tipo === 'curso');
   const extra = produtos?.find(p => p.tipo === 'oferta_extra');
   if (!principal) return json({ erro: 'sem_preco' }, 409);
 
   const valorDe = (p: { preco: number; preco_promocional: number | null }) => Number(p.preco_promocional ?? p.preco);
+  // Preço do curso agora: o da pré-venda, se for menor que o de venda
+  const especial = preLancamento ? Number(curso.prevenda_preco ?? 0) : 0;
+  const comPrevenda = especial > 0 && especial < valorDe(principal);
+  const valorCurso = comPrevenda ? especial : valorDe(principal);
 
   // Vendas fechadas para o público (ex.: enquanto o token do Mercado Pago é de TESTE, qualquer um
   // com conta de teste "pagaria" com cartão de teste). Lista de e-mails autorizados no segredo
   // MP_SOMENTE_EMAILS (separados por vírgula). Para abrir as vendas: apague esse segredo.
   // Curso gratuito (preço 0) fica liberado para todos.
   const autorizados = (Deno.env.get('MP_SOMENTE_EMAILS') ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-  if (valorDe(principal) > 0 && autorizados.length && !autorizados.includes((usuario.email ?? '').toLowerCase())) return json({ erro: 'vendas_fechadas' }, 403);
+  if (valorCurso > 0 && autorizados.length && !autorizados.includes((usuario.email ?? '').toLowerCase())) return json({ erro: 'vendas_fechadas' }, 403);
 
-  const itens = [{ produto: principal.id, titulo: curso.titulo, valor: valorDe(principal) }];
-  if (entrada.com_oferta && extra && valorDe(principal) > 0) itens.push({ produto: extra.id, titulo: extra.titulo, valor: valorDe(extra) });
+  const itens = [{ produto: principal.id, titulo: curso.titulo, valor: valorCurso }];
+  if (entrada.com_oferta && extra && valorCurso > 0) itens.push({ produto: extra.id, titulo: extra.titulo, valor: valorDe(extra) });
   const subtotal = centavos(itens.reduce((s, i) => s + i.valor, 0));
 
   // Cupom (validado só aqui no servidor)
@@ -87,8 +97,10 @@ Deno.serve(async (req) => {
   const resumo = {
     curso: curso.titulo, itens, subtotal, desconto, total,
     cupom: cupomOk ? codigo : null, cupom_msg: cupomMsg,
-    oferta_extra: extra && valorDe(principal) > 0 ? { titulo: extra.titulo, valor: valorDe(extra), de: extra.preco_promocional != null ? Number(extra.preco) : null } : null,
-    preco_de: principal.preco_promocional != null ? Number(principal.preco) : null,
+    oferta_extra: extra && valorCurso > 0 ? { titulo: extra.titulo, valor: valorDe(extra), de: extra.preco_promocional != null ? Number(extra.preco) : null } : null,
+    preco_de: principal.preco_promocional != null || comPrevenda ? Number(principal.preco) : null,
+    // Pré-venda: quando as aulas abrem para quem comprar agora
+    acesso_em: preLancamento ? new Date(lancaEm - Number(curso.antecipado_dias ?? 0) * 86400000).toISOString() : null,
     parcelas_max: PARCELAS_MAX,
   };
   if (acao === 'calcular') return json(resumo);

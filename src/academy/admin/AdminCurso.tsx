@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowDown, ArrowLeft, ArrowUp, Eye, FileText, ImageIcon, Layers, ListVideo, Paperclip, Pencil, Plus,
+  ArrowDown, ArrowLeft, ArrowUp, Eye, Rocket, FileText, ImageIcon, Layers, ListVideo, Paperclip, Pencil, Plus,
   Settings, Trash2, Upload, Users, Video, X,
 } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
 import { Link, navegar, parametro } from '../router';
-import { supabase, tempoTotal, plural, categoriasDe } from '../supabase';
+import { supabase, tempoTotal, plural, categoriasDe, antesDoLancamento, diaHora, type Lancamento } from '../supabase';
 import AbaAlunos from './AbaAlunos';
 import { CartaoVenda } from './Vendas';
 import { CartaoBonus, CartaoInstrutor, CartaoPerguntas } from './BonusFaq';
@@ -22,11 +22,12 @@ type CursoA = {
   id: string; slug: string; titulo: string; subtitulo: string | null; descricao: string | null; capa: string | null;
   publicado: boolean; ordem: number; destaque: boolean; categorias: string[] | null; nivel: string | null; instrutor: string | null;
   aprendizados: string[]; certificado: boolean; carga_horaria_h: number | null; academy_modules: ModuloA[];
-};
+} & Lancamento;
 
 const MATERIAIS = 'academy-materiais';
 const CAPAS = 'academy-capas';
 const SELECT = 'id, slug, titulo, subtitulo, descricao, capa, publicado, ordem, destaque, categorias, nivel, instrutor, aprendizados, certificado, carga_horaria_h, '
+  + 'lancamento_em, antecipado_dias, prevenda, prevenda_preco, '
   + 'academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita, video_id, academy_lesson_materials(id, nome, arquivo, tamanho)))';
 const NIVEIS = [{ v: '', t: 'Não informar' }, { v: 'iniciante', t: 'Iniciante' }, { v: 'intermediario', t: 'Intermediário' }, { v: 'avancado', t: 'Avançado' }];
 
@@ -696,11 +697,142 @@ function ConfirmarApagar({ curso, onFechar }: { curso: CursoA; onFechar: () => v
   );
 }
 
+/* ─── Lançamento: data, pré-venda (preço especial) e acesso antecipado ─── */
+const DIAS_ANTES = [0, 1, 2, 3, 5, 7, 14];
+// Data/hora do banco ↔ campo "datetime-local" (no fuso de quem está usando)
+const paraCampoData = (iso: string | null | undefined) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+const numeroBR = (v: string) => Number(v.replace(/\./g, '').replace(',', '.'));
+const reaisBR = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function JanelaLancamento({ curso, onFechar, onSalvo }: { curso: CursoA; onFechar: () => void; onSalvo: () => void }) {
+  const [data, setData] = useState(() => paraCampoData(curso.lancamento_em));
+  const [prevenda, setPrevenda] = useState(!!curso.prevenda);
+  const [preco, setPreco] = useState(curso.prevenda_preco != null ? String(curso.prevenda_preco).replace('.', ',') : '');
+  const [dias, setDias] = useState(curso.antecipado_dias ?? 0);
+  const [normal, setNormal] = useState<number | null>(null); // preço de venda atual (para comparar)
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+  const agendado = antesDoLancamento(curso);
+
+  useEffect(() => {
+    supabase.from('academy_products').select('preco, preco_promocional').eq('course_id', curso.id).eq('tipo', 'curso').maybeSingle()
+      .then(({ data: p }) => setNormal(p ? Number(p.preco_promocional ?? p.preco) : null));
+  }, [curso.id]);
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape' && !salvando) onFechar(); };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [salvando, onFechar]);
+
+  const quando = data ? new Date(data) : null;
+  const especial = preco.trim() ? numeroBR(preco) : null;
+  const abreCompradores = quando ? new Date(quando.getTime() - dias * 86400000) : null;
+
+  const gravar = async (campos: Lancamento) => {
+    setSalvando(true); setErro('');
+    const { error } = await supabase.from('academy_courses').update(campos).eq('id', curso.id);
+    setSalvando(false);
+    if (error) return setErro('Não foi possível salvar. Confira se o 033_lancamento.sql foi rodado no Supabase.');
+    onSalvo();
+  };
+  const salvar = () => {
+    if (!quando || Number.isNaN(quando.getTime())) return setErro('Escolha a data e a hora do lançamento.');
+    if (quando.getTime() <= Date.now()) return setErro('Escolha uma data no futuro.');
+    if (prevenda && especial !== null && !(especial >= 0)) return setErro('Preço da pré-venda inválido.');
+    if (prevenda && especial !== null && normal !== null && especial >= normal) return setErro(`O preço da pré-venda precisa ser menor que o preço normal (${reaisBR(normal)}).`);
+    gravar({ lancamento_em: quando.toISOString(), prevenda, prevenda_preco: prevenda ? especial : null, antecipado_dias: prevenda ? dias : 0 });
+  };
+  // Tirar a data: o curso fica aberto para todos na hora
+  const liberarAgora = () => gravar({ lancamento_em: null, prevenda: false, prevenda_preco: null, antecipado_dias: 0 });
+
+  const etapas = quando && !Number.isNaN(quando.getTime()) ? [
+    `Até ${diaHora(quando)}: o curso aparece como "Em breve"${prevenda ? ' e já pode ser comprado na pré-venda' : ', sem botão de compra'}.`,
+    ...(prevenda && especial ? [`Na pré-venda custa ${reaisBR(especial)}${normal ? ` (o normal é ${reaisBR(normal)}, que aparece riscado)` : ''}.`] : []),
+    ...(prevenda ? [dias > 0 ? `Quem comprar na pré-venda assiste a partir de ${diaHora(abreCompradores!)}.` : 'Quem comprar na pré-venda assiste a partir do lançamento.'] : []),
+    `Em ${diaHora(quando)}: o curso abre sozinho para todos${prevenda && especial ? ' e o preço volta ao normal' : ''}.`,
+  ] : [];
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ background: 'rgba(15,23,42,0.55)' }}
+      onMouseDown={e => { if (e.target === e.currentTarget && !salvando) onFechar(); }}>
+      <motion.div role="dialog" aria-modal="true" aria-labelledby="lancar-titulo"
+        initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 8, opacity: 0 }} transition={{ duration: 0.3, ease }}
+        className="relative w-full max-w-lg rounded-2xl p-6 md:p-7 my-8" style={{ background: T.card, color: T.ink }}>
+        <button onClick={onFechar} aria-label="Fechar" className="absolute top-4 right-4 w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100" style={{ color: T.mute }}>
+          <X size={18} strokeWidth={1.75} />
+        </button>
+        <h2 id="lancar-titulo" className="font-bold text-[20px]" style={display}>Lançamento do curso</h2>
+        <p className="text-[13.5px] mt-1" style={{ color: T.mute }}>Até a data, o curso fica como "Em breve". Na data, abre sozinho.</p>
+
+        <div className="space-y-5 mt-6">
+          <Rotulo texto="Data e hora do lançamento">
+            <input type="datetime-local" className={inputCls} value={data} onChange={e => setData(e.target.value)} />
+          </Rotulo>
+
+          <div className="pt-5 space-y-4" style={{ borderTop: `1px solid ${T.rule}` }}>
+            <Chave ligado={prevenda} onChange={setPrevenda} texto="Pré-venda: vender antes da data" />
+            {prevenda && (
+              <div className="grid sm:grid-cols-2 gap-5">
+                <Rotulo texto="Preço da pré-venda (R$)" dica={normal !== null ? `Vazio = preço normal (${reaisBR(normal)}).` : 'Vazio = preço normal.'}>
+                  <input className={inputCls} inputMode="decimal" placeholder="Ex.: 29,90" value={preco} onChange={e => setPreco(e.target.value)} />
+                </Rotulo>
+                <Rotulo texto="Quem comprar antes assiste">
+                  <select className={inputCls} value={dias} onChange={e => setDias(Number(e.target.value))}>
+                    {DIAS_ANTES.map(d => <option key={d} value={d}>{d === 0 ? 'Só no lançamento' : d === 1 ? '1 dia antes' : `${d} dias antes`}</option>)}
+                  </select>
+                </Rotulo>
+              </div>
+            )}
+          </div>
+
+          {etapas.length > 0 && (
+            <div className="rounded-xl p-4" style={{ background: 'var(--a-soft2)', border: `1px solid ${T.rule}` }}>
+              <p className="text-[13px] font-semibold mb-2" style={{ color: T.ink2 }}>Como vai ficar</p>
+              <ul className="space-y-1.5 text-[13.5px] leading-relaxed" style={{ color: T.ink2 }}>
+                {etapas.map(t => <li key={t} className="flex gap-2.5"><span className="mt-[8px] w-1 h-1 rounded-full shrink-0" style={{ background: T.accent }} />{t}</li>)}
+              </ul>
+            </div>
+          )}
+          {!curso.publicado && (
+            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--a-amber)' }}>
+              O curso está como Rascunho: para aparecer como "Em breve" no catálogo, publique em Configurações.
+            </p>
+          )}
+          {prevenda && normal === null && (
+            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--a-amber)' }}>
+              O curso ainda não tem preço: defina em Configurações → Venda para a pré-venda funcionar.
+            </p>
+          )}
+
+          {erro && <p className="text-[13.5px]" style={{ color: 'var(--a-red)' }}>{erro}</p>}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            {agendado && (
+              <button onClick={liberarAgora} disabled={salvando} className="text-[13.5px] font-semibold hover:underline underline-offset-4 mr-auto" style={{ color: T.mute }}>
+                Tirar a data e abrir agora
+              </button>
+            )}
+            <div className="flex gap-3 ml-auto">
+              <button onClick={onFechar} disabled={salvando} className={botaoSecundario} style={{ color: T.mute, border: `1px solid ${T.rule}` }}>Cancelar</button>
+              <button onClick={salvar} disabled={salvando} className={botaoPrimario}>{salvando ? 'Salvando…' : agendado ? 'Salvar lançamento' : 'Agendar lançamento'}</button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ─── Página do curso no admin: cabeçalho + abas ─────────────────── */
 function Editor({ nome, id }: { nome: string; id: string }) {
   const [curso, setCurso] = useState<CursoA | 'erro' | null>(null);
   type Aba = 'aulas' | 'alunos' | 'config';
   const [aba, setAba] = useState<Aba>(() => { const a = parametro('aba'); return a === 'config' || a === 'alunos' ? a : 'aulas'; });
+  const [lancando, setLancando] = useState(false);
 
   const recarregar = useCallback(async () => {
     const { data, error } = await supabase.from('academy_courses').select(SELECT).eq('id', id).maybeSingle();
@@ -751,16 +883,30 @@ function Editor({ nome, id }: { nome: string; id: string }) {
                 style={curso.publicado ? { background: 'var(--a-green-bg)', color: 'var(--a-green)' } : { background: 'var(--a-soft)', color: T.mute }}>
                 {curso.publicado ? 'Publicado' : 'Rascunho'}
               </span>
+              {antesDoLancamento(curso) && (
+                <span className="text-[11.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(99,102,241,0.12)', color: T.accent }}>
+                  Lança em {diaHora(curso.lancamento_em!)}
+                </span>
+              )}
             </div>
             <p className="text-[13.5px] mt-1" style={{ color: T.mute }}>
               {plural(curso.academy_modules.length, 'módulo', 'módulos')} · {plural(totalAulas(curso), 'aula', 'aulas')} · {tempoAulas(curso)} de conteúdo
             </p>
           </div>
-          <Link para={`/curso/${curso.slug}`} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold shrink-0 hover:bg-white"
-            style={{ color: T.accent, border: '1px solid rgba(79,70,229,0.3)' }}>
-            <Eye size={15} strokeWidth={1.75} /> Ver como aluno
-          </Link>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <button onClick={() => setLancando(true)} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold hover:bg-white"
+              style={{ color: T.ink, border: `1px solid ${T.rule}` }}>
+              <Rocket size={15} strokeWidth={1.75} /> {antesDoLancamento(curso) ? 'Lançamento' : 'Lançar curso'}
+            </button>
+            <Link para={`/curso/${curso.slug}`} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-[14px] font-semibold hover:bg-white"
+              style={{ color: T.accent, border: '1px solid rgba(79,70,229,0.3)' }}>
+              <Eye size={15} strokeWidth={1.75} /> Ver como aluno
+            </Link>
+          </div>
         </div>
+        <AnimatePresence>
+          {lancando && <JanelaLancamento curso={curso} onFechar={() => setLancando(false)} onSalvo={() => { setLancando(false); recarregar(); }} />}
+        </AnimatePresence>
 
         {/* Abas */}
         <div className="flex gap-1 mb-6" role="tablist" style={{ borderBottom: `1px solid ${T.rule}` }}>

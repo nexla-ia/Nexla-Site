@@ -5,14 +5,14 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link, BASE } from './router';
-import { supabase, minutos, tempoTotal, buscarResumos, categoriasDe, type ResumoCurso } from './supabase';
-import { useCursosAluno, lerPreco, type Preco } from './dados';
+import { supabase, minutos, tempoTotal, buscarResumos, categoriasDe, antesDoLancamento, acessoAbreEm, diaHora, CAMPOS_LANCAMENTO, type ResumoCurso, type Lancamento } from './supabase';
+import { useCursosAluno, lerPreco, precoComLancamento, type Preco } from './dados';
 import { CardVitrine, GRADE_CURSOS } from './Explorar';
 import { checkout } from './Compra';
 import VideoAula from './Video';
 import { evento } from './pixel';
 
-type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null };
+type Basico = { id: string; slug: string; titulo: string; subtitulo: string | null; capa: string | null } & Lancamento;
 type Detalhes = {
   descricao: string | null; aprendizados: string[]; nivel: string | null; instrutor: string | null;
   categorias: string[] | null; certificado: boolean; carga_horaria_h: number | null;
@@ -41,7 +41,7 @@ export default function PaginaCurso({ sessao, slug, nome }: { sessao: Session | 
   const [curso, setCurso] = useState<Basico | null | 'nao'>(null);
   const [resumo, setResumo] = useState<ResumoCurso | null>(null);
   useEffect(() => {
-    supabase.from('academy_courses').select('id, slug, titulo, subtitulo, capa').eq('slug', slug).maybeSingle()
+    supabase.from('academy_courses').select(`id, slug, titulo, subtitulo, capa, ${CAMPOS_LANCAMENTO}`).eq('slug', slug).maybeSingle()
       .then(({ data }) => setCurso((data as Basico | null) ?? 'nao'));
   }, [slug]);
   useEffect(() => {
@@ -81,7 +81,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
     supabase.from('academy_courses').select('ferramentas, instrutor_bio').eq('id', curso.id).maybeSingle()
       .then(({ data }) => setSobreInstrutor({ ferramentas: ((data?.ferramentas ?? []) as string[]).filter(Boolean), bio: (data?.instrutor_bio as string | null) ?? null }));
     supabase.from('academy_products').select('preco, preco_promocional, selo').eq('course_id', curso.id).eq('tipo', 'curso').eq('ativo', true).maybeSingle()
-      .then(({ data }) => setPreco(data ? lerPreco(data) : null));
+      .then(({ data }) => setPreco(precoComLancamento(curso, data ? lerPreco(data) : null)));
     supabase.rpc('academy_media_cursos').then(({ data }) => {
       const n = ((data ?? []) as { course_id: string; media: number; total: number }[]).find(x => x.course_id === curso.id);
       if (n) setNota({ media: Number(n.media), total: n.total });
@@ -105,6 +105,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   const destinoComprar = sessao ? compra : `/criar-conta?voltar=${encodeURIComponent(compra)}`;
 
   const gratis = preco?.valor === 0;
+  const preLancamento = antesDoLancamento(curso); // com preço = pré-venda; sem preço = Em breve
   const desconto = preco?.de ? Math.round((1 - preco.valor / preco.de) * 100) : 0;
   // Curso gratuito: o servidor cria o pedido de R$ 0 e libera na hora; depois abre o curso já liberado
   const liberar = async () => {
@@ -118,12 +119,12 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
   const BotaoComprar = ({ cheio = false }: { cheio?: boolean }) => gratis && sessao ? (
     <button onClick={liberar} disabled={liberando}
       className={`acad-btn inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[10px] text-[15px] font-semibold text-white ${cheio ? 'w-full' : ''}`}>
-      {liberando ? 'Liberando…' : 'Começar grátis'}
+      {liberando ? 'Liberando…' : preLancamento ? 'Garantir minha vaga' : 'Começar grátis'}
     </button>
   ) : preco ? (
     <Link para={destinoComprar}
       className={`acad-btn inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[10px] text-[15px] font-semibold text-white ${cheio ? 'w-full' : ''}`}>
-      Comprar agora
+      {preLancamento ? 'Garantir na pré-venda' : 'Comprar agora'}
     </Link>
   ) : (
     <span className={`inline-flex items-center justify-center h-12 px-6 rounded-[10px] text-[14.5px] font-semibold ${cheio ? 'w-full' : ''}`}
@@ -289,6 +290,7 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
             <>
               <p className="font-bold text-[34px] leading-none" style={{ ...display, color: 'var(--a-green)' }}>Grátis</p>
               <p className="text-[13px] mt-2" style={{ color: T.mute }}>Acesso completo, sem pagar nada.</p>
+              {preLancamento && <AvisoPrevenda curso={curso} />}
             </>
           ) : preco ? (
             <>
@@ -304,11 +306,14 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
                 <p className="text-[15px] font-semibold mt-2" style={{ color: T.ink }}>ou em até {parcelas(preco.valor)}x no cartão</p>
               )}
               <p className="text-[13px] mt-1" style={{ color: T.mute }}>Pix, boleto ou cartão de crédito</p>
+              {preLancamento && <AvisoPrevenda curso={curso} />}
             </>
           ) : preco === null ? (
             <>
               <p className="font-bold text-[34px] leading-none" style={display}>Em breve</p>
-              <p className="text-[13px] mt-2" style={{ color: T.mute }}>As vendas deste curso ainda não abriram.</p>
+              <p className="text-[13px] mt-2" style={{ color: T.mute }}>
+                {preLancamento ? <>O curso lança em <strong style={{ color: T.ink }}>{diaHora(curso.lancamento_em!)}</strong>.</> : 'As vendas deste curso ainda não abriram.'}
+              </p>
             </>
           ) : null}
           {preco !== null && <div className="mt-5"><BotaoComprar cheio /></div>}
@@ -374,6 +379,18 @@ function Pagina({ sessao, curso, resumo }: { sessao: Session | null; curso: Basi
       </div>
       <div className="lg:hidden h-20" />
     </motion.div>
+  );
+}
+
+/* Pré-venda: quando o curso abre para quem comprou agora */
+function AvisoPrevenda({ curso }: { curso: Lancamento }) {
+  const dias = curso.antecipado_dias ?? 0;
+  return (
+    <p className="text-[13px] mt-3 pt-3 leading-relaxed" style={{ color: T.mute, borderTop: `1px solid ${T.rule}` }}>
+      Lança em <strong style={{ color: T.ink }}>{diaHora(curso.lancamento_em!)}</strong>.{' '}
+      {dias > 0 ? `Quem garante na pré-venda assiste ${dias === 1 ? '1 dia' : `${dias} dias`} antes, a partir de ${diaHora(acessoAbreEm(curso)!)}.`
+        : 'Garantindo agora, você assiste a partir do lançamento.'}
+    </p>
   );
 }
 

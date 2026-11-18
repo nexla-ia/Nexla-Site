@@ -6,7 +6,7 @@ import { AppLayout, Carregando } from './AppLayout';
 import { reais } from './Compra';
 import { Link } from './router';
 import { useCursosAluno, primeiroNome, certificadoLiberado, type CursoAluno, type CursoVitrine } from './dados';
-import { tempoTotal } from './supabase';
+import { tempoTotal, acessoLiberado, acessoAbreEm, diaHora, diaCurto, antesDoLancamento } from './supabase';
 import { GradeCategorias } from './Explorar';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -56,7 +56,8 @@ function BlocoAndamento({ c }: { c: CursoAluno }) {
         <Miniatura url={c.capa} className="w-full" />
         <p className={TITULO}>{c.titulo}</p>
         <p className={`${LINHA} truncate`} style={{ color: T.mute }}>
-          {c.proxima ? `Próxima: ${c.proxima.titulo}` : [plural(c.aulas.length, 'aula', 'aulas'), total ? tempoTotal(total) : ''].filter(Boolean).join(' · ')}
+          {!acessoLiberado(c) ? `Abre em ${diaHora(acessoAbreEm(c)!)}`
+            : c.proxima ? `Próxima: ${c.proxima.titulo}` : [plural(c.aulas.length, 'aula', 'aulas'), total ? tempoTotal(total) : ''].filter(Boolean).join(' · ')}
         </p>
         <div className="flex items-center gap-2 mt-2">
           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--a-track)' }}>
@@ -89,7 +90,8 @@ function BlocoConcluido({ c }: { c: CursoAluno }) {
 
 /* Sugestão: nome e "aulas · preço" */
 function Sugestao({ c }: { c: CursoVitrine }) {
-  const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
+  const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor)
+    : antesDoLancamento(c) ? `Lança em ${diaCurto(c.lancamento_em!)}` : 'Em breve';
   return (
     <motion.div {...surgir}>
       <Link para={`/curso/${c.slug}`} className="group block">

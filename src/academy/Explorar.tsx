@@ -6,7 +6,7 @@ import { T, LOGO, display, ease } from './ui';
 import { AppLayout, Carregando, TituloPagina } from './AppLayout';
 import { Link } from './router';
 import { useCursosAluno, type CursoAluno, type CursoVitrine } from './dados';
-import { categoriasDe } from './supabase';
+import { categoriasDe, antesDoLancamento, acessoLiberado, acessoAbreEm, diaCurto } from './supabase';
 import { reais } from './Compra';
 
 /* Fundo de quem ainda não tem foto: a cor de cartão do tema com o símbolo da Nexla */
@@ -58,13 +58,15 @@ const aulas = (n: number) => `${n} ${n === 1 ? 'aula' : 'aulas'}`;
 
 /* Curso que o aluno ainda não tem: aulas e preço */
 export function CardVitrine({ c }: { c: CursoVitrine }) {
-  const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor) : 'Em breve';
+  const preco = c.preco?.valor === 0 ? 'Grátis' : c.preco ? reais(c.preco.valor)
+    : antesDoLancamento(c) ? `Lança em ${diaCurto(c.lancamento_em!)}` : 'Em breve';
   return <Card para={`/curso/${c.slug}`} capa={c.capa} titulo={c.titulo} linha={`${aulas(c.totalAulas)} · ${preco}`} selo={c.preco?.selo} />;
 }
 
 /* Curso que o aluno já tem: quanto já fez */
 function CardMeu({ c }: { c: CursoAluno }) {
-  const status = c.percentual >= 100 ? 'Concluído' : c.feitas.size ? `${c.percentual}% concluído` : 'Não iniciado';
+  const status = !acessoLiberado(c) ? `Abre em ${diaCurto(acessoAbreEm(c)!)}`
+    : c.percentual >= 100 ? 'Concluído' : c.feitas.size ? `${c.percentual}% concluído` : 'Não iniciado';
   return (
     <Card para={`/curso/${c.slug}${c.proxima ? `?aula=${c.proxima.id}` : ''}`} capa={c.capa} progresso={c.percentual}
       titulo={c.titulo} linha={`${aulas(c.aulas.length)} · ${status}`} />
@@ -127,7 +129,7 @@ const ABAS: { id: Aba; texto: string; filtro: (i: Item) => boolean }[] = [
   { id: 'meus',      texto: 'Meus cursos',     filtro: i => i.meu },
   { id: 'nao-tenho', texto: 'Ainda não tenho', filtro: i => !i.meu },
   { id: 'gratis',    texto: 'Grátis',          filtro: i => !i.meu && i.c.preco?.valor === 0 },
-  { id: 'em-breve',  texto: 'Em breve',        filtro: i => !i.meu && !i.c.preco },
+  { id: 'em-breve',  texto: 'Em breve',        filtro: i => !i.meu && (!i.c.preco || antesDoLancamento(i.c)) },
 ];
 
 const alterna = (s: Set<string>, v: string) => { const n = new Set(s); if (n.has(v)) n.delete(v); else n.add(v); return n; };

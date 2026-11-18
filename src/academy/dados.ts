@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase, organizar, pct, buscarResumos, CERTIFICADO_MIN, SELECT_CURSO, type Curso, type Aula, type ResumoCurso } from './supabase';
+import { supabase, organizar, pct, buscarResumos, antesDoLancamento, diaCurto, CERTIFICADO_MIN, SELECT_CURSO, type Curso, type Aula, type ResumoCurso, type Lancamento } from './supabase';
 
 export type CursoAluno = ReturnType<typeof organizar> & {
   feitas: Set<string>;
@@ -29,6 +29,17 @@ export const lerPreco = (p: LinhaPreco): Preco => ({
 });
 type Medias = Map<string, { media: number; total: number }>;
 
+/* Preço levando o lançamento em conta: antes da data, sem pré-venda não está à venda (Em breve);
+   com pré-venda vale o preço especial (se houver), com o normal riscado. Depois da data, o preço normal. */
+export function precoComLancamento(c: Lancamento, base: Preco | null): Preco | null {
+  if (!antesDoLancamento(c)) return base;
+  if (!c.prevenda || !base) return null;
+  const selo = `Pré-venda até ${diaCurto(c.lancamento_em!)}`;
+  const especial = Number(c.prevenda_preco ?? 0);
+  if (especial > 0 && especial < base.valor) return { valor: especial, de: base.de ?? base.valor, selo };
+  return { ...base, selo };
+}
+
 // Quem não comprou não lê a grade do curso: os números vêm do resumo público
 const paraVitrine = (c: Curso, medias: Medias, resumos: Map<string, ResumoCurso>, precos: Map<string, Preco>): CursoVitrine => {
   const o = organizar(c);
@@ -40,7 +51,7 @@ const paraVitrine = (c: Curso, medias: Medias, resumos: Map<string, ResumoCurso>
     horas: r?.horas ?? 1,
     modulos: r?.modulos ?? 0,
     totalAulas: r?.aulas ?? 0,
-    preco: precos.get(o.id) ?? null,
+    preco: precoComLancamento(o, precos.get(o.id) ?? null),
   };
 };
 

@@ -5,13 +5,14 @@ import type { Session } from '@supabase/supabase-js';
 import { T, display, ease } from './ui';
 import { AppLayout, Carregando } from './AppLayout';
 import { Link } from './router';
-import { supabase, pedidoExpirado } from './supabase';
+import { supabase, pedidoExpirado, diaHora } from './supabase';
 import { evento, cookiesMeta } from './pixel';
 
 type Resumo = {
   curso: string; itens: { titulo: string; valor: number }[]; subtotal: number; desconto: number; total: number;
   cupom: string | null; cupom_msg: string; preco_de: number | null; parcelas_max: number;
   oferta_extra: { titulo: string; valor: number; de: number | null } | null;
+  acesso_em?: string | null; // pré-venda: quando as aulas abrem para quem comprar agora
 };
 
 export const reais = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -20,6 +21,7 @@ const ERROS: Record<string, string> = {
   ja_matriculado: 'Você já tem acesso a este curso.',
   vendas_fechadas: 'As vendas deste curso abrem em breve.',
   sem_preco: 'Este curso ainda não está à venda.',
+  em_breve: 'Este curso ainda não foi lançado. As vendas abrem na data de lançamento.',
   curso_nao_encontrado: 'Curso não encontrado.',
   mercado_pago: 'O Mercado Pago não respondeu. Tente de novo em instantes.',
 };
@@ -98,6 +100,9 @@ export function Comprar({ sessao, slug }: { sessao: Session; slug: string }) {
               <section className="rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.rule}` }}>
                 <p className="text-[12.5px] font-semibold uppercase tracking-wide" style={{ color: T.accent }}>Curso</p>
                 <p className="font-bold text-[18px] mt-1" style={display}>{resumo.curso}</p>
+                {resumo.acesso_em && (
+                  <p className="text-[13.5px] mt-1.5" style={{ color: T.accent }}>Pré-venda: suas aulas abrem em {diaHora(resumo.acesso_em)}.</p>
+                )}
                 <ul className="mt-3 space-y-1.5 text-[14px]" style={{ color: T.ink2 }}>
                   {['Acesso a todas as aulas, no celular e no computador', 'Materiais para baixar', 'Certificado de conclusão', 'Garantia de 7 dias: não gostou, devolvemos o valor'].map(t => (
                     <li key={t} className="flex items-start gap-2"><CheckCircle2 size={16} className="shrink-0 mt-0.5" color="#22C55E" /> {t}</li>

@@ -144,10 +144,27 @@ export function erroAuth(msg: string) {
 /* ─── Tipos e consulta de cursos com progresso ─────────────────── */
 export type Aula   = { id: string; titulo: string; descricao: string | null; ordem: number; duracao_seg: number; gratuita: boolean };
 export type Modulo = { id: string; titulo: string; ordem: number; academy_lessons: Aula[] };
-export type Curso  = { id: string; slug: string; titulo: string; subtitulo: string | null; ordem: number; capa: string | null; categorias: string[] | null; nivel: string | null; academy_modules: Modulo[] };
+export type Curso  = { id: string; slug: string; titulo: string; subtitulo: string | null; ordem: number; capa: string | null; categorias: string[] | null; nivel: string | null; academy_modules: Modulo[] } & Lancamento;
 
 export const SELECT_CURSO =
-  'id, slug, titulo, subtitulo, ordem, capa, categorias, nivel, academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita))';
+  'id, slug, titulo, subtitulo, ordem, capa, categorias, nivel, lancamento_em, antecipado_dias, prevenda, prevenda_preco, academy_modules(id, titulo, ordem, academy_lessons(id, titulo, descricao, ordem, duracao_seg, gratuita))';
+
+/* ─── Lançamento: data de abertura, pré-venda e acesso antecipado ───
+   Antes da data o curso aparece como "Em breve" (com pré-venda, já dá para comprar).
+   Quem comprou assiste a partir da data menos os dias de acesso antecipado. O banco confere o mesmo (SQL 033). */
+export type Lancamento = { lancamento_em?: string | null; antecipado_dias?: number | null; prevenda?: boolean | null; prevenda_preco?: number | null };
+export const CAMPOS_LANCAMENTO = 'lancamento_em, antecipado_dias, prevenda, prevenda_preco';
+export const antesDoLancamento = (c: Lancamento) => !!c.lancamento_em && Date.now() < new Date(c.lancamento_em).getTime();
+export const acessoAbreEm = (c: Lancamento) =>
+  c.lancamento_em ? new Date(new Date(c.lancamento_em).getTime() - (c.antecipado_dias ?? 0) * 86400000) : null;
+export const acessoLiberado = (c: Lancamento) => { const d = acessoAbreEm(c); return !d || Date.now() >= d.getTime(); };
+/* "12/12" e "12 de dezembro às 19h" (ou "às 19h30") */
+export const diaCurto = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+export const diaHora = (d: Date | string) => {
+  const x = new Date(d);
+  const h = `${x.getHours()}h${x.getMinutes() ? String(x.getMinutes()).padStart(2, '0') : ''}`;
+  return `${x.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })} às ${h}`;
+};
 
 /* Categorias do curso, sem vazias e sem repetir */
 export const categoriasDe = (c: { categorias?: string[] | null }) =>
