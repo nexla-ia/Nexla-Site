@@ -102,7 +102,8 @@ export function CartaoVenda({ cursoId, tituloCurso }: { cursoId: string; tituloC
 /* ─── Seção Vendas: pedidos + cupons ─────────────────────────────── */
 type Pedido = {
   id: string; status: string; total: number; desconto: number; cupom: string | null; com_oferta_extra: boolean;
-  forma_pagamento: string | null; criado_em: string; pago_em: string | null; user_id: string; course_id: string;
+  forma_pagamento: string | null; criado_em: string; pago_em: string | null; user_id: string; course_id: string | null;
+  itens: { titulo?: string }[] | null;
 };
 type Cupom = { codigo: string; tipo: 'percentual' | 'valor'; valor: number; course_id: string | null; validade: string | null; limite_usos: number | null; usos: number; ativo: boolean };
 
@@ -235,7 +236,8 @@ function Tela({ nome }: { nome: string }) {
                             <td className="px-5 py-3 whitespace-nowrap" style={{ color: T.mute }}>{data(p.criado_em)}</td>
                             <td className="px-3 py-3">{nomes.get(p.user_id) ?? 'Aluno'}</td>
                             <td className="px-3 py-3">
-                              {cursos.get(p.course_id) ?? '—'}
+                              {/* Curso apagado: o pedido continua, com o nome guardado nos itens */}
+                              {(p.course_id && cursos.get(p.course_id)) ?? (p.itens?.[0]?.titulo ? `${p.itens[0].titulo} (apagado)` : '—')}
                               {(p.com_oferta_extra || p.cupom) && (
                                 <span className="block text-[12px]" style={{ color: T.mute }}>
                                   {p.com_oferta_extra && '+ oferta extra'}{p.com_oferta_extra && p.cupom && ' · '}{p.cupom && `cupom ${p.cupom}`}

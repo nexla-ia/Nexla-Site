@@ -432,8 +432,10 @@ function AbaConfig({ curso, recarregar }: { curso: CursoA; recarregar: () => Pro
 
   const apagarCurso = async () => {
     const conf = window.prompt(`Isso apaga o curso, todas as aulas, matrículas e o progresso dos alunos.\nPara confirmar, digite o endereço do curso: ${curso.slug}`);
-    if (conf !== curso.slug) return;
-    await supabase.from('academy_courses').delete().eq('id', curso.id);
+    if (conf === null) return;
+    if (conf.trim() !== curso.slug) return window.alert('O endereço digitado não confere. O curso não foi apagado.');
+    const { error } = await supabase.from('academy_courses').delete().eq('id', curso.id);
+    if (error) return window.alert('Não foi possível apagar o curso. Tente de novo em instantes.');
     navegar('/admin/cursos');
   };
 
