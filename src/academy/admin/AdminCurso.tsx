@@ -9,7 +9,6 @@ import { T, display, ease } from '../ui';
 import { Carregando } from '../AppLayout';
 import { Link, navegar, parametro } from '../router';
 import { supabase, tempoTotal, plural, categoriasDe } from '../supabase';
-import { idYoutube, duracaoYoutube } from '../youtube';
 import AbaAlunos from './AbaAlunos';
 import { CartaoVenda } from './Vendas';
 import { CartaoBonus, CartaoInstrutor, CartaoPerguntas } from './BonusFaq';
@@ -98,22 +97,21 @@ function NovoCurso() {
   );
 }
 
-/* Duração real do vídeo: no YouTube, lida por um player escondido; no Bunny, pela função academy-video.
+/* Duração real do vídeo no Bunny (a função academy-video lê da página do player).
    É essa duração que o banco usa para exigir que o aluno assista 70% antes de concluir a aula. */
 function useDuracaoVideo(aulaId: string, videoId: string) {
   const [estado, setEstado] = useState<{ seg: number | null; lendo: boolean; falhou: boolean }>({ seg: null, lendo: false, falhou: false });
   useEffect(() => {
     const id = videoId.trim();
-    const yt = idYoutube(id);
     setEstado({ seg: null, lendo: false, falhou: false });
-    if (!yt && !/^[0-9a-f-]{36}$/i.test(id)) return;
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return;
     let vivo = true;
     const t = window.setTimeout(async () => {
       setEstado({ seg: null, lendo: true, falhou: false });
-      const seg = yt ? await duracaoYoutube(yt)
-        : Number((await supabase.functions.invoke('academy-video', { body: { aula: aulaId, video: id } })).data?.duracao_seg);
+      const { data } = await supabase.functions.invoke('academy-video', { body: { aula: aulaId, video: id } });
       if (!vivo) return;
-      setEstado(seg && seg > 0 ? { seg, lendo: false, falhou: false } : { seg: null, lendo: false, falhou: true });
+      const seg = Number(data?.duracao_seg);
+      setEstado(seg > 0 ? { seg, lendo: false, falhou: false } : { seg: null, lendo: false, falhou: true });
     }, 500);
     return () => { vivo = false; window.clearTimeout(t); };
   }, [aulaId, videoId]);
@@ -148,8 +146,7 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
     const { error } = await supabase.from('academy_lessons').update({
       titulo: titulo.trim(), descricao: descricao.trim() || null,
       duracao_seg: Math.max(0, segundos),
-      // Link do YouTube vira só o ID; o ID do Bunny fica como está
-      gratuita, video_id: idYoutube(videoId) ?? (videoId.trim() || null),
+      gratuita, video_id: videoId.trim() || null,
       ...(moduloId !== moduloAtual && destino ? { module_id: moduloId, ordem: destino.academy_lessons.length + 1 } : {}),
     }).eq('id', aula.id);
     setSalvando(false);
@@ -196,12 +193,9 @@ function EditorAula({ aula, modulos, moduloAtual, onFechar, onSalvo }: {
             </select>
           </Rotulo>
           <div>
-            <Rotulo texto="Link do vídeo no YouTube" dica='Cole o link do vídeo (ex.: https://youtu.be/...). Deixe o vídeo como "Não listado" no YouTube. A duração da aula vem do próprio vídeo.'>
-              <input className={inputCls} value={videoId} placeholder="https://youtu.be/..." onChange={e => setVideoId(e.target.value)} />
+            <Rotulo texto="ID do vídeo (Bunny Stream)" dica="Cole o ID do vídeo (Video ID / GUID) da biblioteca do Bunny Stream. A duração da aula vem do próprio vídeo.">
+              <input className={inputCls} value={videoId} placeholder="ex.: 3f2a9c1e-..." onChange={e => setVideoId(e.target.value)} />
             </Rotulo>
-            {videoId.trim() && !idYoutube(videoId) && !/^[0-9a-f-]{36}$/i.test(videoId.trim()) && (
-              <p className="text-[12.5px] mt-1.5" style={{ color: 'var(--a-amber)' }}>Este link não parece ser de um vídeo do YouTube. Confira e cole de novo.</p>
-            )}
             {duracao.lendo && <p className="text-[12.5px] mt-1.5" style={{ color: T.mute }}>Lendo a duração do vídeo…</p>}
             {duracao.seg !== null && (
               <p className="text-[12.5px] mt-1.5 font-medium" style={{ color: 'var(--a-green)' }}>

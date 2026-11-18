@@ -130,7 +130,7 @@ const PRIVACIDADE = (): Secao[] => [
     [
       'Supabase: banco de dados, login e armazenamento de arquivos.',
       'Mercado Pago: processamento dos pagamentos e reembolsos.',
-      'YouTube (Google) e Bunny.net: hospedagem e transmissão dos vídeos das aulas.',
+      'Bunny.net: hospedagem e transmissão dos vídeos das aulas.',
       'Vercel: hospedagem do site.',
       'Google: login com a conta Google (quando você escolhe essa opção) e envio dos e-mails da Academy.',
       'Meta (Facebook e Instagram): medição dos anúncios pelo Meta Pixel e pela API de Conversões. Recebe as páginas visitadas, cadastros e compras; e-mail, telefone e o código da sua conta vão criptografados.',
